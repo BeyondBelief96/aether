@@ -5,3 +5,9 @@
 Write a test for every operation before using it. Record your API decision here (mutable methods, pure `out`-parameter functions, or both) once you make it.
 
 See [PLAN.md, Phase 1](../../docs/PLAN.md#phase-1-math-library).
+
+## Public API conventions
+
+- Import math through `index.ts` (`from '../math'`), never from individual files.
+- Public methods take `Vec3Like` (any `{ x, y, z }`, including `THREE.Vector3`) as input and return concrete engine types such as `Vec3`.
+- `src/index.ts` is the package entry point. Only engine and math exports go there.

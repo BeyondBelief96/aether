@@ -10,12 +10,16 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 
 | | Resource | Use it for |
 |---|---|---|
-| 📖 | **Ian Millington, *Game Physics Engine Development*** (local PDF: `~/Desktop/textbooks/Ian_Millington-Game_Physics_Engine_Development-EN.pdf`) | The backbone. Chapter order matches the phases (see the chapter map in PLAN.md). |
+| 📖 | **Ian Millington, *Game Physics Engine Development*** (local PDF: `~/Desktop/Textbooks/Ian_Millington-Game_Physics_Engine_Development-EN.pdf`; PDF page = printed page + 23) | The backbone. Chapter order matches the phases; PLAN.md cites sections and pages per phase. |
 | 📖 | **Christer Ericson, *Real-Time Collision Detection*** — [realtimecollisiondetection.net](https://realtimecollisiondetection.net/books/rtcd/) | The standard reference for Phase 5. |
 | 🎤 | **Erin Catto's GDC talks and papers** — [box2d.org/publications](https://box2d.org/publications/) | The clearest explanations of contact solvers anywhere. Phases 6–8. |
 | 🎥 | **Matthias Müller, *Ten Minute Physics*** — [index](https://matthias-research.github.io/pages/tenMinutePhysics/index.html) · [code](https://github.com/matthias-research/pages) | Short videos with runnable JavaScript, so it maps straight onto a web project. |
 | 📄 | **Glenn Fiedler, *Game Physics* series** — [Integration Basics](https://gafferongames.com/post/integration_basics/) · [Fix Your Timestep!](https://gafferongames.com/post/fix_your_timestep/) · [Physics in 3D](https://gafferongames.com/post/physics_in_3d/) · [Spring Physics](https://gafferongames.com/post/spring_physics/) | ★ Short and practical; the timestep article underpins Phase 0. |
 | 📄 | **Allen Chou, *Game Physics* series** — [allenchou.net/game-physics-series](https://allenchou.net/game-physics-series/) | 3D-specific: broadphase, GJK and EPA, contact manifolds, sequential impulses. |
+| 📄 | **Witkin & Baraff, *Physically Based Modeling* (SIGGRAPH '99 course notes)** — [Stanford PDF](https://graphics.stanford.edu/courses/cs448b-00-winter/papers/phys_model.pdf) (287 pages; notes then slides) | Differential equations (PDF p. 5), particle dynamics (p. 13), rigid bodies with contact (p. 25), implicit methods (p. 93), constrained dynamics (p. 98), collision detection slides (p. 143). Phases 2–7. |
+| 📄 | **Newcastle University, *Physics Tutorials*** — [index](https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/physicstutorials/) | MSc course notes: 1 Raycasting, 2 Linear Motion, 3 Angular Motion, 4 Collision Detection, 5 Collision Response, 6 Broad and Narrow Phase, 8 Constraints and Solvers. A second explanation for Phases 2–7. |
+| 📄 | **Nilson Souto, *Video Game Physics Tutorial*** (Toptal) — [Part I: Rigid Body Dynamics](https://www.toptal.com/developers/game/video-game-physics-part-i-an-introduction-to-rigid-body-dynamics) · [Part II: Collision Detection](https://www.toptal.com/developers/game/video-game-physics-part-ii-collision-detection-for-solid-objects) · [Part III: Constrained Rigid Body Simulation](https://www.toptal.com/game/video-game-physics-part-iii-constrained-rigid-body-simulation) | Phases 4, 5 and 6–7 respectively. |
+| 📄 | *Optional refresher:* a Physics GRE prep pack ([Dropbox folder](https://www.dropbox.com/scl/fo/lkoz1ulj0w3iwxvr79zl3/ANCqx23SJ19je2SudgXc19A?rlkey=378833iav2gmon7lkb45ts48w&e=1&dl=0), 131 MB zip of notes, formula sheets and past papers) | Not engine-specific. Useful only if classical mechanics (Newton's laws, rotation, momentum) needs brushing up. |
 
 ---
 
@@ -40,6 +44,7 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 🎥 | 3Blue1Brown, [*Essence of Linear Algebra*](https://www.3blue1brown.com/topics/linear-algebra): geometric intuition for dot and cross products, matrices, determinants |
 | 🎥 | Ben Eater & 3Blue1Brown, [interactive quaternions](https://eater.net/quaternions) |
 | 🎥 | Ten Minute Physics, ep. 07 *Intuitive 3d Vector Math for Simulation* |
+| 📄 | Song Ho Ahn, [Quaternion to Rotation Matrix](http://www.songho.ca/opengl/gl_quaternion.html): derivation of `setFromQuat`, with a worked example to use as a test |
 | 💻 | Read for API ideas: Three.js `Vector3` / `Quaternion` / `Matrix3`; cannon-es `math/` |
 
 ## Phase 2: Particles and integration
@@ -51,6 +56,8 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 📄 | ★ Florian Boesch, [Integration by Example: Euler vs Verlet vs Runge-Kutta](https://web.archive.org/web/20161203201525/http://codeflow.org/entries/2010/aug/28/integration-by-example-euler-vs-verlet-vs-runge-kutta/) (archived) |
 | 📄 | ★ Jonathan Dummer, [A Simple Time-Corrected Verlet Integration Method](https://web.archive.org/web/20170116023423/http://lonesock.net/article/verlet.html) (archived) |
 | 📄 | Witkin & Baraff, [*Physically Based Modeling* course notes](https://www.cs.cmu.edu/~baraff/sigcourse/): the "Differential Equation Basics" and "Particle Dynamics" chapters |
+| 📄 | ★ Chris Hecker, [Physics, Part 1: The Next Frontier](https://www.chrishecker.com/Rigid_Body_Dynamics): linear motion and integration |
+| 📄 | Newcastle University, Tutorial 2 *Linear Motion* ([index](https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/physicstutorials/)) |
 | 🎥 | Ten Minute Physics: ep. 01 *Introduction to 2d web browser physics*, ep. 02 *…3d and VR web browser physics*, ep. 03 *Ball collision handling in 2d* |
 | 🌐 | MDN, [Canvas API tutorial](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial): for the energy graph |
 
@@ -62,6 +69,7 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 📄 | ★ Thomas Jakobsen, [Advanced Character Physics](https://web.archive.org/web/20080410171619/http://www.teknikus.dk/tj/gdc2001.htm) (GDC 2001, archived): Verlet with position constraints, the basis of cloth and ragdolls in *Hitman* |
 | 📄 | Glenn Fiedler, [Spring Physics](https://gafferongames.com/post/spring_physics/) |
 | 📄 | Müller, Macklin et al., [XPBD: Position-Based Simulation of Compliant Constrained Dynamics](https://matthias-research.github.io/pages/publications/XPBD.pdf) |
+| 📄 | Andrew Witkin, [Constrained Dynamics](https://www.cs.cmu.edu/~baraff/pbm/constraints.pdf) (13 pages): constraint forces instead of stiff springs; first three sections here, the rest in Phase 7 |
 | 🎥 | Ten Minute Physics: ep. 05 *The simplest possible physics simulation method*, ep. 08 *Providing user interaction with a 3d scene*, ep. 09 *Getting ready to simulate the world with XPBD*, ep. 10 *Simple and unbreakable simulation of soft bodies*, ep. 14 *The secret of cloth simulation* |
 | 🎤 | Erin Catto, [Soft Constraints](https://box2d.org/files/ErinCatto_SoftConstraints_GDC2011.pdf) (GDC 2011): stiffness without explosions |
 | 🌐 | [Three.js Raycaster](https://threejs.org/docs/#api/en/core/Raycaster): for dragging particles |
@@ -75,7 +83,11 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 📄 | ★ Witkin & Baraff, [*Physically Based Modeling* course notes](https://www.cs.cmu.edu/~baraff/sigcourse/) ([Pixar mirror](https://graphics.pixar.com/pbm2001/)): the "Rigid Body Dynamics" chapters |
 | 📄 | ★ David Baraff, [papers and technical reports](https://www.cs.cmu.edu/~baraff/papers/index.html) |
 | 📄 | Brian Mirtich, [Fast and Accurate Computation of Polyhedral Mass Properties](https://people.eecs.berkeley.edu/~jfc/mirtich/massProps.html): inertia tensors for convex hulls |
+| 📄 | Newcastle University, Tutorial 3 *Angular Motion* ([index](https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/physicstutorials/)) |
+| 📄 | Harry Smith, [*Aircraft Flight Mechanics*: Assumed knowledge](https://aircraftflightmechanics.com/Prerequisites/Prerequisites.html#controlsurfaces): control surfaces, aerodynamic coefficients, lift vs angle of attack. For the flight-sim demo |
+| 🌐 | [Airfoil Tools](http://airfoiltools.com/): airfoil database with lift and drag curves |
 | 📄 | Glenn Fiedler, [Physics in 3D](https://gafferongames.com/post/physics_in_3d/) |
+| 🎤 | Erin Catto, [Numerical Methods](https://box2d.org/files/ErinCatto_NumericalMethods_GDC2015.pdf) (GDC 2015): integrator stability and the implicit gyroscopic term |
 | 🎥 | Ten Minute Physics, ep. 22 *How to write a basic rigid body simulator using position based dynamics* |
 | 📄 | ★ Randy Gaul, [How to Create a Custom 2D Physics Engine: Oriented Rigid Bodies](https://code.tutsplus.com/how-to-create-a-custom-2d-physics-engine-oriented-rigid-bodies--gamedev-8032t) (2D, but the clearest intro to angular terms) |
 
@@ -87,6 +99,9 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 📖 | Ericson, *Real-Time Collision Detection*: ch. 4 (bounding volumes), 5 (primitive tests), 6–7 (BVHs, spatial partitioning), 9 (GJK) |
 | 📄 | ★ William Bittle, [SAT (Separating Axis Theorem)](https://dyn4j.org/2010/01/sat/) (moved from codezealot.org) |
 | 📄 | ★ William Bittle, [GJK](https://dyn4j.org/2010/04/gjk-gilbert-johnson-keerthi/) · [EPA](https://dyn4j.org/2010/05/epa-expanding-polytope-algorithm/) · [Contact Points Using Clipping](https://dyn4j.org/2011/11/contact-points-using-clipping/) |
+| 📄 | Kenneth I. Joy, *Clipping* (UC Davis notes; local PDF: `~/Desktop/Textbooks/JoyKennethClipping-200905-175314.pdf`): §2–4, point-vs-plane tests and Sutherland–Hodgman polygon clipping for contact manifolds |
+| 📄 | Newcastle University, Tutorial 4 *Collision Detection* and [Tutorial 6 *Broad phase and Narrow phase*](https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/physicstutorials/6accelerationstructures/Physics%20-%20Spatial%20Acceleration%20Structures.pdf): BSP, quadtrees, octrees, static vs dynamic objects |
+| 📄 | Pierre Vigier, [Quadtree and Collision Detection](https://pvigier.github.io/2019/08/04/quadtree-collision-detection.html): a dynamic quadtree broadphase with pair reporting |
 | 🎤 | Erin Catto, [Computing Distance using GJK](https://box2d.org/files/ErinCatto_GJK_GDC2010.pdf) (GDC 2010) |
 | 🎤 | Erin Catto, [Dynamic Bounding Volume Hierarchies](https://box2d.org/files/ErinCatto_DynamicBVH_GDC2019.pdf) (GDC 2019): the broadphase most engines use |
 | 🎤 | Dirk Gregorius, [The Separating Axis Test between Convex Polyhedra](https://www.gdcvault.com/play/1017646/Physics-for-Game-Programmers-The) (GDC 2013): box–box and hull–hull SAT done properly |
@@ -104,6 +119,8 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 🎤 | Erin Catto, [Fast and Simple Physics using Sequential Impulses](https://box2d.org/files/ErinCatto_SequentialImpulses_GDC2006.pdf) (GDC 2006): **the** sequential-impulse reference |
 | 📄 | Erin Catto, [Solver2D](https://box2d.org/posts/2024/02/solver2d/): compares eight solvers (soft step, PGS, TGS, XPBD…) on the same scenes |
 | 📄 | ★ Glenn Fiedler, [Collision Response and Coulomb Friction](https://gafferongames.com/post/collision_response_and_coulomb_friction/) |
+| 📄 | Newcastle University, [Tutorial 5 *Collision Response*](https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/physicstutorials/5collisionresponse/Physics%20-%20Collision%20Response.pdf): projection vs impulse methods |
+| 📄 | Allen Chou, [Resolution – Contact Constraints](http://allenchou.net/2013/12/game-physics-resolution-contact-constraints/) · [Stability – Warm Starting](http://allenchou.net/2014/01/game-physics-stability-warm-starting/): the 3D contact Jacobian, Baumgarte, restitution, friction, persistent contacts |
 | 📄 | ★ Erik Neumann, [myPhysicsLab: Rigid-body collisions](https://www.myphysicslab.com/engine2D/collision-en.html): the original "Collision Handling Methods" page has moved; see the [site index](https://www.myphysicslab.com/) |
 | 📄 | ★ Randy Gaul, [How to Create a Custom 2D Physics Engine: The Basics and Impulse Resolution](https://code.tutsplus.com/how-to-create-a-custom-2d-physics-engine-the-basics-and-impulse-resolution--gamedev-6331t) · [blog](https://randygaul.github.io/) |
 | 📄 | ★ Paul Firth, [Physics engines for dummies](https://www.wildbunny.co.uk/blog/2011/04/06/physics-engines-for-dummies/) (the site may block automated access; open it in a browser) |
@@ -120,6 +137,12 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 🎤 | Erin Catto, [Soft Constraints](https://box2d.org/files/ErinCatto_SoftConstraints_GDC2011.pdf) (GDC 2011): frequency and damping-ratio joints |
 | 📄 | David Baraff, [Fast Contact Force Computation for Nonpenetrating Rigid Bodies](https://www.cs.cmu.edu/~baraff/papers/sig94.pdf) (SIGGRAPH 1994): the LCP view of contacts, for depth |
 | 📄 | Allen Chou, [*Game Physics* series](https://allenchou.net/game-physics-series/): constraints and sequential impulses |
+| 🎥 | Allen Chou, [Physics Constraints in Games Part 1 – Constraint Basics](https://www.youtube.com/watch?v=MTVdBgQY9LY) |
+| 📄 | Andrew Witkin, [Constrained Dynamics](https://www.cs.cmu.edu/~baraff/pbm/constraints.pdf): the force-level derivation of `J·M⁻¹·Jᵀ·λ` |
+| 📄 | myselph.de, [Equality Constraints & Solver](https://web.archive.org/web/20211022100314mp_/http://myselph.de/gamePhysics/equalityConstraints.html) (archived, 2D): a worked joint derivation following Catto GDC 2009 |
+| 📄 | Newcastle University, Tutorial 8 *Constraints and Solvers* ([index](https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/physicstutorials/)) |
+| 📄 | Witkin, Gleicher & Welch, [Interactive Dynamics](https://dl.acm.org/doi/pdf/10.1145/91394.91400) (1990) · Barzel & Barr, [A Modeling System Based on Dynamic Constraints](https://hal.science/hal-01968730/document) (1988): optional history |
+| 📄 | Maloisel et al., [A Versatile Quaternion-based Constrained Rigid Body Dynamics](https://la.disneyresearch.com/wp-content/uploads/A_Versatile_Quaternion_based_Constrained_Rigid_Body_Dynamics.pdf) (Disney Research, 2025): research level |
 | 🎥 | Ten Minute Physics: ep. 06 *Writing a triple pendulum simulation is simple*, ep. 25 *Joint simulation made simple* |
 
 ## Phase 8: Stretch goals
@@ -130,6 +153,8 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 🎤 | ★ Erin Catto, [Continuous Collision](https://box2d.org/files/ErinCatto_ContinuousCollision_GDC2013.pdf) (GDC 2013; [video](https://www.gdcvault.com/play/1018239/Physics-for-Game-Programmers-Continuous)) |
 | 📄 | Erin Catto, [Determinism](https://box2d.org/posts/2024/08/determinism/) (Box2D blog) |
 | 📄 | Müller et al., [XPBD](https://matthias-research.github.io/pages/publications/XPBD.pdf) |
+| 📄 | Chen, Hsu, Liu, Macklin, Yang & Yuksel, [Offset Geometric Contact](https://graphics.cs.utah.edu/research/projects/ogc/Offset_Geometric_Contact-SIGGRAPH2025.pdf) (SIGGRAPH 2025): penetration-free contact for cloth and deformables |
+| 📄 | Harry Smith, [*Aircraft Flight Mechanics*](https://aircraftflightmechanics.com/) · [Airfoil Tools](http://airfoiltools.com/): drag models, stability derivatives, real airfoil data |
 | 📄 | ★ Mark Bayazit, convex polygon decomposition (linked from brm.io; the original page is gone, so search for "Bayazit decomposition"): for splitting concave shapes into convex pieces |
 | 🌐 | MDN: [Using Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) · [SharedArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) (requires cross-origin isolation headers) |
 
