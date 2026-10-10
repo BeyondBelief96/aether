@@ -1,0 +1,26 @@
+{
+    "name": "aether",
+    "private": true,
+    "version": "0.0.0",
+    "description": "A 3D rigid-body physics engine built from scratch in TypeScript, with a Lit + Three.js playground.",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc && vite build",
+        "preview": "vite preview",
+        "typecheck": "tsc",
+        "test": "vitest",
+        "test:run": "vitest run"
+    },
+    "dependencies": {
+        "lit": "^3.3.3",
+        "three": "^0.186.1"
+    },
+    "devEngines": {},
+    "devDependencies": {
+        "@types/three": "^0.186.0",
+        "typescript": "^7.0.2",
+        "vite": "^8.3.4",
+        "vitest": "^5.0.3"
+    }
+}
