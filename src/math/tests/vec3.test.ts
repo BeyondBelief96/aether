@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { Vec3 } from "../vec3";
+import { Vec3 } from "../geometry/vec3";
 import type { Vec3Like } from "../types";
 
-function expectVec3(actual: Vec3Like, x: number, y: number, z: number, digits = 12) {
+function expectVec3(
+    actual: Vec3Like,
+    x: number,
+    y: number,
+    z: number,
+    digits = 12,
+) {
     expect(actual.x).toBeCloseTo(x, digits);
     expect(actual.y).toBeCloseTo(y, digits);
     expect(actual.z).toBeCloseTo(z, digits);
@@ -55,7 +61,12 @@ describe("Vec3", () => {
         });
 
         it("subtracts", () => {
-            expectVec3(new Vec3(1, 2, 3).subtract({ x: 4, y: 6, z: 8 }), -3, -4, -5);
+            expectVec3(
+                new Vec3(1, 2, 3).subtract({ x: 4, y: 6, z: 8 }),
+                -3,
+                -4,
+                -5,
+            );
         });
 
         it("scales", () => {
@@ -63,22 +74,43 @@ describe("Vec3", () => {
         });
 
         it("adds a scaled vector without scaling itself", () => {
-            expectVec3(new Vec3(1, 1, 1).addScaled({ x: 1, y: 2, z: 3 }, 2), 3, 5, 7);
+            expectVec3(
+                new Vec3(1, 1, 1).addScaled({ x: 1, y: 2, z: 3 }, 2),
+                3,
+                5,
+                7,
+            );
         });
 
         it("multiplies component-wise", () => {
-            expectVec3(new Vec3(1, 2, 3).componentWiseProduct({ x: 4, y: 5, z: -6 }), 4, 10, -18);
+            expectVec3(
+                new Vec3(1, 2, 3).componentWiseProduct({ x: 4, y: 5, z: -6 }),
+                4,
+                10,
+                -18,
+            );
         });
 
         it("returns itself from mutating methods for chaining", () => {
             const v = new Vec3(1, 0, 0);
-            expect(v.add(Y()).subtract(Z()).scale(2).addScaled(X(), 1).componentWiseProduct(X())).toBe(v);
+            expect(
+                v
+                    .add(Y())
+                    .subtract(Z())
+                    .scale(2)
+                    .addScaled(X(), 1)
+                    .componentWiseProduct(X()),
+            ).toBe(v);
             expectVec3(v, 3, 0, 0);
         });
 
         it("does not modify the argument", () => {
             const w = new Vec3(4, 5, 6);
-            new Vec3(1, 2, 3).add(w).subtract(w).addScaled(w, 2).componentWiseProduct(w);
+            new Vec3(1, 2, 3)
+                .add(w)
+                .subtract(w)
+                .addScaled(w, 2)
+                .componentWiseProduct(w);
             expectVec3(w, 4, 5, 6);
         });
     });
@@ -129,7 +161,11 @@ describe("Vec3", () => {
 
         it("has magnitude |a||b|sin(θ)", () => {
             const a = new Vec3(2, 0, 0);
-            const b = new Vec3(Math.cos(Math.PI / 6), Math.sin(Math.PI / 6), 0).scale(3);
+            const b = new Vec3(
+                Math.cos(Math.PI / 6),
+                Math.sin(Math.PI / 6),
+                0,
+            ).scale(3);
             expect(a.clone().cross(b).magnitude()).toBeCloseTo(2 * 3 * 0.5, 12);
         });
 
@@ -165,7 +201,10 @@ describe("Vec3", () => {
 
     describe("normalize", () => {
         it("produces a unit vector", () => {
-            expect(new Vec3(3, -4, 12).normalize().magnitude()).toBeCloseTo(1, 12);
+            expect(new Vec3(3, -4, 12).normalize().magnitude()).toBeCloseTo(
+                1,
+                12,
+            );
         });
 
         it("preserves direction", () => {
@@ -179,12 +218,16 @@ describe("Vec3", () => {
 
         it("leaves the zero vector unchanged instead of producing NaN", () => {
             const v = new Vec3(0, 0, 0).normalize();
-            expect(Number.isNaN(v.x) || Number.isNaN(v.y) || Number.isNaN(v.z)).toBe(false);
+            expect(
+                Number.isNaN(v.x) || Number.isNaN(v.y) || Number.isNaN(v.z),
+            ).toBe(false);
             expectVec3(v, 0, 0, 0);
         });
 
         it("handles very small vectors", () => {
-            expect(new Vec3(1e-150, 1e-150, 0).normalize().magnitude()).toBeCloseTo(1, 12);
+            expect(
+                new Vec3(1e-150, 1e-150, 0).normalize().magnitude(),
+            ).toBeCloseTo(1, 12);
         });
 
         it("returns itself", () => {
