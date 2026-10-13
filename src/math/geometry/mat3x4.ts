@@ -1,4 +1,5 @@
 import type { Vec3Like } from "../types";
+import { Mat3x3 } from "./mat3x3";
 import { Vec3 } from "./vec3";
 
 const IDENTITY = new Float64Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0]);
@@ -53,6 +54,241 @@ export class Mat3x4 {
 
     clone(): Mat3x4 {
         return new Mat3x4().copy(this);
+    }
+
+    /**
+     * Sets this transform from a 3×3 linear part `m` and a translation `t`: `p ↦ m·p + t`.
+     *
+     * @param m Linear part.
+     * @param t Translation. Defaults to zero.
+     */
+    setFromMat3x3(m: Mat3x3, t: Vec3Like = { x: 0, y: 0, z: 0 }): this {
+        const e = this.elements;
+        const a = m.elements;
+        e[0] = a[0]!;
+        e[1] = a[1]!;
+        e[2] = a[2]!;
+        e[3] = t.x;
+        e[4] = a[3]!;
+        e[5] = a[4]!;
+        e[6] = a[5]!;
+        e[7] = t.y;
+        e[8] = a[6]!;
+        e[9] = a[7]!;
+        e[10] = a[8]!;
+        e[11] = t.z;
+        return this;
+    }
+
+    /**
+     * Copies the 3×3 linear part of this transform into `out`, dropping the translation.
+     *
+     * @param out Destination. Allocated if omitted.
+     */
+    getMat3x3(out: Mat3x3 = new Mat3x3()): Mat3x3 {
+        const e = this.elements;
+        const o = out.elements;
+        o[0] = e[0]!;
+        o[1] = e[1]!;
+        o[2] = e[2]!;
+        o[3] = e[4]!;
+        o[4] = e[5]!;
+        o[5] = e[6]!;
+        o[6] = e[8]!;
+        o[7] = e[9]!;
+        o[8] = e[10]!;
+        return out;
+    }
+
+    /**
+     * Sets this transform to a pure translation by `(x, y, z)`.
+     *
+     * Overwrites the current contents: the linear part becomes the identity.
+     *
+     * @param x Translation along the X axis.
+     * @param y Translation along the Y axis.
+     * @param z Translation along the Z axis.
+     */
+    setTranslation(x: number, y: number, z: number): this {
+        this.elements.set(IDENTITY);
+        const e = this.elements;
+        e[3] = x;
+        e[7] = y;
+        e[11] = z;
+        return this;
+    }
+
+    /**
+     * Copies the translation column of this transform into `out`.
+     *
+     * This is where the transform sends the origin.
+     *
+     * @param out Destination. Allocated if omitted.
+     */
+    getTranslation(out: Vec3 = new Vec3()): Vec3 {
+        const e = this.elements;
+        out.x = e[3]!;
+        out.y = e[7]!;
+        out.z = e[11]!;
+        return out;
+    }
+
+    /**
+     * Sets this transform to a scaling about the origin that stretches each axis by its own
+     * factor.
+     *
+     * Pass a single factor for uniform scaling: `setScale(2)` scales every axis by 2.
+     * Overwrites the current contents rather than scaling them, and clears the translation.
+     *
+     * @param x Scale factor along the X axis.
+     * @param y Scale factor along the Y axis. Defaults to `x`.
+     * @param z Scale factor along the Z axis. Defaults to `x`.
+     */
+    setScale(x: number, y: number = x, z: number = x): this {
+        const e = this.elements;
+        e[0] = x;
+        e[1] = 0;
+        e[2] = 0;
+        e[3] = 0;
+        e[4] = 0;
+        e[5] = y;
+        e[6] = 0;
+        e[7] = 0;
+        e[8] = 0;
+        e[9] = 0;
+        e[10] = z;
+        e[11] = 0;
+        return this;
+    }
+
+    /**
+     * Sets this transform to a scale by factor `k` along an arbitrary `axis` through the origin.
+     *
+     * Components parallel to `axis` are multiplied by `k`; components perpendicular to it
+     * are left unchanged. The linear part is `I + (k - 1) · axis · axisᵀ`, which is symmetric.
+     * With a cardinal axis this matches `setScale` with `k` on that axis and 1 elsewhere.
+     * `k = -1` reflects across the plane perpendicular to `axis`, and `k = 0` projects onto it.
+     *
+     * `axis` must be a unit vector. It is not normalized here, to keep this cheap on hot
+     * paths. A non-unit axis scales by `1 + (k - 1)·|axis|²` instead of `k`. Call
+     * `normalize()` on the axis first if it is not already unit length.
+     *
+     * Clears the translation.
+     *
+     * @param axis Unit-length scaling axis. Its sign does not matter.
+     * @param k Scale factor along `axis`.
+     */
+    setScaleAlongAxis(axis: Vec3Like, k: number): this {
+        const e = this.elements;
+        const x = axis.x;
+        const y = axis.y;
+        const z = axis.z;
+        const t = k - 1;
+        e[0] = 1 + t * x * x;
+        e[1] = t * x * y;
+        e[2] = t * x * z;
+        e[3] = 0;
+        e[4] = t * x * y;
+        e[5] = 1 + t * y * y;
+        e[6] = t * y * z;
+        e[7] = 0;
+        e[8] = t * x * z;
+        e[9] = t * y * z;
+        e[10] = 1 + t * z * z;
+        e[11] = 0;
+        return this;
+    }
+
+    /**
+     * Sets this transform to a reflection across the plane through the origin perpendicular
+     * to `normal`.
+     *
+     * Components along `normal` are negated; components in the plane are left unchanged.
+     * The result is `I - 2 · normal · normalᵀ`: symmetric, orthogonal, its own inverse, with
+     * determinant -1. Equivalent to `setScaleAlongAxis(normal, -1)`. With a cardinal axis
+     * this negates that one coordinate, e.g. `(1, 0, 0)` mirrors across the YZ plane.
+     *
+     * `normal` must be a unit vector. It is not normalized here, to keep this cheap on hot
+     * paths. A non-unit normal does not produce a reflection. Call `normalize()` on it first
+     * if it is not already unit length.
+     *
+     * Clears the translation.
+     *
+     * @param normal Unit-length normal of the mirror plane. Its sign does not matter.
+     */
+    setReflection(normal: Vec3Like): this {
+        return this.setScaleAlongAxis(normal, -1);
+    }
+
+    /**
+     * Sets this transform to a shear about the origin: each coordinate is offset in proportion to the
+     * others.
+     *
+     * Factor `ab` is how far coordinate `a` moves per unit of coordinate `b`, and is stored
+     * in the matching off-diagonal element (`xy` → `m01`):
+     *
+     * ```
+     * x' = x + xy·y + xz·z
+     * y' = y + yx·x + yz·z
+     * z' = z + zx·x + zy·y
+     * ```
+     *
+     * Omitted factors default to 0, so `setShear(2)` shears X by Y only, and no arguments
+     * gives the identity. Shearing a coordinate by one or both of the others is volume
+     * preserving (determinant 1). Combining shears in both directions between a pair, such as
+     * `xy` with `yx`, is not: the determinant is
+     * `1 - xy·yx - xz·zx - yz·zy + xy·yz·zx + xz·zy·yx`.
+     *
+     * Clears the translation.
+     *
+     * @param xy Shift of X per unit of Y.
+     * @param xz Shift of X per unit of Z.
+     * @param yx Shift of Y per unit of X.
+     * @param yz Shift of Y per unit of Z.
+     * @param zx Shift of Z per unit of X.
+     * @param zy Shift of Z per unit of Y.
+     */
+    setShear(xy = 0, xz = 0, yx = 0, yz = 0, zx = 0, zy = 0): this {
+        const e = this.elements;
+        e[0] = 1;
+        e[1] = xy;
+        e[2] = xz;
+        e[3] = 0;
+        e[4] = yx;
+        e[5] = 1;
+        e[6] = yz;
+        e[7] = 0;
+        e[8] = zx;
+        e[9] = zy;
+        e[10] = 1;
+        e[11] = 0;
+        return this;
+    }
+
+    /**
+     * Multiplies every element of this transform by the scalar `k`, in place, including
+     * the translation.
+     *
+     * Unlike `setScale`, this keeps the current contents and scales them. Equivalent to
+     * scaling the result of every `transformPoint` by `k`.
+     *
+     * @param k Scalar to multiply by.
+     */
+    multiplyScalar(k: number): this {
+        const e = this.elements;
+        e[0] = k * e[0]!;
+        e[1] = k * e[1]!;
+        e[2] = k * e[2]!;
+        e[3] = k * e[3]!;
+        e[4] = k * e[4]!;
+        e[5] = k * e[5]!;
+        e[6] = k * e[6]!;
+        e[7] = k * e[7]!;
+        e[8] = k * e[8]!;
+        e[9] = k * e[9]!;
+        e[10] = k * e[10]!;
+        e[11] = k * e[11]!;
+        return this;
     }
 
     /**
@@ -368,5 +604,136 @@ export class Mat3x4 {
         out.y = e[1]! * x + e[5]! * y + e[9]! * z;
         out.z = e[2]! * x + e[6]! * y + e[10]! * z;
         return out;
+    }
+
+    /**
+     * Sets this transform to a rotation of `theta` radians about the X axis.
+     *
+     * Positive angles turn counter-clockwise when looking from +X back toward the origin,
+     * so a quarter turn carries the Y axis onto the Z axis.
+     *
+     * Clears the translation.
+     *
+     * @param theta Angle in radians.
+     */
+    setRotationX(theta: number): this {
+        const e = this.elements;
+        const s = Math.sin(theta);
+        const c = Math.cos(theta);
+        e[0] = 1;
+        e[1] = 0;
+        e[2] = 0;
+        e[3] = 0;
+        e[4] = 0;
+        e[5] = c;
+        e[6] = -s;
+        e[7] = 0;
+        e[8] = 0;
+        e[9] = s;
+        e[10] = c;
+        e[11] = 0;
+        return this;
+    }
+
+    /**
+     * Sets this transform to a rotation of `theta` radians about the Y axis.
+     *
+     * Positive angles turn counter-clockwise when looking from +Y back toward the origin,
+     * so a quarter turn carries the Z axis onto the X axis.
+     *
+     * Clears the translation.
+     *
+     * @param theta Angle in radians.
+     */
+    setRotationY(theta: number): this {
+        const e = this.elements;
+        const s = Math.sin(theta);
+        const c = Math.cos(theta);
+        e[0] = c;
+        e[1] = 0;
+        e[2] = s;
+        e[3] = 0;
+        e[4] = 0;
+        e[5] = 1;
+        e[6] = 0;
+        e[7] = 0;
+        e[8] = -s;
+        e[9] = 0;
+        e[10] = c;
+        e[11] = 0;
+        return this;
+    }
+
+    /**
+     * Sets this transform to a rotation of `theta` radians about the Z axis.
+     *
+     * Positive angles turn counter-clockwise when looking from +Z back toward the origin,
+     * so a quarter turn carries the X axis onto the Y axis.
+     *
+     * Clears the translation.
+     *
+     * @param theta Angle in radians.
+     */
+    setRotationZ(theta: number): this {
+        const e = this.elements;
+        const s = Math.sin(theta);
+        const c = Math.cos(theta);
+        e[0] = c;
+        e[1] = -s;
+        e[2] = 0;
+        e[3] = 0;
+        e[4] = s;
+        e[5] = c;
+        e[6] = 0;
+        e[7] = 0;
+        e[8] = 0;
+        e[9] = 0;
+        e[10] = 1;
+        e[11] = 0;
+        return this;
+    }
+
+    /**
+     * Sets this transform to a rotation of `angle` radians about an arbitrary `axis`
+     * through the origin.
+     *
+     * Positive angles turn counter-clockwise when looking from the tip of `axis` back toward
+     * the origin. With a cardinal axis this matches `setRotationX`, `setRotationY` or
+     * `setRotationZ`.
+     *
+     * `axis` must be a unit vector. It is not normalized here, to keep this cheap on hot
+     * paths. A non-unit axis generally produces a matrix that is not a rotation: it
+     * distorts lengths and angles. Call `normalize()` on the axis first if it is not
+     * already unit length.
+     *
+     * Clears the translation.
+     *
+     * @param axis Unit-length rotation axis.
+     * @param angle Angle in radians.
+     */
+    setFromAxisAngle(axis: Vec3Like, angle: number): this {
+        const x = axis.x,
+            y = axis.y,
+            z = axis.z;
+
+        const c = Math.cos(angle);
+        const s = Math.sin(angle);
+        const e = this.elements;
+        const t = 1 - c;
+
+        e[0] = t * x * x + c;
+        e[1] = x * y * t - z * s;
+        e[2] = x * z * t + y * s;
+        e[3] = 0;
+        e[4] = x * y * t + z * s;
+        e[5] = c + y * y * t;
+        e[6] = y * z * t - x * s;
+        e[7] = 0;
+        e[8] = x * z * t - y * s;
+        e[9] = y * z * t + x * s;
+        e[10] = c + z * z * t;
+        e[11] = 0;
+
+        return this;
     }
 }

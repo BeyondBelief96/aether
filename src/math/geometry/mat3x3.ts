@@ -59,10 +59,118 @@ export class Mat3x3 {
     }
 
     /**
-     * Scales every element of this matrix by the scaling factor `k`.
-     * @param k The scaling factor.
+     * Sets this matrix to a scaling matrix that stretches each axis by its own factor.
+     *
+     * Pass a single factor for uniform scaling: `setScale(2)` scales every axis by 2.
+     * Overwrites the current contents rather than scaling them.
+     *
+     * @param x Scale factor along the X axis.
+     * @param y Scale factor along the Y axis. Defaults to `x`.
+     * @param z Scale factor along the Z axis. Defaults to `x`.
      */
-    scale(k: number): this {
+    setScale(x: number, y: number = x, z: number = x): this {
+        return this.setDiagonal(x, y, z);
+    }
+
+    /**
+     * Sets this matrix to a scale by factor `k` along an arbitrary `axis` through the origin.
+     *
+     * Components parallel to `axis` are multiplied by `k`; components perpendicular to it
+     * are left unchanged. The result is `I + (k - 1) · axis · axisᵀ`, which is symmetric.
+     * With a cardinal axis this matches `setScale` with `k` on that axis and 1 elsewhere.
+     * `k = -1` reflects across the plane perpendicular to `axis`, and `k = 0` projects onto it.
+     *
+     * `axis` must be a unit vector. It is not normalized here, to keep this cheap on hot
+     * paths. A non-unit axis scales by `1 + (k - 1)·|axis|²` instead of `k`. Call
+     * `normalize()` on the axis first if it is not already unit length.
+     *
+     * @param axis Unit-length scaling axis. Its sign does not matter.
+     * @param k Scale factor along `axis`.
+     */
+    setScaleAlongAxis(axis: Vec3Like, k: number): this {
+        const e = this.elements;
+        const x = axis.x;
+        const y = axis.y;
+        const z = axis.z;
+        const t = k - 1;
+        e[0] = 1 + t * x * x;
+        e[1] = t * x * y;
+        e[2] = t * x * z;
+        e[3] = t * x * y;
+        e[4] = 1 + t * y * y;
+        e[5] = t * y * z;
+        e[6] = t * x * z;
+        e[7] = t * y * z;
+        e[8] = 1 + t * z * z;
+        return this;
+    }
+
+    /**
+     * Sets this matrix to a reflection across the plane perpendicular to `normal`.
+     *
+     * Components along `normal` are negated; components in the plane are left unchanged.
+     * The result is `I - 2 · normal · normalᵀ`: symmetric, orthogonal, its own inverse, with
+     * determinant -1. Equivalent to `setScaleAlongAxis(normal, -1)`. With a cardinal axis
+     * this negates that one coordinate, e.g. `(1, 0, 0)` mirrors across the YZ plane.
+     *
+     * `normal` must be a unit vector. It is not normalized here, to keep this cheap on hot
+     * paths. A non-unit normal does not produce a reflection. Call `normalize()` on it first
+     * if it is not already unit length.
+     *
+     * @param normal Unit-length normal of the mirror plane. Its sign does not matter.
+     */
+    setReflection(normal: Vec3Like): this {
+        return this.setScaleAlongAxis(normal, -1);
+    }
+
+    /**
+     * Sets this matrix to a shear: each coordinate is offset in proportion to the
+     * others.
+     *
+     * Factor `ab` is how far coordinate `a` moves per unit of coordinate `b`, and is stored
+     * in the matching off-diagonal element (`xy` → `m01`):
+     *
+     * ```
+     * x' = x + xy·y + xz·z
+     * y' = y + yx·x + yz·z
+     * z' = z + zx·x + zy·y
+     * ```
+     *
+     * Omitted factors default to 0, so `setShear(2)` shears X by Y only, and no arguments
+     * gives the identity. Shearing a coordinate by one or both of the others is volume
+     * preserving (determinant 1). Combining shears in both directions between a pair, such as
+     * `xy` with `yx`, is not: the determinant is
+     * `1 - xy·yx - xz·zx - yz·zy + xy·yz·zx + xz·zy·yx`.
+     *
+     * @param xy Shift of X per unit of Y.
+     * @param xz Shift of X per unit of Z.
+     * @param yx Shift of Y per unit of X.
+     * @param yz Shift of Y per unit of Z.
+     * @param zx Shift of Z per unit of X.
+     * @param zy Shift of Z per unit of Y.
+     */
+    setShear(xy = 0, xz = 0, yx = 0, yz = 0, zx = 0, zy = 0): this {
+        const e = this.elements;
+        e[0] = 1;
+        e[1] = xy;
+        e[2] = xz;
+        e[3] = yx;
+        e[4] = 1;
+        e[5] = yz;
+        e[6] = zx;
+        e[7] = zy;
+        e[8] = 1;
+        return this;
+    }
+
+    /**
+     * Multiplies every element of this matrix by the scalar `k`, in place.
+     *
+     * Unlike `setScale`, this keeps the current contents and scales them.
+     *
+     * @param k Scalar to multiply by.
+     */
+    multiplyScalar(k: number): this {
         const e = this.elements;
         e[0] = k * e[0]!;
         e[1] = k * e[1]!;
@@ -73,7 +181,6 @@ export class Mat3x3 {
         e[6] = k * e[6]!;
         e[7] = k * e[7]!;
         e[8] = k * e[8]!;
-
         return this;
     }
 
@@ -232,6 +339,46 @@ export class Mat3x3 {
     }
 
     /**
+     * Sets this matrix to the inverse of `m`, assuming `m` is orthonormal.
+     *
+     * Computes `mᵀ`, which equals `m⁻¹` for any orthonormal matrix: rotations, reflections
+     * and their products. The result is undefined if `m` contains scale or shear.
+     *
+     * @param m Matrix to invert. May be `this`.
+     */
+    setInverseOrthonormal(m: Mat3x3): this {
+        const s = m.elements;
+        const a00 = s[0]!,
+            a01 = s[1]!,
+            a02 = s[2]!;
+        const a10 = s[3]!,
+            a11 = s[4]!,
+            a12 = s[5]!;
+        const a20 = s[6]!,
+            a21 = s[7]!,
+            a22 = s[8]!;
+
+        const e = this.elements;
+        e[0] = a00;
+        e[1] = a10;
+        e[2] = a20;
+        e[3] = a01;
+        e[4] = a11;
+        e[5] = a21;
+        e[6] = a02;
+        e[7] = a12;
+        e[8] = a22;
+        return this;
+    }
+
+    /**
+     * Inverts this matrix in place, assuming it is orthonormal.
+     */
+    inverseOrthonormal(): this {
+        return this.transpose();
+    }
+
+    /**
      * Computes `this · v` and writes it to `out`.
      *
      * @param v Vector to transform.
@@ -247,5 +394,135 @@ export class Mat3x3 {
         out.y = e[3]! * x + e[4]! * y + e[5]! * z;
         out.z = e[6]! * x + e[7]! * y + e[8]! * z;
         return out;
+    }
+
+    /**
+     * Computes `thisᵀ · v`, the inverse transform of `v`, without building the inverse.
+     *
+     * Assumes this matrix is orthonormal.
+     *
+     * @param v Vector to transform.
+     * @param out Destination. Allocated if omitted. May be `v`.
+     */
+    transformInverseVec3(v: Vec3Like, out: Vec3 = new Vec3()): Vec3 {
+        const e = this.elements;
+        const x = v.x,
+            y = v.y,
+            z = v.z;
+
+        out.x = e[0]! * x + e[3]! * y + e[6]! * z;
+        out.y = e[1]! * x + e[4]! * y + e[7]! * z;
+        out.z = e[2]! * x + e[5]! * y + e[8]! * z;
+        return out;
+    }
+
+    /**
+     * Sets this matrix to a rotation of `theta` radians about the X axis.
+     *
+     * Positive angles turn counter-clockwise when looking from +X back toward the origin,
+     * so a quarter turn carries the Y axis onto the Z axis.
+     *
+     * @param theta Angle in radians.
+     */
+    setRotationX(theta: number): this {
+        const e = this.elements;
+        const s = Math.sin(theta);
+        const c = Math.cos(theta);
+        e[0] = 1;
+        e[1] = 0;
+        e[2] = 0;
+        e[3] = 0;
+        e[4] = c;
+        e[5] = -s;
+        e[6] = 0;
+        e[7] = s;
+        e[8] = c;
+        return this;
+    }
+
+    /**
+     * Sets this matrix to a rotation of `theta` radians about the Y axis.
+     *
+     * Positive angles turn counter-clockwise when looking from +Y back toward the origin,
+     * so a quarter turn carries the Z axis onto the X axis.
+     *
+     * @param theta Angle in radians.
+     */
+    setRotationY(theta: number): this {
+        const e = this.elements;
+        const s = Math.sin(theta);
+        const c = Math.cos(theta);
+        e[0] = c;
+        e[1] = 0;
+        e[2] = s;
+        e[3] = 0;
+        e[4] = 1;
+        e[5] = 0;
+        e[6] = -s;
+        e[7] = 0;
+        e[8] = c;
+        return this;
+    }
+
+    /**
+     * Sets this matrix to a rotation of `theta` radians about the Z axis.
+     *
+     * Positive angles turn counter-clockwise when looking from +Z back toward the origin,
+     * so a quarter turn carries the X axis onto the Y axis.
+     *
+     * @param theta Angle in radians.
+     */
+    setRotationZ(theta: number): this {
+        const e = this.elements;
+        const s = Math.sin(theta);
+        const c = Math.cos(theta);
+        e[0] = c;
+        e[1] = -s;
+        e[2] = 0;
+        e[3] = s;
+        e[4] = c;
+        e[5] = 0;
+        e[6] = 0;
+        e[7] = 0;
+        e[8] = 1;
+        return this;
+    }
+
+    /**
+     * Sets this matrix to a rotation of `angle` radians about an arbitrary `axis`.
+     *
+     * Positive angles turn counter-clockwise when looking from the tip of `axis` back toward
+     * the origin. With a cardinal axis this matches `setRotationX`, `setRotationY` or
+     * `setRotationZ`.
+     *
+     * `axis` must be a unit vector. It is not normalized here, to keep this cheap on hot
+     * paths. A non-unit axis generally produces a matrix that is not a rotation: it
+     * distorts lengths and angles. Call `normalize()` on the axis first if it is not
+     * already unit length.
+     *
+     * @param axis Unit-length rotation axis.
+     * @param angle Angle in radians.
+     */
+    setFromAxisAngle(axis: Vec3Like, angle: number): this {
+        const x = axis.x,
+            y = axis.y,
+            z = axis.z;
+
+        const c = Math.cos(angle);
+        const s = Math.sin(angle);
+        const e = this.elements;
+        const t = 1 - c;
+
+        e[0] = t * x * x + c;
+        e[1] = x * y * t - z * s;
+        e[2] = x * z * t + y * s;
+        e[3] = x * y * t + z * s;
+        e[4] = c + y * y * t;
+        e[5] = y * z * t - x * s;
+        e[6] = x * z * t - y * s;
+        e[7] = y * z * t + x * s;
+        e[8] = c + z * z * t;
+
+        return this;
     }
 }

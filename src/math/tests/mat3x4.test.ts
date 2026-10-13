@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Mat3x3 } from "../geometry/mat3x3";
 import { Mat3x4 } from "../geometry/mat3x4";
 import { Vec3 } from "../geometry/vec3";
 import { approxEqual } from "../scalar";
@@ -118,6 +119,49 @@ describe("Mat3x4", () => {
             const m = sample();
             m.copy(m);
             expect(elementsOf(m)).toEqual(elementsOf(sample()));
+        });
+    });
+
+    describe("multiplyScalar", () => {
+        it("multiplies every element, including translation, by k and returns itself", () => {
+            const m = sample();
+            const result = m.multiplyScalar(2);
+            expect(result).toBe(m);
+            expect(elementsOf(m)).toEqual([2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]);
+        });
+
+        it("leaves the transform unchanged for k = 1", () => {
+            expect(elementsOf(sample().multiplyScalar(1))).toEqual(elementsOf(sample()));
+        });
+
+        it("produces the zero transform for k = 0", () => {
+            expect(elementsOf(sample().multiplyScalar(0))).toEqual([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ]);
+        });
+
+        it("turns the identity into a uniform scale", () => {
+            expect(elementsOf(new Mat3x4().multiplyScalar(3))).toEqual(
+                elementsOf(new Mat3x4().setScale(3)),
+            );
+        });
+
+        it("scales the determinant by k³", () => {
+            const m = sampleRigid();
+            expect(approxEqual(m.clone().multiplyScalar(2).determinant(), 8 * m.determinant())).toBe(
+                true,
+            );
+        });
+
+        it("scales transformed points by k", () => {
+            const p = new Vec3(1, 2, 3);
+            const expected = sampleRigid().transformPoint(p).scale(2);
+            expectVec(
+                sampleRigid().multiplyScalar(2).transformPoint(p),
+                expected.x,
+                expected.y,
+                expected.z,
+            );
         });
     });
 
@@ -389,6 +433,299 @@ describe("Mat3x4", () => {
         });
     });
 
+    describe("setScale", () => {
+        it("overwrites every element, clearing translation, and returns itself", () => {
+            const m = sample();
+            const result = m.setScale(2, 3, 4);
+            expect(result).toBe(m);
+            expect(elementsOf(m)).toEqual([2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4, 0]);
+        });
+
+        it("scales uniformly when given one factor", () => {
+            expect(elementsOf(new Mat3x4().setScale(3))).toEqual([
+                3, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, 0,
+            ]);
+        });
+
+        it("is the identity for a factor of 1", () => {
+            expect(elementsOf(sample().setScale(1))).toEqual(IDENTITY);
+        });
+
+        it("scales points about the origin", () => {
+            expectVec(new Mat3x4().setScale(2, 3, 4).transformPoint(new Vec3(1, 2, 3)), 2, 6, 12);
+        });
+
+        it("has the product of its factors as its determinant", () => {
+            expect(new Mat3x4().setScale(2, 3, 4).determinant()).toBe(24);
+        });
+
+        it("is inverted by the reciprocal factors", () => {
+            // Approximate: the inverted translation comes out as -0.
+            expectApprox(
+                new Mat3x4().setScale(2, 4, 8).inverse(),
+                elementsOf(new Mat3x4().setScale(0.5, 0.25, 0.125)),
+            );
+        });
+
+        it("scales before translating when post-multiplied onto a translation", () => {
+            // T · S: scale about the origin, then move.
+            const m = translation(10, 20, 30).multiply(new Mat3x4().setScale(2));
+            expectVec(m.transformPoint(new Vec3(1, 2, 3)), 12, 24, 36);
+        });
+    });
+
+    describe("setScaleAlongAxis", () => {
+        const axis = new Vec3(1, 2, 3).normalize();
+        const scaling = (k: number) => new Mat3x4().setScaleAlongAxis(axis, k);
+
+        it("overwrites every element, clearing translation, and returns itself", () => {
+            const m = sample();
+            const result = m.setScaleAlongAxis(axis, 3);
+            expect(result).toBe(m);
+            expect(elementsOf(m)).toEqual(elementsOf(scaling(3)));
+            expect([m.elements[3], m.elements[7], m.elements[11]]).toEqual([0, 0, 0]);
+        });
+
+        it("matches Mat3x3.setScaleAlongAxis in its linear part", () => {
+            expect(elementsOf(scaling(3))).toEqual(
+                elementsOf(new Mat3x4().setFromMat3x3(new Mat3x3().setScaleAlongAxis(axis, 3))),
+            );
+        });
+
+        it.each([
+            ["X", new Vec3(1, 0, 0), [3, 1, 1]],
+            ["Y", new Vec3(0, 1, 0), [1, 3, 1]],
+            ["Z", new Vec3(0, 0, 1), [1, 1, 3]],
+        ] as const)("matches setScale along the %s axis", (_, cardinal, f) => {
+            expect(elementsOf(new Mat3x4().setScaleAlongAxis(cardinal, 3))).toEqual(
+                elementsOf(new Mat3x4().setScale(f[0], f[1], f[2])),
+            );
+        });
+
+        it("scales points on the axis by k and fixes points on the perpendicular plane", () => {
+            expectVec(scaling(3).transformPoint(axis), 3 * axis.x, 3 * axis.y, 3 * axis.z);
+            expectVec(scaling(3).transformPoint(new Vec3(3, 0, -1)), 3, 0, -1);
+        });
+
+        it("has determinant k", () => {
+            expect(approxEqual(scaling(3).determinant(), 3)).toBe(true);
+        });
+
+        it("is inverted by the reciprocal factor", () => {
+            expectApprox(scaling(4).inverse(), elementsOf(scaling(0.25)));
+        });
+
+        it("is the identity for k = 1", () => {
+            expectApprox(scaling(1), IDENTITY);
+        });
+    });
+
+    describe("setReflection", () => {
+        const normal = new Vec3(1, 2, 3).normalize();
+        const reflection = () => new Mat3x4().setReflection(normal);
+
+        it("overwrites every element and returns itself", () => {
+            const m = sample();
+            const result = m.setReflection(normal);
+            expect(result).toBe(m);
+            expect(elementsOf(m)).toEqual(elementsOf(reflection()));
+        });
+
+        it("matches setScaleAlongAxis with k = -1", () => {
+            expect(elementsOf(reflection())).toEqual(
+                elementsOf(new Mat3x4().setScaleAlongAxis(normal, -1)),
+            );
+        });
+
+        it.each([
+            ["X", new Vec3(1, 0, 0), [-1, 1, 1]],
+            ["Y", new Vec3(0, 1, 0), [1, -1, 1]],
+            ["Z", new Vec3(0, 0, 1), [1, 1, -1]],
+        ] as const)("negates only the %s coordinate for that cardinal normal", (_, n, f) => {
+            // Approximate: the off-diagonal entries come out as -0.
+            expectApprox(
+                new Mat3x4().setReflection(n),
+                elementsOf(new Mat3x4().setScale(f[0], f[1], f[2])),
+            );
+        });
+
+        it("negates the normal and fixes vectors in the plane", () => {
+            expectVec(reflection().transformPoint(normal), -normal.x, -normal.y, -normal.z);
+            expectVec(reflection().transformPoint(new Vec3(3, 0, -1)), 3, 0, -1);
+        });
+
+        it("is its own inverse", () => {
+            const m = reflection();
+            expectApprox(m.clone().multiply(m), IDENTITY);
+        });
+
+        it("is orthogonal with determinant -1", () => {
+            const m = reflection();
+            expect(approxEqual(m.determinant(), -1)).toBe(true);
+            expectApprox(m.clone().transposeLinear().multiply(m), IDENTITY);
+        });
+
+        it("ignores the sign of the normal", () => {
+            const flipped = new Vec3(-normal.x, -normal.y, -normal.z);
+            expect(elementsOf(new Mat3x4().setReflection(flipped))).toEqual(
+                elementsOf(reflection()),
+            );
+        });
+    });
+
+    describe("setShear", () => {
+        it("overwrites every element and returns itself", () => {
+            const m = sample();
+            const result = m.setShear(1, 2, 3, 4, 5, 6);
+            expect(result).toBe(m);
+            expect(elementsOf(m)).toEqual([1, 1, 2, 0, 3, 1, 4, 0, 5, 6, 1, 0]);
+        });
+
+        it("is the identity with no arguments", () => {
+            expect(elementsOf(sample().setShear())).toEqual(IDENTITY);
+        });
+
+        it("offsets each coordinate by the others", () => {
+            const r = new Mat3x4().setShear(1, 2, 3, 4, 5, 6).transformPoint(new Vec3(1, 2, 3));
+            // x + 1·y + 2·z, y + 3·x + 4·z, z + 5·x + 6·y
+            expect([r.x, r.y, r.z]).toEqual([9, 17, 20]);
+        });
+
+        it("shears X by Y only when given one factor", () => {
+            const m = new Mat3x4().setShear(2);
+            const r = m.transformPoint(new Vec3(1, 3, 5));
+            expect([r.x, r.y, r.z]).toEqual([7, 3, 5]);
+        });
+
+        it("leaves points on the shearing axis fixed", () => {
+            // Shearing X by Y moves nothing with y = 0.
+            const r = new Mat3x4().setShear(2).transformPoint(new Vec3(4, 0, -1));
+            expect([r.x, r.y, r.z]).toEqual([4, 0, -1]);
+        });
+
+        it("preserves volume when shearing one coordinate by both others", () => {
+            expect(new Mat3x4().setShear(2, 3).determinant()).toBe(1);
+            expect(new Mat3x4().setShear(0, 0, 0, 0, 4, 5).determinant()).toBe(1);
+        });
+
+        it("preserves volume for one-directional shears across axes", () => {
+            // Upper triangular: x by y and z, y by z.
+            expect(new Mat3x4().setShear(2, 3, 0, 4).determinant()).toBe(1);
+        });
+
+        it("has the documented determinant for a general shear", () => {
+            const [xy, xz, yx, yz, zx, zy] = [1, 2, 3, 4, 5, 6];
+            expect(new Mat3x4().setShear(xy, xz, yx, yz, zx, zy).determinant()).toBe(
+                1 - xy * yx - xz * zx - yz * zy + xy * yz * zx + xz * zy * yx,
+            );
+        });
+
+        it("is inverted by the negated factor for a single shear", () => {
+            expectApprox(
+                new Mat3x4().setShear(0, 0, 0, 2.5).inverse(),
+                elementsOf(new Mat3x4().setShear(0, 0, 0, -2.5)),
+            );
+        });
+    });
+
+    describe("setTranslation", () => {
+        it("overwrites every element with a pure translation and returns itself", () => {
+            const m = sample();
+            const result = m.setTranslation(3, -2, 5);
+            expect(result).toBe(m);
+            expect(elementsOf(m)).toEqual(elementsOf(translation(3, -2, 5)));
+        });
+
+        it("moves points but not directions", () => {
+            const m = new Mat3x4().setTranslation(3, -2, 5);
+            expectVec(m.transformPoint(new Vec3(1, 2, 3)), 4, 0, 8);
+            expectVec(m.transformDirection(new Vec3(1, 2, 3)), 1, 2, 3);
+        });
+
+        it("is inverted by the opposite translation", () => {
+            expectApprox(
+                new Mat3x4().setTranslation(3, -2, 5).inverse(),
+                elementsOf(new Mat3x4().setTranslation(-3, 2, -5)),
+            );
+        });
+
+        it("is the identity for a zero translation", () => {
+            expect(elementsOf(sample().setTranslation(0, 0, 0))).toEqual(IDENTITY);
+        });
+    });
+
+    describe("getTranslation", () => {
+        it("reads the translation column", () => {
+            const t = sample().getTranslation();
+            expect([t.x, t.y, t.z]).toEqual([4, 8, 12]);
+        });
+
+        it("is where the transform sends the origin", () => {
+            const m = sampleRigid();
+            const t = m.getTranslation();
+            const o = m.transformPoint(new Vec3(0, 0, 0));
+            expect([t.x, t.y, t.z]).toEqual([o.x, o.y, o.z]);
+        });
+
+        it("writes into and returns out when given", () => {
+            const out = new Vec3();
+            expect(sample().getTranslation(out)).toBe(out);
+        });
+    });
+
+    describe("setFromMat3x3", () => {
+        const linear = () => new Mat3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+
+        it("places the linear part and translation and returns itself", () => {
+            const m = new Mat3x4();
+            const result = m.setFromMat3x3(linear(), new Vec3(10, 11, 12));
+            expect(result).toBe(m);
+            expect(elementsOf(m)).toEqual([1, 2, 3, 10, 4, 5, 6, 11, 7, 8, 9, 12]);
+        });
+
+        it("defaults to a zero translation, overwriting any existing one", () => {
+            expect(elementsOf(sample().setFromMat3x3(linear()))).toEqual([
+                1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0,
+            ]);
+        });
+
+        it("matches the Mat3x4 rotation for a Mat3x3 rotation", () => {
+            expect(
+                elementsOf(new Mat3x4().setFromMat3x3(new Mat3x3().setRotationZ(0.7))),
+            ).toEqual(elementsOf(new Mat3x4().setRotationZ(0.7)));
+        });
+
+        it("transforms points as m·p + t", () => {
+            const m = new Mat3x4().setFromMat3x3(linear(), new Vec3(10, 11, 12));
+            const v = linear().transformVec3(new Vec3(1, -1, 2));
+            expectVec(m.transformPoint(new Vec3(1, -1, 2)), v.x + 10, v.y + 11, v.z + 12);
+        });
+    });
+
+    describe("getMat3x3", () => {
+        it("extracts the linear part, dropping the translation", () => {
+            expect(Array.from(sample().getMat3x3().elements)).toEqual([
+                1, 2, 3, 5, 6, 7, 9, 10, 11,
+            ]);
+        });
+
+        it("writes into and returns out when given", () => {
+            const out = new Mat3x3();
+            expect(sample().getMat3x3(out)).toBe(out);
+        });
+
+        it("round-trips with setFromMat3x3", () => {
+            const m = sample();
+            const back = new Mat3x4().setFromMat3x3(m.getMat3x3(), m.getTranslation());
+            expect(elementsOf(back)).toEqual(elementsOf(m));
+        });
+
+        it("has the same determinant as the transform", () => {
+            const m = sampleRigid();
+            expect(m.getMat3x3().determinant()).toBe(m.determinant());
+        });
+    });
+
     describe("clone", () => {
         it("creates an equal, independent instance", () => {
             const a = sample();
@@ -494,6 +831,132 @@ describe("Mat3x4", () => {
             m.transformInversePoint(v);
             m.transformInverseDirection(v);
             expect(elementsOf(m)).toEqual(elementsOf(placed()));
+        });
+    });
+
+    describe.each([
+        // [method, axis, a, b]: a 90° rotation about axis takes a → b.
+        ["setRotationX", new Vec3(1, 0, 0), new Vec3(0, 1, 0), new Vec3(0, 0, 1)],
+        ["setRotationY", new Vec3(0, 1, 0), new Vec3(0, 0, 1), new Vec3(1, 0, 0)],
+        ["setRotationZ", new Vec3(0, 0, 1), new Vec3(1, 0, 0), new Vec3(0, 1, 0)],
+    ] as const)("%s", (method, axis, a, b) => {
+        const rotation = (theta: number) => new Mat3x4()[method](theta);
+
+        it("overwrites every element, clearing translation, and returns itself", () => {
+            const m = sample();
+            const result = m[method](0.7);
+            expect(result).toBe(m);
+            expect(elementsOf(m)).toEqual(elementsOf(rotation(0.7)));
+        });
+
+        it("rotates a 90° turn right-handed about the axis", () => {
+            const m = rotation(Math.PI / 2);
+            const r1 = m.transformPoint(a);
+            expectVec(r1, b.x, b.y, b.z);
+            const r2 = m.transformPoint(b);
+            expectVec(r2, -a.x, -a.y, -a.z);
+        });
+
+        it("leaves the axis unchanged", () => {
+            expectVec(rotation(0.7).transformPoint(axis), axis.x, axis.y, axis.z);
+        });
+
+        it("matches the general axis-angle rotation", () => {
+            expectApprox(
+                rotation(0.7),
+                elementsOf(rigid(axis.x, axis.y, axis.z, 0.7, 0, 0, 0)),
+            );
+        });
+
+        it("is inverted orthonormally by the opposite angle", () => {
+            expectApprox(
+                rotation(0.7).inverseOrthonormal(),
+                elementsOf(rotation(-0.7)),
+            );
+        });
+
+        it("has determinant 1", () => {
+            expect(approxEqual(rotation(0.7).determinant(), 1)).toBe(true);
+        });
+
+        it("adds angles under composition", () => {
+            expectApprox(
+                rotation(0.3).multiply(rotation(0.4)),
+                elementsOf(rotation(0.7)),
+            );
+        });
+    });
+
+    it("setRotationZ(90°) matches the rotationZ90 fixture", () => {
+        expectApprox(
+            new Mat3x4().setRotationZ(Math.PI / 2),
+            elementsOf(rotationZ90()),
+        );
+    });
+
+    describe("setFromAxisAngle", () => {
+        const axis = new Vec3(1, 2, 3).normalize();
+        const rotation = (theta: number) =>
+            new Mat3x4().setFromAxisAngle(axis, theta);
+
+        it("overwrites every element, clearing translation, and returns itself", () => {
+            const m = sample();
+            const result = m.setFromAxisAngle(axis, 0.7);
+            expect(result).toBe(m);
+            expect(elementsOf(m)).toEqual(elementsOf(rotation(0.7)));
+            expect([m.elements[3], m.elements[7], m.elements[11]]).toEqual([0, 0, 0]);
+        });
+
+        it("matches the general rigid transform with no translation", () => {
+            expectApprox(
+                rotation(0.7),
+                elementsOf(rigid(axis.x, axis.y, axis.z, 0.7, 0, 0, 0)),
+            );
+        });
+
+        it.each([
+            ["setRotationX", new Vec3(1, 0, 0)],
+            ["setRotationY", new Vec3(0, 1, 0)],
+            ["setRotationZ", new Vec3(0, 0, 1)],
+        ] as const)("matches %s for its cardinal axis", (method, cardinal) => {
+            expectApprox(
+                new Mat3x4().setFromAxisAngle(cardinal, 0.7),
+                elementsOf(new Mat3x4()[method](0.7)),
+            );
+        });
+
+        it("leaves points on the axis unchanged", () => {
+            const p = axis.clone().scale(4);
+            expectVec(rotation(0.7).transformPoint(p), p.x, p.y, p.z);
+        });
+
+        it("turns a perpendicular vector a quarter turn onto axis × v", () => {
+            const v = new Vec3(3, 0, -1).normalize(); // v · axis = 0
+            const expected = Vec3.cross(axis, v);
+            expectVec(
+                rotation(Math.PI / 2).transformDirection(v),
+                expected.x,
+                expected.y,
+                expected.z,
+            );
+        });
+
+        it("is inverted orthonormally by the opposite angle", () => {
+            expectApprox(
+                rotation(0.7).inverseOrthonormal(),
+                elementsOf(rotation(-0.7)),
+            );
+        });
+
+        it("has determinant 1", () => {
+            expect(approxEqual(rotation(0.7).determinant(), 1)).toBe(true);
+        });
+
+        it("adds angles under composition about the same axis", () => {
+            expectApprox(
+                rotation(0.3).multiply(rotation(0.4)),
+                elementsOf(rotation(0.7)),
+            );
         });
     });
 });
