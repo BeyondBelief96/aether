@@ -13,6 +13,7 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 📖 | **Ian Millington, *Game Physics Engine Development*** (local PDF: `~/Desktop/Textbooks/Ian_Millington-Game_Physics_Engine_Development-EN.pdf`; PDF page = printed page + 23) | The backbone. Chapter order matches the phases; PLAN.md cites sections and pages per phase. |
 | 📖 | **Christer Ericson, *Real-Time Collision Detection*** — [realtimecollisiondetection.net](https://realtimecollisiondetection.net/books/rtcd/) | The standard reference for Phase 5. |
 | 🎤 | **Erin Catto's GDC talks and papers** — [box2d.org/publications](https://box2d.org/publications/) | The clearest explanations of contact solvers anywhere. Phases 6–8. |
+| 💻 | **Erin Catto, *Box3D*** — [github.com/erincatto/box3d](https://github.com/erincatto/box3d) · [blog](https://box2d.org/posts/) | The modern counterpart to Millington. [BOX3D.md](./BOX3D.md) compares the two and maps Box3D's files onto the phases. Phases 1 and 4–8. |
 | 🎥 | **Matthias Müller, *Ten Minute Physics*** — [index](https://matthias-research.github.io/pages/tenMinutePhysics/index.html) · [code](https://github.com/matthias-research/pages) | Short videos with runnable JavaScript, so it maps straight onto a web project. |
 | 📄 | **Glenn Fiedler, *Game Physics* series** — [Integration Basics](https://gafferongames.com/post/integration_basics/) · [Fix Your Timestep!](https://gafferongames.com/post/fix_your_timestep/) · [Physics in 3D](https://gafferongames.com/post/physics_in_3d/) · [Spring Physics](https://gafferongames.com/post/spring_physics/) | ★ Short and practical; the timestep article underpins Phase 0. |
 | 📄 | **Allen Chou, *Game Physics* series** — [allenchou.net/game-physics-series](https://allenchou.net/game-physics-series/) | 3D-specific: broadphase, GJK and EPA, contact manifolds, sequential impulses. |
@@ -109,6 +110,10 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 📄 | ★ Raigan Burns & Mare Sheppard, [N Tutorial A: Collision Detection and Response](https://www.metanetsoftware.com/technique/tutorialA.html) (2D SAT, beautifully illustrated) |
 | 📄 | Allen Chou, [*Game Physics* series](https://allenchou.net/game-physics-series/): broadphase, GJK, EPA, contact generation |
 | 🎥 | Ten Minute Physics: ep. 11 *Finding overlaps among thousands of objects blazing fast* (spatial hashing), ep. 23 *Broad phase collision detection with Sweep and Prune*, ep. 24 *Bounding Volume Hierarchies* |
+| 📄 | Gilbert, Johnson & Keerthi, [A Fast Procedure for Computing the Distance between Complex Objects](https://web.eecs.umich.edu/~grizzle/GilbertFest/Gilbert%2858%29.pdf) (1988): the original GJK paper |
+| 📄 | Bittner, Hapala & Havran, [Fast Insertion-Based Optimization of BVHs](https://dcgi.fel.cvut.cz/~havran/ARTICLES/bittner2013cgf_preprint.pdf) (2013) · Erin Catto, [Dynamic Tree Improvements](https://box2d.org/posts/2025/03/dynamic-tree-improvements/) (2025): the dynamic AABB tree |
+| 🎤 | Erin Catto, [Contact Manifolds](https://box2d.org/files/ErinCatto_ContactManifolds_GDC2007.pdf) (GDC 2007) · Dirk Gregorius, [Implementing QuickHull](https://media.steampowered.com/apps/valve/2014/DirkGregorius_ImplementingQuickHull.pdf) (GDC 2014) |
+| 💻 | Box3D `src/dynamic_tree.c`, `src/convex_manifold.c`, `src/distance.c`, `src/hull.c` (see [BOX3D.md](./BOX3D.md)) |
 
 ## Phase 6: Collision response and friction
 
@@ -126,6 +131,12 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 📄 | ★ Paul Firth, [Physics engines for dummies](https://www.wildbunny.co.uk/blog/2011/04/06/physics-engines-for-dummies/) (the site may block automated access; open it in a browser) |
 | 📄 | ★ Helmut Garstenauer, [A Unified Framework for Rigid Body Dynamics](https://web.archive.org/web/20160717002302/http://www.digitalrune.com/Portals/0/Documents/A%20Unified%20Framework%20for%20Rigid%20Body%20Dynamics.pdf) (archived thesis: impulses, constraints, solver details) |
 | 💻 | [box2d-lite](https://github.com/erincatto/box2d-lite): about 1,000 lines of C++; the GDC 2006 solver in its smallest form |
+| 📄 | Macklin et al., [Small Steps in Physics Simulation](https://mmacklin.com/smallsteps.pdf) (SCA 2019): why substepping beats iterating |
+| 📄 | Erin Catto, [Releasing Box2D 3.0](https://box2d.org/posts/2024/08/releasing-box2d-3.0/): Soft Step and speculative contacts as shipped |
+| 📄 | NVIDIA, [PhysX 4.0 Rigid Body Dynamics](https://gameworksdocs.nvidia.com/PhysX/4.0/documentation/PhysXGuide/Manual/RigidBodyDynamics.html): PGS vs Temporal Gauss–Seidel |
+| 📄 | Paul Firth, [Speculative Contacts, Part 1](https://web.archive.org/web/2011/http://www.wildbunny.co.uk/blog/2011/03/25/speculative-contacts-an-continuous-collision-engine-approach-part-1/) (archived) |
+| 📄 | Bender, Erleben & Trinkle, [Interactive Simulation of Rigid Body Dynamics in Computer Graphics](https://perso.liris.cnrs.fr/fzara/Web/media/files/M2-Animation/cgf12272.pdf) (CGF 2014): survey of solvers, friction cones, stabilization |
+| 💻 | Box3D `src/solver.c`, `src/solver.h`, `src/contact_solver.c`: the Soft Step solver |
 
 ## Phase 7: Joints, sleeping and stability
 
@@ -144,6 +155,8 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 📄 | Witkin, Gleicher & Welch, [Interactive Dynamics](https://dl.acm.org/doi/pdf/10.1145/91394.91400) (1990) · Barzel & Barr, [A Modeling System Based on Dynamic Constraints](https://hal.science/hal-01968730/document) (1988): optional history |
 | 📄 | Maloisel et al., [A Versatile Quaternion-based Constrained Rigid Body Dynamics](https://la.disneyresearch.com/wp-content/uploads/A_Versatile_Quaternion_based_Constrained_Rigid_Body_Dynamics.pdf) (Disney Research, 2025): research level |
 | 🎥 | Ten Minute Physics: ep. 06 *Writing a triple pendulum simulation is simple*, ep. 25 *Joint simulation made simple* |
+| 📄 | Erin Catto, [Simulation Islands](https://box2d.org/posts/2023/10/simulation-islands/) (2023): persistent islands, lazy splitting |
+| 💻 | Box3D `src/*_joint.c`, `src/island.c`, `src/solver_set.c`, `src/sensor.c` |
 
 ## Phase 8: Stretch goals
 
@@ -152,6 +165,9 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 📖 | Millington ch. 18, *Other Types of Physics* |
 | 🎤 | ★ Erin Catto, [Continuous Collision](https://box2d.org/files/ErinCatto_ContinuousCollision_GDC2013.pdf) (GDC 2013; [video](https://www.gdcvault.com/play/1018239/Physics-for-Game-Programmers-Continuous)) |
 | 📄 | Erin Catto, [Determinism](https://box2d.org/posts/2024/08/determinism/) (Box2D blog) |
+| 📄 | Erin Catto, [SIMD Matters](https://box2d.org/posts/2024/08/simd-matters/) · [SIMD for Collision](https://box2d.org/posts/2026/07/simd-for-collision/) · [Contact Recycling](https://box2d.org/posts/2026/10/contact-recycling/): graph coloring and Box3D's performance work |
+| 📄 | Müller et al., [Detailed Rigid Body Simulation with XPBD](https://matthias-research.github.io/pages/publications/PBDBodies.pdf) (2020) |
+| 💻 | Box3D [`docs/character.md`](https://github.com/erincatto/box3d/blob/main/docs/character.md) and `src/mover.c` (character mover); `src/constraint_graph.c`; `src/recording.c`, `src/replay.c` |
 | 📄 | Müller et al., [XPBD](https://matthias-research.github.io/pages/publications/XPBD.pdf) |
 | 📄 | Chen, Hsu, Liu, Macklin, Yang & Yuksel, [Offset Geometric Contact](https://graphics.cs.utah.edu/research/projects/ogc/Offset_Geometric_Contact-SIGGRAPH2025.pdf) (SIGGRAPH 2025): penetration-free contact for cloth and deformables |
 | 📄 | Harry Smith, [*Aircraft Flight Mechanics*](https://aircraftflightmechanics.com/) · [Airfoil Tools](http://airfoiltools.com/): drag models, stability derivatives, real airfoil data |
@@ -167,6 +183,7 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 💻 | [cannon-es](https://github.com/pmndrs/cannon-es) | 3D, JavaScript, small and readable; the closest relative to Aether |
 | 💻 | [matter-js](https://github.com/liabru/matter-js) (cloned at `~/Code/matter-js`) | 2D, JavaScript, by the brm.io author; clean pipeline structure |
 | 💻 | [box2d-lite](https://github.com/erincatto/box2d-lite) | The minimal sequential-impulse solver |
+| 💻 | [Box3D](https://github.com/erincatto/box3d) | Catto's 3D engine (C17, MIT, 2026): Soft Step solver, hull SAT, dynamic trees, persistent islands. The second reference after Millington; see [BOX3D.md](./BOX3D.md) |
 | 💻 | [Jolt Physics](https://github.com/jrouwe/JoltPhysics) ([docs](https://jrouwe.github.io/JoltPhysics/)) | Modern production 3D engine (*Horizon Forbidden West*); excellent architecture docs |
 | 💻 | [Bullet](https://github.com/bulletphysics/bullet3) | The classic open-source 3D engine |
 | 💻 | [Rapier](https://rapier.rs/) | Rust, compiles to WASM; a useful performance yardstick in the browser |

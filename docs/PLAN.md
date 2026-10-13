@@ -68,6 +68,22 @@ Millington resolves contacts one at a time, ordered by severity. Modern engines 
 
 The book's code uses its own naming (`real`, `Vector3`, quaternions as `r, i, j, k`). Translate the ideas, not the identifiers: Aether uses `number`, `Vec3`, and quaternions as `x, y, z, w`.
 
+### Box3D as the second reference
+
+Erin Catto's [Box3D](https://github.com/erincatto/box3d) (MIT, C17, released 2026) is the modern counterpart to Millington: the same problems, solved the way Box2D v3 solves them. [BOX3D.md](./BOX3D.md) has the full side-by-side comparison, a file map by phase, and the papers behind each technique. The short version:
+
+| | Millington | Box3D |
+|---|---|---|
+| Solver | Worst contact first; separate velocity and penetration passes | **Soft Step**: substepped soft sequential impulses with a relax pass |
+| Position error | Nonlinear projection | Soft constraints in hertz and damping ratio |
+| Friction | Per point, static and dynamic | One friction cone per manifold, plus twist and rolling friction |
+| Fast motion | Not handled | Speculative contacts, then time of impact for bullets |
+| Collision | Box–box SAT, primitives | Hull SAT + GJK, Quickhull, three dynamic AABB trees, persistent and recycled manifolds |
+| Rotation | Quaternion, no gyroscopic term | Quaternion, implicit gyroscopic solve |
+| Scale | Single-threaded, pointers | Islands for sleep, graph coloring, SIMD, handle IDs, determinism |
+
+Each phase still builds Millington's version first. Where Box3D does something meaningfully different, the phase says so in its Guidance, and the **Read** table ends with the Box3D files to compare against. Read Box3D *after* your version works.
+
 ---
 
 ## Phase 0: Scaffold and game loop ✅
@@ -255,6 +271,8 @@ Register the custom matchers in a Vitest setup file (`test.setupFiles` in `vite.
 | Dunn & Parberry, [*3D Math Primer*](https://gamemath.com/book/) | The chapters on matrices and orientation | A second, more careful treatment when Millington is terse. |
 | Millington App. D | §D.1–D.3 Vectors, Quaternions, Matrices (pp. 438–440) | A one-page formula cheat sheet to keep open while writing tests. |
 | Three.js `Vector3` / `Quaternion`; cannon-es `src/math/` | Source | API comparison only, after you've designed your own. |
+| Box3D `include/box3d/math_functions.h`, `src/math_internal.h` | `b3Quat`, `b3Transform`, `b3IntegrateRotation` | A quaternion-first engine: transforms are `{p, q}` and no 3×4 matrix is stored. Compare with Aether's `Mat3x4`, and note how little matrix code Box3D needs. |
+| Fabian Giesen, [Quaternion differentiation](https://fgiesen.wordpress.com/2012/08/24/quaternion-differentiation/) | All | Where `q̇ = ½ω q` comes from, and the update Box3D cites. |
 
 More: [RESOURCES.md, Phase 1](./RESOURCES.md#phase-1-math-library)
 
@@ -306,7 +324,7 @@ class ParticleWorld {
 
 - **Store inverse mass.** Infinite mass becomes `0`, so you never divide by zero, and static objects fall out naturally: every `Δv = impulse · invMass` is zero.
 - **`Particle.integrate` uses semi-implicit Euler:** `a = acceleration + force · invMass`, then `v += a·dt`, then `v *= damping^dt`, then `x += v·dt`, then clear the accumulator. Updating velocity *before* position is the whole difference from explicit Euler.
-- **Frame-rate-independent damping.** `damping^dt` gives the same decay at 30 Hz and 120 Hz. A plain `v *= 0.99` per step does not.
+- **Frame-rate-independent damping.** `damping^dt` gives the same decay at 30 Hz and 120 Hz. A plain `v *= 0.99` per step does not. Box3D instead uses `v *= 1 / (1 + dt·c)`, with a damping rate `c` in 1/s: the Padé approximation of `e^(−c·dt)`, cheaper than `pow` and stable at any `dt`. Try both in the integrator shoot-out.
 - **Keep integrators separate from `Particle`.** RK4 and Verlet need to evaluate forces several times per step. That doesn't fit a force accumulator, so build them as pure functions over a 1D oscillator state for the demo. `Particle` stays on semi-implicit Euler.
 - **The four update rules** (with `a(x, v)` the acceleration function):
   - Explicit Euler: `x' = x + v·dt`, `v' = v + a(x, v)·dt`, both using old values.
@@ -537,7 +555,8 @@ class World {
 - **Integration (semi-implicit):** `a = acceleration + F·invM`; `α = I⁻¹_world · τ`; `v += a·dt`, `ω += α·dt`; apply damping (`^dt` as in Phase 2); `x += v·dt`; `q.addScaledAngularVelocity(ω, dt)`; recompute derived data; clear accumulators. Copy `position`/`orientation` into `previous*` first.
 - **The gyroscopic term.** The integration above treats ω as constant when there's no torque. That's wrong for an asymmetric body: the true equation is `I·ω̇ = τ − ω × (I·ω)`. Without that term, the tennis-racket flip **never happens** and `|L|` isn't conserved. Two fixes:
   1. Track angular momentum `L` instead: `L += τ·dt`, then `ω = I⁻¹_world · L`. This is simple and correct in direction, but explicit, so energy slowly grows.
-  2. Solve the gyroscopic term implicitly with one Newton step in body space, as Bullet and Box2D do (see Catto's *Numerical Methods* below). This is stable; do it once option 1 has shown you the effect.
+  2. Solve the gyroscopic term implicitly with one Newton step in body space, as Bullet and Box3D do (see Catto's *Numerical Methods* below). Box3D solves `I(ω₂ − ω₁) + h·ω₂ × (I·ω₂) = 0` for `ω₂` with one Newton–Raphson iteration. This is stable; do it once option 1 has shown you the effect.
+- **Velocity clamps (Box3D).** Box3D caps linear speed and limits rotation to `0.25π` per step. Without the rotation cap, a fast-spinning body can rotate past a contact between steps. Add both as `World` settings.
 - **Primitive inertia** (body space, principal axes, `m` = mass):
   - Solid sphere: `⅖·m·r²` on every axis.
   - Box with full extents `w, h, d`: `Ixx = m/12·(h² + d²)`, `Iyy = m/12·(w² + d²)`, `Izz = m/12·(w² + h²)`.
@@ -588,6 +607,7 @@ class World {
 | Brian Mirtich, [Polyhedral Mass Properties](https://people.eecs.berkeley.edu/~jfc/mirtich/massProps.html) | All | Inertia tensors for convex hulls. |
 | Harry Smith, [*Aircraft Flight Mechanics*: Assumed knowledge](https://aircraftflightmechanics.com/Prerequisites/Prerequisites.html#controlsurfaces) | Aircraft Anatomy (incl. wing parameters and the control-surface figure); Aerodynamic Coefficients; Aerofoils and Lift → *Lift vs Alpha* | Which surface drives which axis (ailerons → roll, elevator → pitch, rudder → yaw); `F = ½ρV²·S·C`; a lift model `C_L = a(α − α₀)` with a slope near 2π per radian and a stall cutoff. Enough for a believable flight-sim demo. |
 | [Airfoil Tools](http://airfoiltools.com/) | The airfoil database | Real lift and drag curves for named airfoils. Use one to build a piecewise `C_L(α)` table instead of a straight line. |
+| Box3D `src/solver.c` (velocity integration, near the top); `src/body.h` | `b3IntegrateVelocitiesTask`; `b3BodyState` vs `b3BodySim` | The implicit gyroscopic solve, Padé damping and velocity clamps in production form; hot per-step state kept apart from cold data. Box3D's *Gyroscopic Precession* and *Spinning Book* samples are the same experiments as the spinning-bodies demo. |
 
 More: [RESOURCES.md, Phase 4](./RESOURCES.md#phase-4-rigid-bodies)
 
@@ -611,6 +631,8 @@ More: [RESOURCES.md, Phase 4](./RESOURCES.md#phase-4-rigid-bodies)
 - [ ] `src/collision/gjk.ts`, `src/collision/epa.ts`
 - [ ] `src/collision/contact.ts`: `Contact` and `ContactManifold`
 - [ ] Debug draw data: a plain array of lines and points the engine fills and demos render
+- [ ] `src/collision/broadphase/dynamic-tree.ts`: a dynamic AABB tree with fat AABBs, SAH sibling selection and tree rotations (Box3D's broadphase)
+- [ ] *Optional:* `src/collision/hull-builder.ts`: Quickhull from a point cloud, so `ConvexHull` shapes can come from arbitrary meshes (Box3D builds boxes as hulls this way)
 
 ```ts
 type Shape =
@@ -677,6 +699,10 @@ class ContactManifold {
 - **GJK:** iterate on the Minkowski difference `s(d) = s_A(d) − s_B(−d)` in world space. Handle line, triangle and tetrahedron simplex cases; stop when the new support point doesn't pass the origin. It answers overlap/distance, not penetration depth.
 - **EPA:** start from GJK's final tetrahedron, repeatedly find the face closest to the origin, add the support point in its normal direction, remove faces that can see the new point, and patch the horizon. Stop when the distance improves by less than a tolerance. EPA gives one deep point; combine it with clipping or a persistent manifold to get a stable patch.
 - **Feature IDs.** Give each contact point an `id` built from the features that produced it (for example reference face index and incident vertex index). Phase 6 warm starting matches points across frames by this ID.
+- **Dynamic AABB tree (Box3D).** Insert each fat AABB next to the sibling that grows the tree's total surface area least (the SAH cost), then walk up refitting ancestors and applying a rotation where it lowers cost. Only re-insert a proxy when its tight AABB leaves its fat one. Box3D keeps three trees, one each for static, kinematic and dynamic bodies, so static geometry is never re-queried against itself. Test it against the brute-force broadphase.
+- **Speculative contacts (Box3D).** Report contact points whose separation is *positive* but small (Box3D uses `4 × linearSlop`, about 2 cm). Phase 6's solver lets bodies close that gap but not cross it, so contacts start *before* touching and resting bodies don't overshoot. The margin is small, so this covers modest speeds only (about `margin / dt`, roughly 1 m/s at 60 Hz); faster bodies need time of impact (Phase 8). Your narrowphase functions should therefore return negative penetration (a gap) rather than no contact, up to the margin.
+- **Hull–hull SAT with Gauss-map pruning.** For two convex hulls, testing every edge pair is `O(E²)`. An edge pair can only be a separating axis if the two edges' arcs on the Gauss map (the unit sphere of face normals) intersect. That test is cheap and skips most pairs (Gregorius, GDC 2013; Box3D's `b3ComputeSeparatingAxis`). Boxes are just hulls with 6 faces and 12 edges, so a general hull SAT replaces the box-specific one.
+- **Manifold reduction.** Clipping two boxes can produce up to 8 points (more for hulls); keep at most 4. Start with Allen Chou's rule: the deepest point, the point farthest from it, then the points that maximize triangle and quadrilateral area. Box3D does it differently: it projects the points onto the contact plane, builds their 2D convex hull, and simplifies that hull to 4 vertices (`b3ReduceManifoldPoints`). Compare the two on a box rotated 45° on another box.
 
 ### Tests
 
@@ -721,6 +747,10 @@ class ContactManifold {
 | Dirk Gregorius, [The Separating Axis Test between Convex Polyhedra](https://www.gdcvault.com/play/1017646/Physics-for-Game-Programmers-The) (GDC 2013); [Robust Contact Creation](https://www.gdcvault.com/play/1022193/Physics-for-Game-Programmers-Robust) (GDC 2015) | All | SAT for hulls, and stable manifolds. |
 | Allen Chou, [Game Physics: Stability – Warm Starting](http://allenchou.net/2014/01/game-physics-stability-warm-starting/) | Persistent Contacts | Matching contacts across frames and reducing a manifold to 4 points (deepest, farthest from it, farthest from that segment, farthest from the triangle). |
 | Ten Minute Physics | Ep. 11, 23, 24 | Spatial hashing, sweep-and-prune and BVHs with runnable code. |
+| Bittner, Hapala & Havran, [Fast Insertion-Based Optimization of BVHs](https://dcgi.fel.cvut.cz/~havran/ARTICLES/bittner2013cgf_preprint.pdf) (CGF 2013); Erin Catto, [Dynamic Tree Improvements](https://box2d.org/posts/2025/03/dynamic-tree-improvements/) (2025) | All | The paper behind SAH insertion, and how Box2D v3 and Box3D refined the tree after the GDC 2019 talk. |
+| Dirk Gregorius, [Implementing QuickHull](https://media.steampowered.com/apps/valve/2014/DirkGregorius_ImplementingQuickHull.pdf) (GDC 2014) | All | For the optional hull builder: half-edge mesh, conflict lists, horizon, face merging. |
+| Erin Catto, [Contact Manifolds](https://box2d.org/files/ErinCatto_ContactManifolds_GDC2007.pdf) (GDC 2007) | All | Clipping-based manifolds and feature IDs, the ancestor of Box3D's manifold code. |
+| Box3D `src/dynamic_tree.c`, `src/broad_phase.c`, `src/convex_manifold.c`, `src/distance.c`, `src/hull.c` | `b3FindBestSibling` and rotations; `b3ComputeSeparatingAxis` and `b3ReduceManifoldPoints`; `b3ShapeDistance`; `b3HullBuilder_*` | Compare after your versions work. Box3D's *Manifold* samples show every shape pair and make a good checklist for the collision inspector demo. |
 
 More: [RESOURCES.md, Phase 5](./RESOURCES.md#phase-5-collision-detection)
 
@@ -738,6 +768,8 @@ More: [RESOURCES.md, Phase 5](./RESOURCES.md#phase-5-collision-detection)
 
 - [ ] `src/constraints/contact-resolver.ts`: v1, Millington-style resolver (worst contact first)
 - [ ] `src/constraints/contact-solver.ts`: v2, sequential impulses with friction and warm starting
+- [ ] `src/constraints/soft-step-solver.ts`: v3, Box3D's **Soft Step**: substeps, soft contacts, relax and restitution passes, speculative contacts
+- [ ] `src/constraints/softness.ts`: `makeSoft(hertz, dampingRatio, h)` → `{ biasRate, massScale, impulseScale }`, shared with Phase 7's joints
 - [ ] `src/constraints/solver-settings.ts`: iterations, Baumgarte factor, slop, restitution threshold, warm starting on/off
 - [ ] Persistent manifolds in `World`: match this step's contacts to last step's by body pair and feature ID
 - [ ] `World.step` runs the full pipeline: forces → broadphase → narrowphase → solve → integrate
@@ -774,6 +806,18 @@ class ContactSolver {
 - **Step order for sequential impulses:** integrate velocities from forces → collide → prepare → warm start → N velocity iterations → integrate positions → store impulses. Moving position integration after the solve is a change from Phase 4's order; `World.step` gets restructured here.
 - **Static bodies** have zero inverse mass and inertia, so the same formulas work. Skip writing their velocities.
 
+**v3: Box3D's Soft Step.** Build it once v2 stacks. It reuses v2's prepare, warm start and impulse code; what changes is the loop around it and the bias term.
+
+- **The loop.** With `n` substeps (Box3D recommends 4) and `h = dt / n`: prepare once per step, then for each substep run integrate velocities → warm start → solve (with bias) → integrate positions → relax (without bias), one iteration each. After all substeps, run restitution (Box3D does 2 passes) and store impulses. `World.step` gets restructured again; keep v2's order selectable for the comparison demo.
+- **Anchors stay fixed; separation is estimated.** Narrowphase runs once per step, not per substep. Store each contact's anchors relative to each body's center of mass, and track each body's accumulated `deltaPosition` and `deltaRotation` within the step. Inside a substep, estimate the current separation as `s = s₀ + n·((Δpₐ + Δqₐ·rₐ) − (Δp_b + Δq_b·r_b))` instead of recomputing contacts.
+- **Soft contact bias.** With `ω = 2π·hertz` and damping ratio `ζ`: `biasRate = ω / (2ζ + hω)`, `impulseScale = 1 / (1 + hω(2ζ + hω))`, `massScale = 1 − impulseScale`. Then the normal update is `Δλ = −m_n·(massScale·vₙ + bias) − impulseScale·λ`, with:
+  - `s > 0` (speculative, a gap): `bias = s / h` and `massScale = 1, impulseScale = 0`. The bodies may close the gap this substep but not cross it.
+  - `s ≤ 0` (penetrating): `bias = max(massScale·biasRate·s, −contactSpeed)`. Penetration is pushed out like a damped spring, no faster than `contactSpeed`.
+  Box3D's defaults are `contactHertz = 30`, `contactDampingRatio = 10` (heavily overdamped on purpose), `contactSpeed = 3 m/s`, and it doubles the hertz and halves the damping against static bodies.
+- **Relax.** The relax pass solves with `bias = 0` for penetrating contacts (speculative ones keep `s / h`). It removes the velocity the push-out added, so separation doesn't become bounce. This replaces split impulses.
+- **Restitution as its own pass.** Record the pre-solve normal velocity in `prepare`. After the substeps, for points whose approach speed exceeded `restitutionThreshold` (1 m/s) and that received impulse, solve for the target `−e·vₙ_initial`.
+- **Friction per manifold (optional upgrade).** Box3D replaces per-point tangents with one 2D friction constraint at the manifold's friction center, clamped to a circle of radius `μ·ΣPₙ` (a true cone, not a pyramid), plus a twist-friction row about the normal. Rolling resistance is an angular row clamped by `resistance·radius·ΣPₙ`. Try per-point friction first, then this; the *Spinning top* and *Rolling* experiments show the difference.
+
 ### Tests
 
 - A ball with restitution 1 dropped onto a static plane returns to its drop height within a few percent.
@@ -781,12 +825,17 @@ class ContactSolver {
 - A 10-box stack settles and drifts less than 1 cm over 10 s at 60 Hz with 10 iterations and warm starting on.
 - The same stack with warm starting off visibly sinks or jitters (assert drift is larger, as documentation).
 - Accumulated normal impulses are never negative; tangent impulses never exceed `μ·Pₙ`.
+- `makeSoft`: `massScale + impulseScale = 1` for any input; `hertz = 0` gives all zeros (rigid); as `hertz → ∞`, `biasRate → 1/h` and `massScale → 1`.
+- v3 with 4 substeps and 1 iteration keeps the 10-box stack within the same drift bound as v2 with 10 iterations.
+- v3, speculative contacts: a box released 1 cm above the ground (inside the speculative margin) lands without penetrating or bouncing.
+- v3, mass ratio: a 100 kg box resting on a 1 kg box doesn't sink through (Box3D's *HighMassRatio* robustness sample). Record where v2 fails the same test.
 
 **Demos**
 - *Restitution and friction lab*: balls and boxes on an adjustable ramp
 - *Stacking*: towers and pyramids; toggle warm starting and watch them collapse
 - *Dominoes*
-- *Solver comparison*: the same scene with Millington's resolver and sequential impulses side by side
+- *Solver comparison*: the same scene with Millington's resolver, sequential impulses and Soft Step side by side, with substep and iteration sliders
+- *Card house* and *Jenga* (Box3D samples): hard stacking tests that separate a good solver from a merely working one
 
 **Web skills:** save and load scenes as JSON, and share a scene in the URL hash; an undo stack for scene edits.
 
@@ -822,10 +871,16 @@ class ContactSolver {
 | Nilson Souto, [Video Game Physics Tutorial, Part III](https://www.toptal.com/game/video-game-physics-part-iii-constrained-rigid-body-simulation) | Inequality Constraints; Impulse-Based Dynamics → Sequential Impulses, Projected Gauss-Seidel, Simulating Friction Using Impulses | Shows that sequential impulses and PGS are the same algorithm. |
 | Erin Catto, [Solver2D](https://box2d.org/posts/2024/02/solver2d/) | All | Position-correction strategies compared on the same scenes. |
 | Glenn Fiedler, [Collision Response and Coulomb Friction](https://gafferongames.com/post/collision_response_and_coulomb_friction/) | All | A practical summary. |
+| Macklin et al., [Small Steps in Physics Simulation](https://mmacklin.com/smallsteps.pdf) (SCA 2019) | §1–4 and the results figures | Why substeps with one iteration beat iterations: the argument behind v3. |
+| Erin Catto, [Releasing Box2D 3.0](https://box2d.org/posts/2024/08/releasing-box2d-3.0/) | Solver; Continuous | Soft Step and speculative contacts as shipped, with the reasoning. |
+| NVIDIA, [PhysX 4.0 Rigid Body Dynamics](https://gameworksdocs.nvidia.com/PhysX/4.0/documentation/PhysXGuide/Manual/RigidBodyDynamics.html) | Solver types (PGS vs TGS) | Temporal Gauss–Seidel, PhysX's relative of Soft Step. |
+| Paul Firth, [Speculative Contacts](https://web.archive.org/web/2011/http://www.wildbunny.co.uk/blog/2011/03/25/speculative-contacts-an-continuous-collision-engine-approach-part-1/) (archived) | Part 1 | The speculative-contact idea in its simplest form. |
+| Bender, Erleben & Trinkle, [Interactive Simulation of Rigid Body Dynamics](https://perso.liris.cnrs.fr/fzara/Web/media/files/M2-Animation/cgf12272.pdf) (CGF 2014) | Friction and stabilization sections | Friction cones vs pyramids, and a survey of every stabilization scheme in this phase. Optional depth. |
+| Box3D `src/solver.c` (`b3SolverTask` stage loop), `src/solver.h` (`b3MakeSoft`), `src/contact_solver.c` | Prepare, warm start, solve, relax, restitution; friction center, twist, rolling resistance | The production v3. Read after yours works; the comments explain each choice. |
 
 More: [RESOURCES.md, Phase 6](./RESOURCES.md#phase-6-collision-response-and-friction)
 
-**Done when:** a 10-box stack stands still at 60 Hz with about 10 iterations.
+**Done when:** a 10-box stack stands still at 60 Hz with about 10 iterations (v2), and with 4 substeps and 1 iteration (v3).
 
 ---
 
@@ -842,6 +897,7 @@ More: [RESOURCES.md, Phase 6](./RESOURCES.md#phase-6-collision-response-and-fric
 - [ ] `src/engine/islands.ts`: union-find island builder
 - [ ] Sleeping on `RigidBody` and `World`: `isAwake`, `sleepTime`, `wake()`
 - [ ] `World.stats`: time per phase (broadphase, narrowphase, solve, integrate)
+- [ ] *Box3D extensions:* `SphericalJoint` with cone and twist limits (for the ragdoll), `PrismaticJoint`, `WheelJoint`; breakable joints; contact begin/end/hit events and sensor shapes
 
 ```ts
 interface Constraint {
@@ -870,7 +926,11 @@ class HingeJoint implements Constraint {
 - **Hinge:** ball-socket plus two angular rows. Keep B's hinge axis perpendicular to two vectors that are perpendicular to A's axis. A **limit** is a one-sided angular row about the axis, clamped like a contact. A **motor** is a row targeting a relative angular speed, with accumulated impulse clamped to `±maxTorque·dt`.
 - **Fixed joint:** ball-socket plus three angular rows from the relative orientation error (the vector part of `q_b · q_rest⁻¹ · qₐ*`).
 - **Soft constraints:** given frequency `f` and damping ratio `ζ`, with effective mass `m`: `ω = 2πf`, `k = m·ω²`, `c = 2·m·ζ·ω`. Then softness `γ = 1 / (dt·(c + dt·k))` and bias factor `β = dt·k / (c + dt·k)`. Use `1 / (K + γ)` as the effective mass and add `γ·λ_accumulated` to the velocity error. `f = 0` means rigid.
+  If you built v3 in Phase 6, this is the same `makeSoft` written differently: `biasRate`, `massScale` and `impulseScale` are `β/dt`, `K/(K + γ)` and `γ/(K + γ)` in disguise. Use `makeSoft` for joints too, so contacts and joints share one softness model. Box3D clamps joint stiffness to a quarter of the substep rate, because a spring stiffer than the step can resolve is just a rigid constraint with extra error.
+- **Box3D's joint set** is a good target list once the four above work: revolute (= hinge) with spring, limit and motor; prismatic (slider); spherical (= ball-socket) with a cone limit and twist limits, the ragdoll joint; weld (= fixed) with separate linear and angular stiffness; wheel (suspension spring plus steering); motor; distance with spring, limits and motor. Each joint can break when its impulse exceeds a force or torque threshold.
 - **Islands:** union-find (path compression, union by rank) over dynamic bodies linked by touching contacts and joints. Static bodies never join islands; otherwise everything on the ground becomes one island.
+- **Persistent islands (Box3D).** Rebuilding islands every step is simple and is the right first version. Box3D keeps islands across steps instead: they merge immediately when a contact begins touching, but split lazily, at most one island per step and only when that island is a candidate for sleep. Islands exist only to decide sleep, not to order the solver. Read Catto's *Simulation Islands* post after your union-find version works, and measure the difference on 500 boxes.
+- **Events (Box3D).** Games need to know what happened, not just where bodies are. Collect contact begin/end events (a manifold gained or lost all its points), hit events (approach speed above a threshold) and sensor overlap events into arrays on `World` during the step, and let callers read them afterward. Never call user code from inside the solver.
 - **Sleeping:** each body accumulates `sleepTime` while `|v|² < linTol²` and `|ω|² < angTol²`, and resets it otherwise. When every body in an island has `sleepTime > 0.5 s`, put the whole island to sleep: zero the velocities and skip it in integration and solving. A body wakes on contact with an awake body, when a joint partner wakes, or when user code applies a force or sets its state.
 - **Determinism:** iterate bodies and constraints in a stable order (array order, never by object identity); never use `Math.random()` in the engine; keep constraint creation order stable when reloading a scene.
 - **Profiling:** `performance.now()` around each pipeline stage, written into a reused `World.stats` object; no allocation per step.
@@ -919,6 +979,8 @@ class HingeJoint implements Constraint {
 | Erin Catto, [Soft Constraints](https://box2d.org/files/ErinCatto_SoftConstraints_GDC2011.pdf) (GDC 2011) | All | Frequency and damping ratio. |
 | Erin Catto, [Understanding Constraints](https://box2d.org/files/ErinCatto_UnderstandingConstraints_GDC2014.pdf) (GDC 2014) | All | A second pass after building the joints. |
 | [Jolt Physics docs](https://jrouwe.github.io/JoltPhysics/) | Islands, sleeping, the step pipeline | How a production engine organizes it. |
+| Erin Catto, [Simulation Islands](https://box2d.org/posts/2023/10/simulation-islands/) (2023) | All | Persistent islands with lazy splitting, and why Box2D v3 and Box3D use islands only for sleep. |
+| Box3D `src/joint.c`, `src/revolute_joint.c`, `src/spherical_joint.c`, `src/weld_joint.c`, `src/island.c`, `src/solver_set.c`, `src/sensor.c`; `docs/simulation.md` | Joint prepare/warm start/solve; island merge and split; moving sleeping islands into solver sets; sensor events | Production versions of this phase. The *Ragdoll*, *Bridge*, *Door* and *Driving* samples match this phase's demos. |
 | Witkin, Gleicher & Welch, [Interactive Dynamics](https://dl.acm.org/doi/pdf/10.1145/91394.91400) (*ACM SIGGRAPH Computer Graphics*, 1990) | All | Optional history: interactive constraint-based dynamics, from the same author as the constrained-dynamics notes. |
 | Barzel & Barr, [A Modeling System Based on Dynamic Constraints](https://hal.science/hal-01968730/document) (SIGGRAPH 1988) | All | Optional history: the origin of solving for constraint forces on rigid bodies. The HAL site may require opening in a browser. |
 | Maloisel, Grandia, Schumacher, Knoop & Bächer, [A Versatile Quaternion-based Constrained Rigid Body Dynamics](https://la.disneyresearch.com/wp-content/uploads/A_Versatile_Quaternion_based_Constrained_Rigid_Body_Dynamics.pdf) (Disney Research, *ACM TOG* 2025, 17 pages) | After your joints work | Research level: implicit integration that guarantees constraint satisfaction, with kinematic loops and redundant constraints. Read for where the field is now, not to implement. |
@@ -934,7 +996,12 @@ More: [RESOURCES.md, Phase 7](./RESOURCES.md#phase-7-joints-sleeping-and-stabili
 Pick whatever interests you most.
 
 - **Continuous collision detection (CCD):** conservative advancement or time of impact (Catto, GDC 2013). Demo: a bullet through a thin wall, with CCD off and on.
-  *Approach:* only for fast, small bodies (speed · dt > a fraction of their size). Compute time of impact with conservative advancement on the GJK distance, then substep or clamp motion to that time.
+  *Approach:* only for fast, small bodies (speed · dt > a fraction of their size). Compute time of impact with conservative advancement on the GJK distance, then substep or clamp motion to that time. Box3D's split is a good model: speculative contacts (Phase 6) for everything, TOI against static geometry for fast dynamic bodies, and TOI against dynamic bodies only for bodies flagged `isBullet`. Bodies are moved back to their first time of impact at the end of the step (`b3SolveContinuous` in `src/solver.c`; *Bullet vs Stack*, *Thin Wall* and *Spinning Stick* samples).
+- **Character mover (Box3D):** a kinematic capsule that slides along walls and climbs steps, built on shape casts. Cast the capsule along the desired motion, collect the planes it hits, solve for a velocity that respects all of them, and clip the motion. Box3D's `docs/character.md` and `src/mover.c` (`b3World_CastMover`, `b3SolvePlanes`, `b3ClipVector`) are a compact reference. Demo: walk a character around the stacking scenes.
+- **Graph coloring and a parallel solver (Box3D):** color constraints so no two in one color share a dynamic body; constraints in one color can then be solved in any order, or in parallel. Box3D uses 24 colors with an overflow color solved serially, and doesn't color static bodies. In Aether this is the prerequisite for solving across Web Workers, and it changes solver order, so check determinism afterward (*SIMD Matters*; `src/constraint_graph.c`).
+- **Struct-of-arrays body storage (Box3D):** split body data into hot per-step state (velocity, delta position, delta rotation) packed in `Float64Array`s and cold data (shape, user data). Box3D keeps awake and sleeping bodies in separate *solver sets* so the awake arrays stay contiguous. Measure before and after.
+- **Static meshes and height fields (Box3D):** triangle meshes with an internal BVH, and height fields for terrain, both static only. The hard part is *internal edges*: a box sliding across two coplanar triangles catches on the shared edge. Box3D precomputes edge flags (`identifyEdges`) to suppress those contacts.
+- **Recording and replay (Box3D):** record every API call and step; replay it and compare state bit for bit. Combined with determinism, this turns any physics bug report into a reproducible test (`src/recording.c`, `src/replay.c`).
 - **The engine in a Web Worker:** the simulation runs off the main thread; transforms come back through a `SharedArrayBuffer` (requires COOP/COEP headers in Vite).
   *Approach:* a message protocol of plain objects (`{ type: 'addBody', … }`), body state packed into a `Float64Array` (7 numbers per body: position + quaternion), double-buffered so the renderer never reads a half-written frame.
 - **Determinism:** same inputs, same output, bit for bit; record and replay (Box2D's determinism post).
@@ -956,6 +1023,10 @@ Pick whatever interests you most.
 |---|---|---|---|
 | CCD | Erin Catto, [Continuous Collision](https://box2d.org/files/ErinCatto_ContinuousCollision_GDC2013.pdf) (GDC 2013) | All | Time of impact and conservative advancement. |
 | Determinism | Erin Catto, [Determinism](https://box2d.org/posts/2024/08/determinism/) | All | Cross-platform floating-point pitfalls. |
+| Parallel solver | Erin Catto, [SIMD Matters](https://box2d.org/posts/2024/08/simd-matters/) | All | Graph coloring and the wide contact solver. |
+| Collision performance | Erin Catto, [SIMD for Collision](https://box2d.org/posts/2026/07/simd-for-collision/); [Contact Recycling](https://box2d.org/posts/2026/10/contact-recycling/) (2026) | All | Box3D's narrowphase optimizations, including reusing manifolds when relative motion is tiny. |
+| Rigid-body XPBD | Müller et al., [Detailed Rigid Body Simulation with XPBD](https://matthias-research.github.io/pages/publications/PBDBodies.pdf) (2020) | All | XPBD for rigid bodies, also substepped. Compare it with Soft Step on the same scenes, as Solver2D does. |
+| Character mover, CCD, determinism | Box3D [`docs/character.md`](https://github.com/erincatto/box3d/blob/main/docs/character.md), [`docs/simulation.md`](https://github.com/erincatto/box3d/blob/main/docs/simulation.md) | Mover; Bullets; Determinism | Short, production-tested write-ups of each. |
 | Web Worker | MDN, [Using Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) | All | The message protocol and transferables. |
 | XPBD, soft bodies | Müller et al., [XPBD](https://matthias-research.github.io/pages/publications/XPBD.pdf) | All | The full method. |
 | Soft-body contact | Chen, Hsu, Liu, Macklin, Yang & Yuksel, [Offset Geometric Contact](https://graphics.cs.utah.edu/research/projects/ogc/Offset_Geometric_Contact-SIGGRAPH2025.pdf) (*ACM TOG* 44(4), SIGGRAPH 2025, 21 pages) | Introduction and method overview | Research level: penetration-free contact for cloth and deformables, designed to plug into solvers such as Vertex Block Descent. Read when the XPBD cloth starts tangling. |
