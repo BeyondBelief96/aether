@@ -59,20 +59,42 @@ export class Mat3x3 {
         ]);
     }
 
+    /**
+     * Sets this matrix to the identity, which leaves every vector unchanged.
+     */
     identity(): this {
         this.elements.set(IDENTITY);
         return this;
     }
 
+    /**
+     * Copies the elements of `m` into this matrix.
+     *
+     * @param m Source matrix.
+     */
     copy(m: Mat3x3): this {
         this.elements.set(m.elements);
         return this;
     }
 
+    /**
+     * Returns a new matrix with the same elements as this one.
+     */
     clone(): Mat3x3 {
         return new Mat3x3().copy(this);
     }
 
+    /**
+     * Sets this matrix to a diagonal matrix with `a`, `b` and `c` on the diagonal and zeros
+     * elsewhere.
+     *
+     * Overwrites the current contents. Used for axis-aligned scaling and for the inertia tensor
+     * of a shape aligned with its principal axes.
+     *
+     * @param a Element (0, 0).
+     * @param b Element (1, 1).
+     * @param c Element (2, 2).
+     */
     setDiagonal(a: number, b: number, c: number): this {
         const e = this.elements;
         e[0] = a;
@@ -282,6 +304,12 @@ export class Mat3x3 {
         return this;
     }
 
+    /**
+     * Transposes this matrix in place, swapping rows and columns: element (r, c) becomes
+     * element (c, r).
+     *
+     * For an orthonormal matrix the transpose is the inverse.
+     */
     transpose(): this {
         const e = this.elements;
         const a01 = e[1]!,
@@ -300,6 +328,12 @@ export class Mat3x3 {
         return this;
     }
 
+    /**
+     * Returns the determinant: the factor by which this matrix scales volumes.
+     *
+     * Zero means the matrix is singular and has no inverse. A negative value means it includes
+     * a reflection. Rotations have determinant 1.
+     */
     determinant(): number {
         const e = this.elements;
         const a00 = e[0]!,
@@ -361,7 +395,7 @@ export class Mat3x3 {
     }
 
     /**
-     * Set's this matrix to the inverse of itself. If the determinant is zero, set's this matrix to the zero matrix.
+     * Inverts this matrix in place, or sets it to zero if it is singular.
      */
     inverse(): this {
         return this.setInverse(this);

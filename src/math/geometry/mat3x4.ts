@@ -74,16 +74,27 @@ export class Mat3x4 {
         ]);
     }
 
+    /**
+     * Sets this transform to the identity: no rotation, scale or translation.
+     */
     identity(): this {
         this.elements.set(IDENTITY);
         return this;
     }
 
+    /**
+     * Copies the elements of `m` into this transform.
+     *
+     * @param m Source transform.
+     */
     copy(m: Mat3x4): this {
         this.elements.set(m.elements);
         return this;
     }
 
+    /**
+     * Returns a new transform with the same elements as this one.
+     */
     clone(): Mat3x4 {
         return new Mat3x4().copy(this);
     }

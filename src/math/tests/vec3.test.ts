@@ -31,6 +31,12 @@ describe("Vec3", () => {
             expectVec3(v, 4, 5, 6);
         });
 
+        it("sets its components and returns itself", () => {
+            const v = new Vec3(1, 2, 3);
+            expect(v.set(-4, 5, -6)).toBe(v);
+            expectVec3(v, -4, 5, -6);
+        });
+
         it("clones into an independent instance", () => {
             const a = new Vec3(1, 2, 3);
             const b = a.clone();
@@ -52,6 +58,25 @@ describe("Vec3", () => {
 
         it("is zero for the zero vector", () => {
             expect(new Vec3(0, 0, 0).magnitude()).toBe(0);
+        });
+    });
+
+    describe("distance", () => {
+        it("computes the Euclidean distance", () => {
+            expect(new Vec3(1, 2, 3).distanceTo({ x: 4, y: 6, z: 3 })).toBe(5);
+        });
+
+        it("computes the squared distance", () => {
+            expect(
+                new Vec3(1, 2, 3).distanceToSquared({ x: 4, y: 6, z: 3 }),
+            ).toBe(25);
+        });
+
+        it("is symmetric and zero to itself", () => {
+            const a = new Vec3(1, -2, 3);
+            const b = new Vec3(-4, 0.5, 7);
+            expect(a.distanceTo(b)).toBe(b.distanceTo(a));
+            expect(a.distanceTo(a)).toBe(0);
         });
     });
 
@@ -91,6 +116,10 @@ describe("Vec3", () => {
             );
         });
 
+        it("negates", () => {
+            expectVec3(new Vec3(1, -2, 3).negate(), -1, 2, -3);
+        });
+
         it("returns itself from mutating methods for chaining", () => {
             const v = new Vec3(1, 0, 0);
             expect(
@@ -99,9 +128,10 @@ describe("Vec3", () => {
                     .subtract(Z())
                     .scale(2)
                     .addScaled(X(), 1)
-                    .componentWiseProduct(X()),
+                    .componentWiseProduct(X())
+                    .negate(),
             ).toBe(v);
-            expectVec3(v, 3, 0, 0);
+            expectVec3(v, -3, 0, 0);
         });
 
         it("does not modify the argument", () => {
@@ -183,6 +213,31 @@ describe("Vec3", () => {
             expect(v.cross(Y())).toBe(v);
         });
 
+        it("crossVectors matches the instance method and returns itself", () => {
+            const a = new Vec3(1, 2, 3);
+            const b = new Vec3(-4, 5, 0.5);
+            const expected = a.clone().cross(b);
+            const out = new Vec3();
+            expect(out.crossVectors(a, b)).toBe(out);
+            expectVec3(out, expected.x, expected.y, expected.z);
+            expectVec3(a, 1, 2, 3);
+            expectVec3(b, -4, 5, 0.5);
+        });
+
+        it("crossVectors handles this as either operand", () => {
+            const b = new Vec3(-4, 5, 0.5);
+            const expectedLeft = Vec3.cross({ x: 1, y: 2, z: 3 }, b);
+            const expectedRight = Vec3.cross(b, { x: 1, y: 2, z: 3 });
+
+            const left = new Vec3(1, 2, 3);
+            left.crossVectors(left, b);
+            expectVec3(left, expectedLeft.x, expectedLeft.y, expectedLeft.z);
+
+            const right = new Vec3(1, 2, 3);
+            right.crossVectors(b, right);
+            expectVec3(right, expectedRight.x, expectedRight.y, expectedRight.z);
+        });
+
         it("static version matches the instance method", () => {
             const a = new Vec3(1, 2, 3);
             const b = new Vec3(-4, 5, 0.5);
@@ -233,6 +288,52 @@ describe("Vec3", () => {
         it("returns itself", () => {
             const v = new Vec3(1, 2, 3);
             expect(v.normalize()).toBe(v);
+        });
+    });
+
+    describe("lerp", () => {
+        it("returns the endpoints at t = 0 and t = 1", () => {
+            const b = { x: 5, y: -6, z: 7 };
+            expectVec3(new Vec3(1, 2, 3).lerp(b, 0), 1, 2, 3);
+            expectVec3(new Vec3(1, 2, 3).lerp(b, 1), 5, -6, 7);
+        });
+
+        it("interpolates at the midpoint", () => {
+            expectVec3(new Vec3(1, 2, 3).lerp({ x: 5, y: -6, z: 7 }, 0.5), 3, -2, 5);
+        });
+
+        it("extrapolates outside [0, 1]", () => {
+            expectVec3(new Vec3(0, 0, 0).lerp({ x: 1, y: 2, z: 3 }, 2), 2, 4, 6);
+        });
+
+        it("returns itself", () => {
+            const v = X();
+            expect(v.lerp(Y(), 0.5)).toBe(v);
+        });
+    });
+
+    describe("equals", () => {
+        it("is true for identical vectors", () => {
+            expect(new Vec3(1, 2, 3).equals({ x: 1, y: 2, z: 3 })).toBe(true);
+        });
+
+        it("tolerates differences within epsilon", () => {
+            expect(new Vec3(1, 2, 3).equals({ x: 1 + 1e-9, y: 2, z: 3 })).toBe(
+                true,
+            );
+        });
+
+        it("is false when any component differs beyond epsilon", () => {
+            expect(new Vec3(1, 2, 3).equals({ x: 1, y: 2, z: 3.001 })).toBe(
+                false,
+            );
+        });
+
+        it("accepts a custom epsilon", () => {
+            const v = new Vec3(1, 2, 3);
+            const w = { x: 1.01, y: 2, z: 3 };
+            expect(v.equals(w)).toBe(false);
+            expect(v.equals(w, 0.1)).toBe(true);
         });
     });
 });
