@@ -1000,6 +1000,23 @@ Pick whatever interests you most.
 - **Character mover (Box3D):** a kinematic capsule that slides along walls and climbs steps, built on shape casts. Cast the capsule along the desired motion, collect the planes it hits, solve for a velocity that respects all of them, and clip the motion. Box3D's `docs/character.md` and `src/mover.c` (`b3World_CastMover`, `b3SolvePlanes`, `b3ClipVector`) are a compact reference. Demo: walk a character around the stacking scenes.
 - **Graph coloring and a parallel solver (Box3D):** color constraints so no two in one color share a dynamic body; constraints in one color can then be solved in any order, or in parallel. Box3D uses 24 colors with an overflow color solved serially, and doesn't color static bodies. In Aether this is the prerequisite for solving across Web Workers, and it changes solver order, so check determinism afterward (*SIMD Matters*; `src/constraint_graph.c`).
 - **Struct-of-arrays body storage (Box3D):** split body data into hot per-step state (velocity, delta position, delta rotation) packed in `Float64Array`s and cold data (shape, user data). Box3D keeps awake and sleeping bodies in separate *solver sets* so the awake arrays stay contiguous. Measure before and after.
+- **Contact recycling (Box3D):** skip narrowphase for a pair whose relative pose has barely changed since its manifold was last computed, and only re-estimate the separations. Resting stacks and bodies moving together (a box on a moving platform) then cost almost nothing in narrowphase, and contact points stop flickering.
+  *Prerequisites:* Phase 5's one-shot manifolds, Phase 6's persistent manifolds, and v3's fixed anchors with a separation estimate. Recycling is the same estimate applied across steps instead of substeps.
+  *Approach:*
+  1. On a fresh manifold, cache the relative transform `T_A⁻¹·T_B`, both orientations `qA₀` and `qB₀`, and each point's `baseSeparation`.
+  2. Each step, compute `movement = |Δp_rel| + angle(Δq_rel)·maxExtent`. Here `maxExtent` is the larger body's bounding radius about its center of mass (ignore static bodies), and `angle ≈ 2·|xyz part of Δq|`, so no trig is needed.
+  3. If `movement` is under the tolerance *and* the rotation is under a separate angle tolerance, reuse the manifold. Keep the normal and anchors fixed in world space, and set each point's `s = baseSeparation + n·((c_B − c_A) + (ΔqB·rB − ΔqA·rA))`, with `Δq = q·q₀⁻¹`.
+  4. Otherwise run narrowphase and re-cache.
+  *Pitfalls:*
+  - Never re-cache while recycling, or error accumulates.
+  - Body-space normals and anchors misbehave for rolling shapes; keep them in world space.
+  - Without the angle tolerance, the frozen normal can drift and break pairs that a joint also holds together.
+  - Tolerances beyond a few centimeters show visible artifacts.
+  - Add a per-body opt-out (Box3D's `enableContactRecycling`) and turn it off for character movers.
+  *Tests:*
+  - A settled 10-box stack produces the same body states with recycling on and off, within tolerance.
+  - On the 500-box scene, `World.stats` shows narrowphase time dropping.
+  - A pair recycles while it stays under tolerance, and gets a fresh manifold on the step it crosses.
 - **Static meshes and height fields (Box3D):** triangle meshes with an internal BVH, and height fields for terrain, both static only. The hard part is *internal edges*: a box sliding across two coplanar triangles catches on the shared edge. Box3D precomputes edge flags (`identifyEdges`) to suppress those contacts.
 - **Recording and replay (Box3D):** record every API call and step; replay it and compare state bit for bit. Combined with determinism, this turns any physics bug report into a reproducible test (`src/recording.c`, `src/replay.c`).
 - **The engine in a Web Worker:** the simulation runs off the main thread; transforms come back through a `SharedArrayBuffer` (requires COOP/COEP headers in Vite).
@@ -1025,6 +1042,8 @@ Pick whatever interests you most.
 | Determinism | Erin Catto, [Determinism](https://box2d.org/posts/2024/08/determinism/) | All | Cross-platform floating-point pitfalls. |
 | Parallel solver | Erin Catto, [SIMD Matters](https://box2d.org/posts/2024/08/simd-matters/) | All | Graph coloring and the wide contact solver. |
 | Collision performance | Erin Catto, [SIMD for Collision](https://box2d.org/posts/2026/07/simd-for-collision/); [Contact Recycling](https://box2d.org/posts/2026/10/contact-recycling/) (2026) | All | Box3D's narrowphase optimizations, including reusing manifolds when relative motion is tiny. |
+| Contact recycling | Erin Catto, [Contact Recycling](https://box2d.org/posts/2026/10/contact-recycling/) (2026); Box2D [PR #1038](https://github.com/erincatto/box2d/pull/1038) and [issue #1046](https://github.com/erincatto/box2d/issues/1046); Box3D `src/physics_world.c` (`B3_CONTACT_RECYCLE_DISTANCE`) | All | The algorithm, the original change, and the joint failure case that motivates the rotation tolerance. |
+| Contact recycling, prior art | [Bepu Physics](https://www.bepuentertainment.com/); NVIDIA, [PhysX persistent contact manifolds](https://nvidia-omniverse.github.io/PhysX/physx/5.8.0/docs/AdvancedCollisionDetection.html#persistent-contact-manifold-pcm); adoption in [Rapier #973](https://github.com/dimforge/rapier/pull/973) and [Avian #1033](https://github.com/avianphysics/avian/pull/1033) | PhysX's persistent-manifold section; the two PRs | Where the fixed-anchor idea came from, PhysX's competing approach, and two independent ports of the idea to compare against. |
 | Rigid-body XPBD | Müller et al., [Detailed Rigid Body Simulation with XPBD](https://matthias-research.github.io/pages/publications/PBDBodies.pdf) (2020) | All | XPBD for rigid bodies, also substepped. Compare it with Soft Step on the same scenes, as Solver2D does. |
 | Character mover, CCD, determinism | Box3D [`docs/character.md`](https://github.com/erincatto/box3d/blob/main/docs/character.md), [`docs/simulation.md`](https://github.com/erincatto/box3d/blob/main/docs/simulation.md) | Mover; Bullets; Determinism | Short, production-tested write-ups of each. |
 | Web Worker | MDN, [Using Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) | All | The message protocol and transferables. |

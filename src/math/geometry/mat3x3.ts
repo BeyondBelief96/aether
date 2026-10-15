@@ -3,9 +3,38 @@ import { Vec3 } from "./vec3";
 
 const IDENTITY = new Float64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
 
+/**
+ * A 3×3 matrix for linear transforms (rotation, scale, shear, reflection) and other 3×3
+ * quantities such as inertia tensors.
+ *
+ * Conventions:
+ *
+ * - **Row-major storage.** Element (row `r`, column `c`) is `elements[r * 3 + c]`, and the
+ *   constructor takes arguments in reading order, so source code looks like the matrix on paper.
+ * - **Column vectors.** Vectors are transformed as `M · v`. In a product `A · B`, `B` is
+ *   applied first, then `A`.
+ * - **Columns are basis axes.** For a rotation from a child frame into its parent, column `i` is
+ *   the child's `i`-th axis expressed in the parent frame. For a rigid body's orientation the
+ *   columns are the body's X, Y and Z axes in world space.
+ * - **Right-hand rule.** A positive angle turns counter-clockwise when looking from the tip of
+ *   the rotation axis back toward the origin.
+ * - **Mutation and output.** Methods that modify this matrix do it in place and return `this`
+ *   for chaining. Methods that produce a vector write to an optional `out`, allocating one if
+ *   it is omitted. Inputs may alias `this` or `out`.
+ * - **`Orthonormal` variants.** Methods with `Orthonormal` in the name, and
+ *   `transformInverseVec3`, assume a pure rotation (or reflection) and use the transpose as the
+ *   inverse. Their results are undefined if the matrix contains scale or shear.
+ *
+ * The layout differs from Three.js: `THREE.Matrix3.elements` is column-major. Do not copy
+ * `elements` arrays between the two directly.
+ */
 export class Mat3x3 {
+    /** The nine elements in row-major order: `[m00, m01, m02, m10, m11, m12, m20, m21, m22]`. */
     readonly elements: Float64Array;
 
+    /**
+     * Creates a matrix from its elements in row-major (reading) order. Defaults to the identity.
+     */
     constructor(
         m00 = 1,
         m01 = 0,

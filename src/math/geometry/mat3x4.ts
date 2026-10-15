@@ -5,13 +5,45 @@ import { Vec3 } from "./vec3";
 const IDENTITY = new Float64Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0]);
 
 /**
- * A 3×4 affine transform: a 3×3 linear part with a translation column, stored row-major.
+ * A 3×4 affine transform: a 3×3 linear part `A` with a translation column `t`.
  *
- * Behaves as a 4×4 matrix whose implicit bottom row is `[0, 0, 0, 1]`.
+ * Behaves as a 4×4 matrix whose implicit bottom row is `[0, 0, 0, 1]`, mapping a point
+ * `p ↦ A·p + t`: the linear part is applied first, then the translation. Typically it holds a
+ * rigid transform from a child frame into its parent, such as a body's local-to-world transform.
+ *
+ * Conventions:
+ *
+ * - **Row-major storage.** Element (row `r`, column `c`) is `elements[r * 4 + c]`, and the
+ *   constructor takes arguments in reading order. The translation is at indices 3, 7 and 11.
+ * - **Column vectors.** Vectors are transformed as `M · v`. In a product `A · B`, `B` is
+ *   applied first, then `A`.
+ * - **Columns are the child frame.** For a rigid transform, columns 0–2 are the child's X, Y and
+ *   Z axes in the parent frame, and column 3 is the child's origin in the parent frame.
+ * - **Points and directions.** `transformPoint` applies the translation; `transformDirection`
+ *   applies only the linear part. Use directions for normals, velocities and axes.
+ * - **Right-hand rule.** A positive angle turns counter-clockwise when looking from the tip of
+ *   the rotation axis back toward the origin.
+ * - **Mutation and output.** Methods that modify this transform do it in place and return
+ *   `this` for chaining. Methods that produce a vector write to an optional `out`, allocating
+ *   one if it is omitted. Inputs may alias `this` or `out`.
+ * - **`Orthonormal` and `transformInverse*` methods.** These assume the linear part is a pure
+ *   rotation (or reflection) and use its transpose as the inverse. Their results are undefined
+ *   if the linear part contains scale or shear.
+ *
+ * Three.js has no 3×4 type, and `THREE.Matrix4.elements` is column-major. Build Three.js
+ * transforms from a position and a quaternion instead of copying `elements`.
  */
 export class Mat3x4 {
+    /**
+     * The twelve elements in row-major order:
+     * `[m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23]`.
+     */
     readonly elements: Float64Array;
 
+    /**
+     * Creates a transform from its elements in row-major (reading) order. Defaults to the
+     * identity.
+     */
     constructor(
         m00 = 1,
         m01 = 0,
