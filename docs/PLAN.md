@@ -142,13 +142,16 @@ More: [RESOURCES.md, Phase 0](./RESOURCES.md#phase-0-scaffold-and-game-loop)
 ### Build
 
 - [x] `src/math/scalar.ts`: `EPSILON`, `approxEqual(a, b, epsilon?)`, `clamp(value, min, max)`
-- [ ] `src/math/vec3.ts`: `Vec3`
-- [ ] `src/math/mat3.ts`: `Mat3`
-- [ ] `src/math/mat4.ts`: `Mat4` (3×4 affine)
-- [ ] `src/math/quat.ts`: `Quat`, plus `QuatLike` in `types.ts`
-- [ ] Test helpers: custom Vitest matchers `toBeCloseToVec3`, `toBeCloseToQuat`
-- [ ] Export everything from `src/math/index.ts`
-- [ ] Record the API decision in `src/math/README.md`
+- [x] `src/math/geometry/vec3.ts`: `Vec3`
+- [x] `src/math/geometry/mat3x3.ts`: `Mat3x3` (sketched below as `Mat3`)
+- [x] `src/math/geometry/mat3x4.ts`: `Mat3x4` (3×4 affine; sketched below as `Mat4`)
+- [x] `src/math/geometry/quaternion.ts`: `Quaternion` (sketched below as `Quat`), plus `QuatLike` in `types.ts`
+- [x] Test helpers: custom Vitest matchers `toBeCloseToVec3`, `toBeCloseToQuat` (`src/math/tests/matchers.ts`)
+- [x] Property-based tests with `fast-check` (`src/math/tests/properties.test.ts`)
+- [x] Export everything from `src/math/index.ts` and `src/index.ts`
+- [x] Record the API decision in `src/math/README.md`
+
+Deferred to the phase that first uses them: `Mat3.setInertiaTensorCoeffs` (Phase 4), `Mat3.setSkewSymmetric` and `Mat3.add` (Phase 7). The tests directory is `src/math/tests/` rather than next to each file.
 
 **API decision.** The recommended default is mutable methods that write into `this` and return `this` for chaining (`v.add(w).scale(2)`), plus `clone()` when you need a copy. That avoids allocating in the inner loops of the solver. Keep `x`, `y`, `z` as plain public fields, not getters, so V8 can optimize them.
 
@@ -501,6 +504,7 @@ More: [RESOURCES.md, Phase 3](./RESOURCES.md#phase-3-forces-springs-and-mass-agg
 - [ ] `src/forces/`: `BodyGravity`, `BodySpring` (between body-space points), `Aero`, `AeroControl`
 - [ ] `src/engine/world.ts`: `World`
 - [ ] Gyroscopic term in angular integration
+- [ ] `Mat3x3.setInertiaTensorCoeffs(ixx, iyy, izz, ixy?, ixz?, iyz?)`, deferred from Phase 1. Test first; callers pass positive products of inertia and the method negates the off-diagonals
 
 ```ts
 class RigidBody {
@@ -894,6 +898,7 @@ More: [RESOURCES.md, Phase 6](./RESOURCES.md#phase-6-collision-response-and-fric
 
 - [ ] `src/constraints/constraint.ts`: a `Constraint` interface that contacts also implement
 - [ ] `src/constraints/joints/`: `DistanceJoint`, `BallSocketJoint`, `HingeJoint` (limits, motor), `FixedJoint`
+- [ ] `Mat3x3.setSkewSymmetric(v)` (`M · w == v × w`) and `Mat3x3.add(m)`, deferred from Phase 1. The ball-socket `K` matrix needs both. Test first
 - [ ] `src/engine/islands.ts`: union-find island builder
 - [ ] Sleeping on `RigidBody` and `World`: `isAwake`, `sleepTime`, `wake()`
 - [ ] `World.stats`: time per phase (broadphase, narrowphase, solve, integrate)
