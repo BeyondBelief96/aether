@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Mat3x3 } from "../geometry/mat3x3";
 import { Mat3x4 } from "../geometry/mat3x4";
+import { Quaternion } from "../geometry/quaternion";
 import { Vec3 } from "../geometry/vec3";
 import { approxEqual } from "../scalar";
 
@@ -957,6 +958,90 @@ describe("Mat3x4", () => {
                 rotation(0.3).multiply(rotation(0.4)),
                 elementsOf(rotation(0.7)),
             );
+        });
+    });
+
+    describe("getAxis", () => {
+        it("reads each column of the transform", () => {
+            const m = sample();
+            expectVec(m.getAxis(0), 1, 5, 9);
+            expectVec(m.getAxis(1), 2, 6, 10);
+            expectVec(m.getAxis(2), 3, 7, 11);
+            expectVec(m.getAxis(3), 4, 8, 12);
+        });
+
+        it("gives the rotated basis axes for a rotation", () => {
+            const m = rotationZ90();
+            expectVec(m.getAxis(0), 0, 1, 0);
+            expectVec(m.getAxis(1), -1, 0, 0);
+            expectVec(m.getAxis(2), 0, 0, 1);
+        });
+
+        it("matches transformDirection of the basis vectors", () => {
+            const m = sampleRigid();
+            const expected = m.transformDirection(new Vec3(0, 1, 0));
+            expectVec(m.getAxis(1), expected.x, expected.y, expected.z);
+        });
+
+        it("matches getTranslation for column 3", () => {
+            const m = sampleRigid();
+            const t = m.getTranslation();
+            expectVec(m.getAxis(3), t.x, t.y, t.z);
+        });
+
+        it("writes to out and returns it", () => {
+            const out = new Vec3();
+            expect(sample().getAxis(2, out)).toBe(out);
+            expectVec(out, 3, 7, 11);
+        });
+    });
+
+    describe("setFromPositionQuaternion", () => {
+        const q = new Quaternion().setFromAxisAngle(new Vec3(AXIS, AXIS, AXIS), 0.7);
+        const p = new Vec3(3, -2, 5);
+
+        it("matches the same rotation and translation built directly", () => {
+            expectApprox(new Mat3x4().setFromPositionQuaternion(p, q), elementsOf(sampleRigid()));
+        });
+
+        it("gives the identity for a zero position and the identity quaternion", () => {
+            expectApprox(
+                sample().setFromPositionQuaternion(new Vec3(), new Quaternion()),
+                IDENTITY,
+            );
+        });
+
+        it("has the linear part of Mat3x3.setFromQuaternion and the translation p", () => {
+            const m = new Mat3x4().setFromPositionQuaternion(p, q);
+            const linear = new Mat3x3().setFromQuaternion(q);
+            expect(Array.from(m.getMat3x3().elements)).toEqual(Array.from(linear.elements));
+            expectVec(m.getTranslation(), 3, -2, 5);
+        });
+
+        it("transforms points as q.rotateVec3(x) + p", () => {
+            const x = new Vec3(0.4, -1.5, 2.2);
+            const expected = q.rotateVec3(x).add(p);
+            const actual = new Mat3x4().setFromPositionQuaternion(p, q).transformPoint(x);
+            expectVec(actual, expected.x, expected.y, expected.z);
+        });
+
+        it("round-trips points through transformInversePoint", () => {
+            const m = new Mat3x4().setFromPositionQuaternion(p, q);
+            const x = new Vec3(0.4, -1.5, 2.2);
+            expectVec(m.transformInversePoint(m.transformPoint(x)), x.x, x.y, x.z);
+        });
+
+        it("accepts any Vec3Like and QuatLike", () => {
+            const m = new Mat3x4().setFromPositionQuaternion(
+                { x: p.x, y: p.y, z: p.z },
+                { w: q.w, x: q.x, y: q.y, z: q.z },
+            );
+            expectApprox(m, elementsOf(sampleRigid()));
+        });
+
+        it("returns itself", () => {
+            const m = new Mat3x4();
+            expect(m.setFromPositionQuaternion(p, q)).toBe(m);
         });
     });
 });

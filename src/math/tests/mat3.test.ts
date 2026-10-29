@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Mat3x3 } from "../geometry/mat3x3";
+import { Quaternion } from "../geometry/quaternion";
 import { Vec3 } from "../geometry/vec3";
 import { approxEqual } from "../scalar";
 
@@ -942,6 +943,68 @@ describe("Mat3", () => {
                 ),
                 elementsOf(rotation(0.7)),
             );
+        });
+    });
+
+    describe("setFromQuaternion", () => {
+        const axis = new Vec3(1, 2, 3).normalize();
+        const q = new Quaternion().setFromAxisAngle(axis, 0.7);
+
+        it("gives the identity for the identity quaternion", () => {
+            expectApprox(new Mat3x3(2, 3, 4, 5, 6, 7, 8, 9, 10).setFromQuaternion(new Quaternion()), IDENTITY);
+        });
+
+        it("maps +X to +Y for 90° about +Z", () => {
+            const m = new Mat3x3().setFromQuaternion(
+                new Quaternion().setFromAxisAngle(new Vec3(0, 0, 1), Math.PI / 2),
+            );
+            expectApprox(m, [0, -1, 0, 1, 0, 0, 0, 0, 1]);
+        });
+
+        it("matches setFromAxisAngle for the same axis and angle", () => {
+            expectApprox(new Mat3x3().setFromQuaternion(q), elementsOf(sampleRotation()));
+        });
+
+        it("transforms vectors the same way as rotateVec3", () => {
+            const m = new Mat3x3().setFromQuaternion(q);
+            const v = new Vec3(0.4, -1.5, 2.2);
+            const expected = q.rotateVec3(v);
+            const actual = m.transformVec3(v);
+            expect(actual.x).toBeCloseTo(expected.x, 12);
+            expect(actual.y).toBeCloseTo(expected.y, 12);
+            expect(actual.z).toBeCloseTo(expected.z, 12);
+        });
+
+        it("gives the same matrix for q and −q", () => {
+            const negated = q.clone().scale(-1);
+            expectApprox(new Mat3x3().setFromQuaternion(negated), elementsOf(new Mat3x3().setFromQuaternion(q)));
+        });
+
+        it("produces an orthonormal matrix with determinant 1", () => {
+            const m = new Mat3x3().setFromQuaternion(q);
+            expect(m.determinant()).toBeCloseTo(1, 12);
+            expectApprox(m.clone().multiply(m.clone().transpose()), IDENTITY);
+        });
+
+        it("turns a quaternion product into a matrix product", () => {
+            const b = new Quaternion().setFromAxisAngle(new Vec3(-1, 0, 2).normalize(), 1.9);
+            const product = new Mat3x3().setFromQuaternion(q.clone().multiply(b));
+            const expected = new Mat3x3()
+                .setFromQuaternion(q)
+                .multiply(new Mat3x3().setFromQuaternion(b));
+            expectApprox(product, elementsOf(expected));
+        });
+
+        it("accepts any QuatLike", () => {
+            expectApprox(
+                new Mat3x3().setFromQuaternion({ w: q.w, x: q.x, y: q.y, z: q.z }),
+                elementsOf(new Mat3x3().setFromQuaternion(q)),
+            );
+        });
+
+        it("returns itself", () => {
+            const m = new Mat3x3();
+            expect(m.setFromQuaternion(q)).toBe(m);
         });
     });
 });

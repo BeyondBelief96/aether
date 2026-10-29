@@ -1,4 +1,4 @@
-import type { Vec3Like } from "../types";
+import type { QuatLike, Vec3Like } from "../types";
 import { Mat3x3 } from "./mat3x3";
 import { Vec3 } from "./vec3";
 
@@ -174,6 +174,70 @@ export class Mat3x4 {
         out.y = e[7]!;
         out.z = e[11]!;
         return out;
+    }
+
+    /**
+     * Copies column `index` of this transform into `out`.
+     *
+     * For a rigid transform, columns 0–2 are the child frame's X, Y and Z axes in the parent
+     * frame, and column 3 is its origin, the same as `getTranslation`.
+     *
+     * @param index Column to read: 0, 1 or 2 for an axis, 3 for the translation.
+     * @param out Destination. Allocated if omitted.
+     */
+    getAxis(index: 0 | 1 | 2 | 3, out: Vec3 = new Vec3()): Vec3 {
+        const e = this.elements;
+        out.x = e[index]!;
+        out.y = e[index + 4]!;
+        out.z = e[index + 8]!;
+        return out;
+    }
+
+    /**
+     * Sets this transform to the rigid transform that rotates by `q` and then translates by
+     * `p`: `x ↦ q·x·q* + p`.
+     *
+     * For a rigid body, `p` is its position and `q` its orientation, giving the body-to-world
+     * transform. The linear part matches `Mat3x3.setFromQuaternion(q)`.
+     *
+     * `q` must be unit length. It is not normalized here, to keep this cheap on hot paths.
+     *
+     * @param p Translation, the child frame's origin in the parent frame.
+     * @param q Unit quaternion for the rotation.
+     */
+    setFromPositionQuaternion(p: Vec3Like, q: QuatLike): this {
+        const w = q.w,
+            x = q.x,
+            y = q.y,
+            z = q.z;
+
+        const x2 = x + x,
+            y2 = y + y,
+            z2 = z + z;
+        const xx = x * x2,
+            yy = y * y2,
+            zz = z * z2;
+        const xy = x * y2,
+            xz = x * z2,
+            yz = y * z2;
+        const wx = w * x2,
+            wy = w * y2,
+            wz = w * z2;
+
+        const e = this.elements;
+        e[0] = 1 - (yy + zz);
+        e[1] = xy - wz;
+        e[2] = xz + wy;
+        e[3] = p.x;
+        e[4] = xy + wz;
+        e[5] = 1 - (xx + zz);
+        e[6] = yz - wx;
+        e[7] = p.y;
+        e[8] = xz - wy;
+        e[9] = yz + wx;
+        e[10] = 1 - (xx + yy);
+        e[11] = p.z;
+        return this;
     }
 
     /**

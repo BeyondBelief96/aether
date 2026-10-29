@@ -1,4 +1,4 @@
-import type { Vec3Like } from "../types";
+import type { QuatLike, Vec3Like } from "../types";
 import { Vec3 } from "./vec3";
 
 const IDENTITY = new Float64Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
@@ -586,6 +586,50 @@ export class Mat3x3 {
         e[7] = y * z * t + x * s;
         e[8] = c + z * z * t;
 
+        return this;
+    }
+
+    /**
+     * Sets this matrix to the rotation represented by the quaternion `q`, so that
+     * `transformVec3(v)` equals `q.rotateVec3(v)`.
+     *
+     * The columns are the images of the X, Y and Z axes under `q`. `q` and `−q` give the same
+     * matrix.
+     *
+     * `q` must be unit length. It is not normalized here, to keep this cheap on hot paths. A
+     * non-unit `q` generally produces a matrix that is not a rotation.
+     *
+     * @param q Unit quaternion.
+     */
+    setFromQuaternion(q: QuatLike): this {
+        const w = q.w,
+            x = q.x,
+            y = q.y,
+            z = q.z;
+
+        const x2 = x + x,
+            y2 = y + y,
+            z2 = z + z;
+        const xx = x * x2,
+            yy = y * y2,
+            zz = z * z2;
+        const xy = x * y2,
+            xz = x * z2,
+            yz = y * z2;
+        const wx = w * x2,
+            wy = w * y2,
+            wz = w * z2;
+
+        const e = this.elements;
+        e[0] = 1 - (yy + zz);
+        e[1] = xy - wz;
+        e[2] = xz + wy;
+        e[3] = xy + wz;
+        e[4] = 1 - (xx + zz);
+        e[5] = yz - wx;
+        e[6] = xz - wy;
+        e[7] = yz + wx;
+        e[8] = 1 - (xx + yy);
         return this;
     }
 }
