@@ -6,6 +6,7 @@ This is a learning project. The engine is built in phases, from vectors to stack
 
 - **[docs/PLAN.md](docs/PLAN.md):** the phased build plan, with goals, checklists, tests and demos for each phase
 - **[docs/RESOURCES.md](docs/RESOURCES.md):** books, articles, talks and reference engines for each phase
+- **[docs/DEMOS.md](docs/DEMOS.md):** how to build a demo: templates, using the engine from Three.js, demo controls and UI style
 
 ## Running it
 

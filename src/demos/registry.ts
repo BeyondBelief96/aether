@@ -1,5 +1,5 @@
-import { timestepDemo } from './phase0-timestep';
-import type { DemoInfo } from './types';
+import { timestepDemo } from "./phase0-timestep";
+import { rotationGizmoDemo } from "./phase1-rotation-gizmo";
+import type { DemoInfo } from "./types";
 
-/** Every demo, in phase order. Add new demos here. */
-export const demos: readonly DemoInfo[] = [timestepDemo];
+export const demos: readonly DemoInfo[] = [timestepDemo, rotationGizmoDemo];

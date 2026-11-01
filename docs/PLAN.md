@@ -5,7 +5,7 @@ A 3D rigid-body physics engine written from scratch in TypeScript, plus a browse
 1. **Learn how physics engines work** by writing the math, integrators, collision detection and solvers by hand.
 2. **Learn modern web UI** (TypeScript, Lit web components, CSS layout, Canvas and WebGL, Web Workers) by building the playground around the engine.
 
-Each phase ends with something you can **see** (a demo) and something you can **trust** (tests). Every phase lists the classes to write, how to approach them, and what to read. The full reading list is in [RESOURCES.md](./RESOURCES.md).
+Each phase ends with something you can **see** (a demo) and something you can **trust** (tests). Every phase lists the classes to write, how to approach them, and what to read. The full reading list is in [RESOURCES.md](./RESOURCES.md). How to build a demo (templates, using the library from Three.js, per-demo controls and UI style) is in [DEMOS.md](./DEMOS.md).
 
 The class sketches below are starting points, not specifications. Signatures will change as you learn; record the decisions you make in the module READMEs and your phase notes.
 
@@ -247,7 +247,7 @@ class Quat implements QuatLike {
 
 Register the custom matchers in a Vitest setup file (`test.setupFiles` in `vite.config.ts`). Add a `declare module 'vitest'` augmentation so TypeScript knows about them.
 
-**Demo:** *Rotation gizmo*. Sliders for axis and angle drive a quaternion; show the rotated basis vectors, the matching Euler angles, and gimbal lock when using Euler input.
+**Demo:** *Rotation gizmo*. Sliders for axis and angle drive a quaternion; show the rotated basis vectors, the matching Euler angles, and gimbal lock when using Euler input. Walkthrough, file layout and skeletons: [DEMOS.md §10](./DEMOS.md#10-worked-example-the-phase-1-rotation-gizmo).
 
 **Web skills:** a reusable `<aether-slider>` component; a `<aether-vec3-input>` that emits a vector; formatting numbers in monospace for the UI.
 
@@ -1069,6 +1069,6 @@ More: [RESOURCES.md, Phase 8](./RESOURCES.md#phase-8-stretch-goals)
 2. Sketch the classes from the **Build** section; adjust the signatures to your API decisions.
 3. Write tests for the math first.
 4. Implement the engine side in plain TypeScript, with terse TSDoc on public members.
-5. Build the demo and its debug visualization.
+5. Build the demo and its debug visualization, following the checklist in [DEMOS.md](./DEMOS.md#2-checklist-for-a-new-demo).
 6. Add the phase's UI feature.
 7. Write down what surprised you in the notes file, tick the boxes here, and commit.

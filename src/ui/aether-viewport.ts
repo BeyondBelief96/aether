@@ -10,6 +10,7 @@ import {
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import type { DemoView } from '../demos/types';
 
 /**
  * The Three.js canvas. It owns the renderer, camera and orbit controls, but
@@ -40,6 +41,15 @@ export class AetherViewport extends LitElement {
   #renderer: WebGLRenderer | null = null;
   #controls: OrbitControls | null = null;
   #resizeObserver = new ResizeObserver(() => this.#resize());
+
+  /** Handed to each demo's `mount`. */
+  readonly view: DemoView = {
+    camera: this.camera,
+    element: this,
+    setOrbitEnabled: (enabled) => {
+      if (this.#controls) this.#controls.enabled = enabled;
+    },
+  };
 
   constructor() {
     super();
