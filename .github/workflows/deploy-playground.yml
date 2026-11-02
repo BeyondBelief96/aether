@@ -28,6 +28,8 @@ jobs:
       - run: npm run test:run
       # Pages serves the site from /<repo>/, so the asset URLs need that prefix.
       - run: npm run build -- --base=/${{ github.event.repository.name }}/
+      # Unit tests can't see a blank page, so load the built site before it goes live.
+      - run: npm run test:smoke -- /${{ github.event.repository.name }}/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist-playground

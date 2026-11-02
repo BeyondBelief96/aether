@@ -4,7 +4,13 @@
     "description": "A 3D rigid-body physics engine built from scratch in TypeScript, with a Lit + Three.js playground.",
     "license": "MIT",
     "author": "Brandon Berisford",
-    "keywords": ["physics", "physics-engine", "rigid-body", "quaternion", "typescript"],
+    "keywords": [
+        "physics",
+        "physics-engine",
+        "rigid-body",
+        "quaternion",
+        "typescript"
+    ],
     "homepage": "https://beyondbelief96.github.io/aether/",
     "repository": {
         "type": "git",
@@ -12,8 +18,12 @@
     },
     "bugs": "https://github.com/BeyondBelief96/aether/issues",
     "type": "module",
-    "sideEffects": ["./src/playground/**"],
-    "files": ["dist"],
+    "sideEffects": [
+        "./src/playground/**"
+    ],
+    "files": [
+        "dist"
+    ],
     "types": "./dist/types/index.d.ts",
     "exports": {
         ".": {
@@ -33,13 +43,15 @@
         "prepublishOnly": "npm run typecheck && npm run test:run && npm run build:lib",
         "typecheck": "tsc",
         "test": "vitest",
-        "test:run": "vitest run"
+        "test:run": "vitest run",
+        "test:smoke": "node scripts/smoke-test.mjs"
     },
     "devEngines": {},
     "devDependencies": {
         "@types/three": "^0.186.0",
         "fast-check": "^4.10.2",
         "lit": "^3.3.3",
+        "playwright-core": "^1.58.0",
         "three": "^0.186.1",
         "typescript": "^7.0.2",
         "vite": "^8.3.4",

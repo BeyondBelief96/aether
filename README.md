@@ -32,6 +32,7 @@ npm install
 npm run dev        # playground at http://localhost:5173
 npm test           # Vitest in watch mode
 npm run test:run   # Vitest once
+npm run test:smoke # load the built playground in Chrome (run npm run build first)
 npm run typecheck  # tsc, no emit
 npm run build      # typecheck, then production build of the playground to dist-playground/
 npm run build:lib  # build the npm package to dist/
