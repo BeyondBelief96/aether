@@ -8,6 +8,8 @@ This is a learning project. The engine is built in phases, from vectors to stack
 - **[docs/RESOURCES.md](docs/RESOURCES.md):** books, articles, talks and reference engines for each phase
 - **[docs/DEMOS.md](docs/DEMOS.md):** how to build a demo: templates, using the engine from Three.js, demo controls and UI style
 
+**[Try the playground](https://beyondbelief96.github.io/aether/)**. Each push to `main` deploys it to GitHub Pages.
+
 ## Running it
 
 ```sh
@@ -55,3 +57,7 @@ src/
 | 6 | Collision response and friction | |
 | 7 | Joints, sleeping and stability | |
 | 8 | Stretch goals | |
+
+## License
+
+[MIT](LICENSE)
