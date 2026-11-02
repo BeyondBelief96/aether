@@ -30,8 +30,9 @@ src/
   forces/       force generators                           Phases 3, 4
   collision/    shapes, broadphase, narrowphase            Phase 5
   constraints/  contact solver, joints                     Phases 6, 7
-  demos/        one file per demo (the only engine + Three.js code)
-  ui/           Lit components
+  playground/   the app in the browser, which uses the engine only through "aether-physics"
+    demos/      one file per demo (the only engine + Three.js code)
+    ui/         Lit components
 ```
 
 ## Rules

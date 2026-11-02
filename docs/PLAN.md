@@ -18,7 +18,7 @@ These hold for every phase. Breaking them early is how hobby engines turn into u
 | Rule | Why |
 |---|---|
 | **The engine never imports `three` or touches the DOM.** `src/math`, `src/engine`, `src/forces`, `src/collision` and `src/constraints` are plain TypeScript. | You can unit-test the engine in Node, move it into a Web Worker later, and swap renderers. |
-| **Demos are the bridge.** Only `src/demos/*` imports both the engine and Three.js. | Rendering concerns stay in one place. |
+| **Demos are the bridge.** Only `src/playground/demos/*` imports both the engine and Three.js. | Rendering concerns stay in one place. |
 | **Fixed timestep, always.** Physics steps in equal `dt` slices; the renderer interpolates. | Stable, reproducible simulation. Variable `dt` makes springs explode and stacks jitter. |
 | **TypeScript `erasableSyntaxOnly`.** No `enum`, `namespace`, parameter properties or `import x = require()`. Use `as const` objects and union types instead of enums. | The code stays "JavaScript with types", runs in Node's type stripping, and matches where TS is heading. |
 | **Lit without decorators.** Use `static properties` with `declare` fields and `customElements.define`. | Closer to the web-components platform; no decorator transform needed. |
@@ -247,7 +247,7 @@ class Quat implements QuatLike {
 
 Register the custom matchers in a Vitest setup file (`test.setupFiles` in `vite.config.ts`). Add a `declare module 'vitest'` augmentation so TypeScript knows about them.
 
-**Demo:** *Rotation gizmo*. Sliders for axis and angle drive a quaternion; show the rotated basis vectors, the matching Euler angles, and gimbal lock when using Euler input. Built: `src/demos/phase1-rotation-gizmo.ts`. What's on screen and why: [DEMOS.md §10](./DEMOS.md#10-worked-example-the-phase-1-rotation-gizmo).
+**Demo:** *Rotation gizmo*. Sliders for axis and angle drive a quaternion; show the rotated basis vectors, the matching Euler angles, and gimbal lock when using Euler input. Built: `src/playground/demos/phase1-rotation-gizmo.ts`. What's on screen and why: [DEMOS.md §10](./DEMOS.md#10-worked-example-the-phase-1-rotation-gizmo).
 
 **Web skills:** a reusable `<aether-slider>` component; a `<aether-vec3-input>` that emits a vector; formatting numbers in monospace for the UI.
 

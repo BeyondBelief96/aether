@@ -13,7 +13,7 @@ See [PLAN.md, Phase 1](../../docs/PLAN.md#phase-1-math-library).
 
 ## Public API conventions
 
-- Import math through `index.ts` (`from '../math'`), never from individual files.
+- Inside the engine, import math through `index.ts` (`from '../math'`), never from individual files. The playground imports from `'aether-physics'` instead.
 - Public methods take `Vec3Like` (any `{ x, y, z }`, including `THREE.Vector3`) as input and return concrete engine types such as `Vec3`.
 - `src/index.ts` is the package entry point. Only engine and math exports go there.
 

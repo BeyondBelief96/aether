@@ -44,7 +44,7 @@ Contents:
 
 The rules that keep this working:
 
-- **The engine knows nothing about demos.** `src/math`, `src/engine` and the other engine folders never import `three`, `lit` or anything in `src/ui` or `src/demos`.
+- **The engine knows nothing about demos.** `src/math`, `src/engine` and the other engine folders never import `three`, `lit` or anything in `src/playground/ui` or `src/playground/demos`.
 - **A demo is the bridge.** It owns engine objects (bodies, quaternions, worlds) *and* the Three.js objects that draw them. It's the only place both are imported.
 - **`step(dt)` changes simulation state; `sync(alpha)` copies it onto meshes.** Never touch meshes in `step`, never advance the simulation in `sync`. `step` can run 0, 1 or several times per frame; `sync` runs exactly once.
 - **The viewport supplies the shared scenery.** Grid, axes, lights and camera already exist. A demo adds only its own objects, all under one `Group`, and removes them in `unmount`.
@@ -52,8 +52,8 @@ The rules that keep this working:
 
 ## 2. Checklist for a new demo
 
-1. Create `src/demos/phaseN-name.ts` from the [template](#3-demo-file-template). Kebab-case, prefixed with the phase so the folder sorts in build order.
-2. Export a `DemoInfo` and add it to the array in `src/demos/registry.ts`, in phase order.
+1. Create `src/playground/demos/phaseN-name.ts` from the [template](#3-demo-file-template). Kebab-case, prefixed with the phase so the folder sorts in build order.
+2. Export a `DemoInfo` and add it to the array in `src/playground/demos/registry.ts`, in phase order.
 3. Build the scene in the constructor or `mount`, under one `Group`.
 4. Put the simulation in `step(dt)`. A demo with no simulation (like the rotation gizmo) leaves `step` empty.
 5. Copy state to meshes in `sync(alpha)`, interpolating if the state changes in `step`.
@@ -70,7 +70,7 @@ The rules that keep this working:
 ## 3. Demo file template
 
 ```ts
-// src/demos/phaseN-name.ts
+// src/playground/demos/phaseN-name.ts
 import {
   Group,
   Mesh,
@@ -196,7 +196,7 @@ mesh.position.copy(body.position);
 mesh.quaternion.copy(body.orientation);
 ```
 
-If you really need a matrix (for example, a shear demo where no quaternion exists), convert it explicitly with one function in `src/demos/helpers/three.ts` that has a test, rather than inline.
+If you really need a matrix (for example, a shear demo where no quaternion exists), convert it explicitly with one function in `src/playground/demos/helpers/three.ts` that has a test, rather than inline.
 
 ### Allocation
 
@@ -227,10 +227,10 @@ A demo with no time evolution (driven only by sliders) can skip interpolation an
 
 ## 5. Debug drawing helpers
 
-Every demo needs arrows, points and outlines, so write them once in `src/demos/helpers/`. Helpers live under `demos/` because they import Three.js.
+Every demo needs arrows, points and outlines, so write them once in `src/playground/demos/helpers/`. Helpers live under `demos/` because they import Three.js.
 
 ```ts
-// src/demos/helpers/three.ts
+// src/playground/demos/helpers/three.ts
 import { Mesh, type Material, type Object3D } from 'three';
 
 /** Frees the GPU resources of every mesh under `root`. Call after removing it from the scene. */
@@ -246,7 +246,7 @@ export function disposeObject(root: Object3D): void {
 ```
 
 ```ts
-// src/demos/helpers/colors.ts
+// src/playground/demos/helpers/colors.ts
 /**
  * Axis colors, matching the --axis-* tokens in styles.css so a slider labelled
  * "X" is the same color as the X arrow in the viewport.
@@ -262,7 +262,7 @@ export const WARN = 0xe8833a;
 ```
 
 ```ts
-// src/demos/helpers/vector-arrow.ts
+// src/playground/demos/helpers/vector-arrow.ts
 import { ArrowHelper, Vector3 } from 'three';
 import type { Vec3Like } from 'aether-physics';
 
@@ -303,7 +303,7 @@ Later phases will want a few more: a `PointMarker` (a small sphere), an `AabbOut
 
 `mount` also receives a `DemoView`: the camera, the viewport element, and `setOrbitEnabled`. Demos that don't need it can leave the parameter off.
 
-`DragHandle` (`src/demos/helpers/drag-handle.ts`) builds on it. Give it the view, an object to grab, and a callback. It turns orbiting off during the drag, captures the pointer, and passes your callback the pointer's world-space `Ray`. What that ray means (a point on a plane, on a sphere) is up to the demo. It skips targets with `visible = false`, so hiding a handle also makes it impossible to grab. Call `dispose()` in `unmount`.
+`DragHandle` (`src/playground/demos/helpers/drag-handle.ts`) builds on it. Give it the view, an object to grab, and a callback. It turns orbiting off during the drag, captures the pointer, and passes your callback the pointer's world-space `Ray`. What that ray means (a point on a plane, on a sphere) is up to the demo. It skips targets with `visible = false`, so hiding a handle also makes it impossible to grab. Call `dispose()` in `unmount`.
 
 ## 6. Giving a demo its own controls
 
@@ -316,7 +316,7 @@ The sidebar currently has only the loop controls. A demo needs a way to put its 
 
 ### 6.1 Shell changes (once)
 
-**`src/demos/types.ts`**: add an optional panel to `Demo`:
+**`src/playground/demos/types.ts`**: add an optional panel to `Demo`:
 
 ```ts
 export interface Demo {
@@ -329,7 +329,7 @@ export interface Demo {
 }
 ```
 
-**`src/ui/aether-app.ts`**: keep the current panel in reactive state, because the demo itself isn't reactive:
+**`src/playground/ui/aether-app.ts`**: keep the current panel in reactive state, because the demo itself isn't reactive:
 
 ```ts
 static override properties = {
@@ -347,7 +347,7 @@ declare panel: HTMLElement | null;
 // render(): <aether-sidebar .panel=${this.panel} ...>
 ```
 
-**`src/ui/aether-sidebar.ts`**: render the panel as its own section, between Demo and Simulation:
+**`src/playground/ui/aether-sidebar.ts`**: render the panel as its own section, between Demo and Simulation:
 
 ```ts
 import { nothing } from 'lit';
@@ -368,10 +368,10 @@ Lit can render a DOM node directly. When the app passes a new panel (after a dem
 
 ### 6.2 A panel component
 
-A panel is an ordinary Lit element in `src/ui/panels/`. It holds **no simulation state**: input values come in as properties, user changes go out as events, and readouts come in as properties. Use the same shape as `aether-sidebar`.
+A panel is an ordinary Lit element in `src/playground/ui/panels/`. It holds **no simulation state**: input values come in as properties, user changes go out as events, and readouts come in as properties. Use the same shape as `aether-sidebar`.
 
 ```ts
-// src/ui/panels/name-panel.ts
+// src/playground/ui/panels/name-panel.ts
 import { LitElement, css, html } from 'lit';
 import { panelStyles } from '../shared-styles';
 import '../controls/aether-slider';
@@ -474,14 +474,14 @@ sync(alpha: number): void {
 
 ## 7. Reusable controls
 
-These live in `src/ui/controls/`. They know nothing about demos or the engine, take plain values, and emit `value-change`. Only types may be imported from the engine (`Vec3Like`).
+These live in `src/playground/ui/controls/`. They know nothing about demos or the engine, take plain values, and emit `value-change`. Only types may be imported from the engine (`Vec3Like`).
 
 ### Number formatting
 
 Write this first; every readout and control uses it.
 
 ```ts
-// src/ui/format/format.ts
+// src/playground/ui/format/format.ts
 
 /** Figure space: the same width as a digit in tabular fonts, used in place of a plus sign. */
 const FIGURE_SPACE = ' ';
@@ -518,7 +518,7 @@ Write a `format.test.ts` for it (sign column, −0, rounding, `NaN`). It's pure,
 A labelled range input with a live readout. Copy the look from the sidebar's existing Physics-rate slider and turn it into a component.
 
 ```ts
-// src/ui/controls/aether-slider.ts
+// src/playground/ui/controls/aether-slider.ts
 import { LitElement, css, html } from 'lit';
 import { live } from 'lit/directives/live.js';
 import { formatNumber } from '../format/format';
@@ -627,7 +627,7 @@ Ideas to extend it with:
 Three number fields labelled X, Y, Z in the axis colors. It emits a **new object** every time, never a mutated one (see [Lit gotchas](#9-lit-gotchas)).
 
 ```ts
-// src/ui/controls/aether-vec3-input.ts
+// src/playground/ui/controls/aether-vec3-input.ts
 import { LitElement, css, html } from 'lit';
 import { live } from 'lit/directives/live.js';
 import type { Vec3Like } from 'aether-physics';
@@ -734,7 +734,7 @@ Use `@change` (fires when the user commits a value) instead of `@input`. Otherwi
 
 ## 8. Making it look good
 
-The app already has a design system: the tokens in `src/styles.css` and the sidebar's styles. Making things look good mostly means reusing it consistently.
+The app already has a design system: the tokens in `src/playground/styles.css` and the sidebar's styles. Making things look good mostly means reusing it consistently.
 
 ### Tokens: use them, add to them, don't hard-code
 
@@ -765,7 +765,7 @@ Every color in UI code is a `var(--…)`. Add tokens to `:root` in `styles.css`,
 }
 ```
 
-The axis colors are the most important addition. **X is red, Y is green, Z is blue everywhere:** slider labels, input borders, viewport arrows and matrix columns. That matches Three.js's `AxesHelper`, which is already in the scene, and lets the viewer link a number to the arrow it controls without reading. Keep `src/demos/helpers/colors.ts` in step with these (Three.js can't read CSS variables cheaply).
+The axis colors are the most important addition. **X is red, Y is green, Z is blue everywhere:** slider labels, input borders, viewport arrows and matrix columns. That matches Three.js's `AxesHelper`, which is already in the scene, and lets the viewer link a number to the arrow it controls without reading. Keep `src/playground/demos/helpers/colors.ts` in step with these (Three.js can't read CSS variables cheaply).
 
 Custom properties inherit through shadow DOM, so every component sees the tokens without importing anything.
 
@@ -774,7 +774,7 @@ Custom properties inherit through shadow DOM, so every component sees the tokens
 Buttons, selects, `dl` readouts and section headings are currently styled inside `aether-sidebar`. Before you write the first panel, move them into a shared module so panels match the sidebar exactly:
 
 ```ts
-// src/ui/shared-styles.ts
+// src/playground/ui/shared-styles.ts
 import { css } from 'lit';
 
 /** Base styles for anything shown in the sidebar: buttons, selects, readout lists. */
@@ -858,7 +858,7 @@ Before committing a demo, check: light mode, dark mode, a 360px-wide window (the
 
 ## 10. Worked example: the Phase 1 rotation gizmo
 
-This demo is finished, so this section describes it rather than giving a template. The code is in `src/demos/phase1-rotation-gizmo.ts` and `src/ui/panels/gizmo-panel.ts`.
+This demo is finished, so this section describes it rather than giving a template. The code is in `src/playground/demos/phase1-rotation-gizmo.ts` and `src/playground/ui/panels/gizmo-panel.ts`.
 
 **Goal (from PLAN.md):** sliders for axis and angle drive a quaternion; show the rotated basis vectors and the matching Euler angles; show gimbal lock when using Euler input.
 
@@ -901,7 +901,7 @@ Draw each ring in its axis color, with each ring slightly smaller than its paren
 ### Files
 
 ```
-src/
+src/playground/
   ui/
     format/
       format.ts                  formatNumber, formatDegrees (+ format.test.ts)
