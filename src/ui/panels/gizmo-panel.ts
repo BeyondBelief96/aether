@@ -6,7 +6,7 @@ import {
     type CSSResultGroup,
     type PropertyDeclarations,
 } from "lit";
-import type { QuatLike, Vec3Like } from "aether";
+import type { QuatLike, Vec3Like } from "aether-physics";
 import {
     DEG_TO_RAD,
     formatDegrees,

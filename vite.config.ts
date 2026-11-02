@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
-    // The "aether" alias is defined once, in tsconfig.json.
+    // The "aether-physics" alias is defined once, in tsconfig.json.
     tsconfigPaths: true,
   },
   build: {

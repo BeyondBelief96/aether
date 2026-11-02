@@ -1,7 +1,7 @@
 import { LitElement, css, html } from "lit";
 import { demos } from "../demos/registry";
 import type { Demo } from "../demos/types";
-import { FixedStepLoop, type FrameResult } from "aether";
+import { FixedStepLoop, type FrameResult } from "aether-physics";
 import type { LoopStats } from "./aether-sidebar";
 import "./aether-sidebar";
 import "./aether-viewport";

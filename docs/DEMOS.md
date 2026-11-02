@@ -78,7 +78,7 @@ import {
   SphereGeometry,
   type Scene,
 } from 'three';
-import { Quaternion, Vec3 } from 'aether';
+import { Quaternion, Vec3 } from 'aether-physics';
 import type { Demo, DemoInfo } from './types';
 import { disposeObject } from './helpers/three';
 
@@ -159,13 +159,13 @@ Notes:
 
 ### Imports
 
-Import everything from `'aether'`, never from individual folders or files:
+Import everything from `'aether-physics'`, never from individual folders or files:
 
 ```ts
-import { Mat3x3, Quaternion, Vec3, approxEqual } from 'aether';
+import { Mat3x3, Quaternion, Vec3, approxEqual } from 'aether-physics';
 ```
 
-`'aether'` is an alias for `src/index.ts`, set under `paths` in `tsconfig.json`, and Vite reads it from there. Demos and UI use the engine exactly as an outside user would, so anything they need has to be exported from `src/index.ts`. Code inside the engine keeps its relative imports.
+`'aether-physics'` is an alias for `src/index.ts`, set under `paths` in `tsconfig.json`, and Vite reads it from there. Demos and UI use the engine exactly as an outside user would, so anything they need has to be exported from `src/index.ts`. Code inside the engine keeps its relative imports.
 
 ### Engine types into Three.js
 
@@ -264,7 +264,7 @@ export const WARN = 0xe8833a;
 ```ts
 // src/demos/helpers/vector-arrow.ts
 import { ArrowHelper, Vector3 } from 'three';
-import type { Vec3Like } from 'aether';
+import type { Vec3Like } from 'aether-physics';
 
 const _origin = new Vector3();
 const _dir = new Vector3();
@@ -630,7 +630,7 @@ Three number fields labelled X, Y, Z in the axis colors. It emits a **new object
 // src/ui/controls/aether-vec3-input.ts
 import { LitElement, css, html } from 'lit';
 import { live } from 'lit/directives/live.js';
-import type { Vec3Like } from 'aether';
+import type { Vec3Like } from 'aether-physics';
 
 const AXES = ['x', 'y', 'z'] as const;
 type Axis = (typeof AXES)[number];

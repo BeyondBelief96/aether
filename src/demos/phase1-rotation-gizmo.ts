@@ -9,7 +9,7 @@ import {
     type Ray,
     type Scene,
 } from "three";
-import { Mat3x3, Quaternion, Vec3, type Vec3Like } from "aether";
+import { Mat3x3, Quaternion, Vec3, type Vec3Like } from "aether-physics";
 import "../ui/panels/gizmo-panel";
 import type { GizmoMode } from "../ui/panels/gizmo-panel";
 import { ACCENT, AXIS_COLORS, MUTED, WARN } from "./helpers/colors";
