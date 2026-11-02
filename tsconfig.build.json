@@ -1,0 +1,20 @@
+{
+  // Emits the npm package's .d.ts files. No DOM or Vite types here, so engine code that
+  // touches the browser fails this build.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // nodenext makes a relative import without its .js extension a build error, so the
+    // published types work for every consumer.
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["ES2023"],
+    "types": [],
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "src",
+    "outDir": "dist/types"
+  },
+  "include": ["src/index.ts", "src/math/index.ts"],
+  "exclude": []
+}

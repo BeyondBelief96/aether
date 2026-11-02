@@ -1,5 +1,5 @@
-import { approxEqual, EPSILON } from "../scalar";
-import type { Vec3Like } from "../types";
+import { approxEqual, EPSILON } from "../scalar.js";
+import type { Vec3Like } from "../types.js";
 
 /**
  * A 3D vector, used for points, directions, velocities, forces and other 3-component quantities.

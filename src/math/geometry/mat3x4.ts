@@ -1,6 +1,6 @@
-import type { QuatLike, Vec3Like } from "../types";
-import { Mat3x3 } from "./mat3x3";
-import { Vec3 } from "./vec3";
+import type { QuatLike, Vec3Like } from "../types.js";
+import { Mat3x3 } from "./mat3x3.js";
+import { Vec3 } from "./vec3.js";
 
 const IDENTITY = new Float64Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0]);
 

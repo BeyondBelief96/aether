@@ -1030,7 +1030,7 @@ Pick whatever interests you most.
 - **XPBD solver:** Müller's extended position-based dynamics as an alternative to impulses; soft bodies and cloth.
 - **Performance:** struct-of-arrays layout in `Float64Array`s; object pooling; benchmark against cannon-es.
 - **WebGPU:** move rendering to `WebGPURenderer`; later, a GPU broadphase.
-- **Publishing the engine to npm:**
+- **Publishing the engine to npm** (the build and package setup below are done; TypeDoc isn't):
   - The package name `aether-physics` (`aether` is taken), which isn't reserved until the first publish.
   - Vite library mode building `src/index.ts`; `tsc --emitDeclarationOnly` for `.d.ts` files (a separate `tsconfig.build.json`, since the main config uses `noEmit`).
   - `package.json`: `exports` with `.` and `./math` subpaths, `"sideEffects": false`, `files: ["dist"]`, and `three` and `lit` absent from `dependencies`.

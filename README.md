@@ -10,6 +10,21 @@ This is a learning project. The engine is built in phases, from vectors to stack
 
 **[Try the playground](https://beyondbelief96.github.io/aether/)**. Each push to `main` deploys it to GitHub Pages.
 
+## Using the package
+
+```sh
+npm install aether-physics
+```
+
+```ts
+import { Quaternion, Vec3 } from 'aether-physics';
+
+const q = new Quaternion().setFromAxisAngle({ x: 0, y: 1, z: 0 }, Math.PI / 2);
+q.rotateVec3({ x: 1, y: 0, z: 0 }, new Vec3()); // about (0, 0, -1)
+```
+
+It's early: so far the package has the math library and a fixed-timestep loop. Physics arrives with the later phases below, and the API can change in any 0.x release.
+
 ## Running it
 
 ```sh
@@ -18,7 +33,8 @@ npm run dev        # playground at http://localhost:5173
 npm test           # Vitest in watch mode
 npm run test:run   # Vitest once
 npm run typecheck  # tsc, no emit
-npm run build      # typecheck, then production build to dist/
+npm run build      # typecheck, then production build of the playground to dist-playground/
+npm run build:lib  # build the npm package to dist/
 ```
 
 Keyboard: **Space** pauses, **.** steps once while paused, **R** resets the demo.

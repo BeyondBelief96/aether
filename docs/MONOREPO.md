@@ -45,6 +45,6 @@ Package `package.json` essentials: `"type": "module"`, `"exports"`, `"types"`, `
 1. Create the root `package.json` with `"private": true` and `"workspaces"`, and move shared compiler options into `tsconfig.base.json`.
 2. Move engine folders and `index.ts` into `packages/aether/src/`, along with their tests and a Vitest config.
 3. Move the contents of `src/playground/`, along with `index.html`, `public/` and `vite.config.ts` into `apps/playground/`. Add `"aether-physics": "*"` as a dependency and remove the `paths` alias, so `"aether-physics"` resolves to the package.
-4. Add the library build and `exports` to `packages/aether/package.json`. Verify with `npm pack --dry-run` that only `dist/` ships.
+4. Move the library build (`vite.lib.config.ts`, `tsconfig.build.json`) and `exports` into `packages/aether/`. Verify with `npm pack --dry-run` that only `dist/` ships.
 5. Scaffold `apps/docs/` and wire TypeDoc output into it.
 6. Run `npm install` at the root, then confirm tests, typecheck and both apps' dev servers work.

@@ -6,6 +6,7 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   build: {
+    outDir: 'dist-playground', // dist/ is the npm package
     // Three.js alone is ~550 kB minified; it is one dependency, not a sign of bloat.
     chunkSizeWarningLimit: 800,
   },

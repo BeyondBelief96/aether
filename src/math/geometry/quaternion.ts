@@ -1,7 +1,7 @@
-import { approxEqual, EPSILON } from "../scalar";
-import type { QuatLike, Vec3Like } from "../types";
-import type { Mat3x3 } from "./mat3x3";
-import { Vec3 } from "./vec3";
+import { approxEqual, EPSILON } from "../scalar.js";
+import type { QuatLike, Vec3Like } from "../types.js";
+import type { Mat3x3 } from "./mat3x3.js";
+import { Vec3 } from "./vec3.js";
 
 /** Above this `cos θ`, slerp falls back to normalized lerp to avoid dividing by `sin θ ≈ 0`. */
 const SLERP_LERP_THRESHOLD = 0.9999;
