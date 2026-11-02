@@ -1,5 +1,5 @@
 import { ArrowHelper, Material, Vector3 } from "three";
-import { type Vec3Like, clamp } from "../../math";
+import { type Vec3Like, clamp } from "aether";
 
 const _dir = new Vector3();
 

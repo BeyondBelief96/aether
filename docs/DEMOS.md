@@ -78,7 +78,7 @@ import {
   SphereGeometry,
   type Scene,
 } from 'three';
-import { Quaternion, Vec3 } from '../math';
+import { Quaternion, Vec3 } from 'aether';
 import type { Demo, DemoInfo } from './types';
 import { disposeObject } from './helpers/three';
 
@@ -159,13 +159,13 @@ Notes:
 
 ### Imports
 
-Import math through the barrel, never from individual files:
+Import everything from `'aether'`, never from individual folders or files:
 
 ```ts
-import { Mat3x3, Quaternion, Vec3, approxEqual } from '../math';
+import { Mat3x3, Quaternion, Vec3, approxEqual } from 'aether';
 ```
 
-Later phases follow the same pattern (`'../engine'`, `'../collision'`). Use `src/index.ts` only from outside the repo, as a package consumer would.
+`'aether'` is an alias for `src/index.ts`, set under `paths` in `tsconfig.json`, and Vite reads it from there. Demos and UI use the engine exactly as an outside user would, so anything they need has to be exported from `src/index.ts`. Code inside the engine keeps its relative imports.
 
 ### Engine types into Three.js
 
@@ -264,7 +264,7 @@ export const WARN = 0xe8833a;
 ```ts
 // src/demos/helpers/vector-arrow.ts
 import { ArrowHelper, Vector3 } from 'three';
-import type { Vec3Like } from '../../math';
+import type { Vec3Like } from 'aether';
 
 const _origin = new Vector3();
 const _dir = new Vector3();
@@ -521,7 +521,7 @@ A labelled range input with a live readout. Copy the look from the sidebar's exi
 // src/ui/controls/aether-slider.ts
 import { LitElement, css, html } from 'lit';
 import { live } from 'lit/directives/live.js';
-import { formatNumber } from '../format';
+import { formatNumber } from '../format/format';
 
 /**
  * A labelled range slider with a monospace readout.
@@ -630,7 +630,7 @@ Three number fields labelled X, Y, Z in the axis colors. It emits a **new object
 // src/ui/controls/aether-vec3-input.ts
 import { LitElement, css, html } from 'lit';
 import { live } from 'lit/directives/live.js';
-import type { Vec3Like } from '../../math';
+import type { Vec3Like } from 'aether';
 
 const AXES = ['x', 'y', 'z'] as const;
 type Axis = (typeof AXES)[number];

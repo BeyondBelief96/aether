@@ -1,5 +1,5 @@
 import { css, html, LitElement } from "lit";
-import type { Vec3Like } from "../../math";
+import type { Vec3Like } from "aether";
 import { live } from "lit/directives/live.js";
 
 const AXES = ["x", "y", "z"] as const;

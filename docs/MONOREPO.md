@@ -36,7 +36,7 @@ Package `package.json` essentials: `"type": "module"`, `"exports"`, `"types"`, `
 ## Do now
 
 1. **Keep engine code free of DOM, Three.js and Lit.** Already true. To enforce it, give the engine folders a tsconfig without `"DOM"` in `lib` and without `vite/client` in `types`, so a stray `window` or `document` fails to compile.
-2. **Treat `src/index.ts` as the only entry point.** `ui/` and `demos/` should import from `src/index.ts`, not deep paths like `../engine/loop`. After the split those imports become `"aether"` with no other rewriting, and anything missing from `index.ts` exposes a gap in the public API.
+2. **Treat `src/index.ts` as the only entry point.** Done: `ui/` and `demos/` import from `"aether"`, an alias for `src/index.ts` set under `paths` in `tsconfig.json`. After the split those imports stay as they are, and anything missing from `index.ts` exposes a gap in the public API.
 3. **Pick the npm name early.** `aether` is very likely taken; a scoped name such as `@bberisford/aether` is always available. The name ends up in every import.
 4. **Rename project notes when the docs site arrives.** The current `docs/` folder (this file, PLAN.md, RESOURCES.md, notes/) is project notes, not user documentation. Consider moving it to `notes/` so it isn't confused with `apps/docs`.
 
@@ -44,7 +44,7 @@ Package `package.json` essentials: `"type": "module"`, `"exports"`, `"types"`, `
 
 1. Create the root `package.json` with `"private": true` and `"workspaces"`, and move shared compiler options into `tsconfig.base.json`.
 2. Move engine folders and `index.ts` into `packages/aether/src/`, along with their tests and a Vitest config.
-3. Move `ui/`, `demos/`, `main.ts`, `styles.css`, `index.html`, `public/` and `vite.config.ts` into `apps/playground/`. Add `"aether": "*"` as a dependency and replace relative engine imports with `"aether"`.
+3. Move `ui/`, `demos/`, `main.ts`, `styles.css`, `index.html`, `public/` and `vite.config.ts` into `apps/playground/`. Add `"aether": "*"` as a dependency and remove the `paths` alias, so `"aether"` resolves to the package.
 4. Add the library build and `exports` to `packages/aether/package.json`. Verify with `npm pack --dry-run` that only `dist/` ships.
 5. Scaffold `apps/docs/` and wire TypeDoc output into it.
 6. Run `npm install` at the root, then confirm tests, typecheck and both apps' dev servers work.
