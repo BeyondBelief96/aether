@@ -103,6 +103,9 @@ export class AetherSidebar extends LitElement {
     override render() {
         const current = this.demos.find((d) => d.id === this.demoId);
         const { fps, stepsPerFrame, simTime, droppedTime } = this.stats;
+        // Built here because dd is `white-space: pre`: if Prettier wrapped this inside the
+        // template, the line breaks and indentation would render as text.
+        const steps = stepsPerFrame.toFixed(2);
 
         return html`
             <header>
@@ -187,9 +190,7 @@ export class AetherSidebar extends LitElement {
                     <dt>Frame rate</dt>
                     <dd>${fps.toFixed(0)} fps</dd>
                     <dt>Steps / frame</dt>
-                    <dd class=${droppedTime ? "warn" : ""}>
-                        ${stepsPerFrame.toFixed(2)}
-                    </dd>
+                    <dd class=${droppedTime ? "warn" : ""}>${steps}</dd>
                     <dt>Sim time</dt>
                     <dd>${simTime.toFixed(2)} s</dd>
                 </dl>

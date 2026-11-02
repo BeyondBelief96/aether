@@ -247,7 +247,7 @@ class Quat implements QuatLike {
 
 Register the custom matchers in a Vitest setup file (`test.setupFiles` in `vite.config.ts`). Add a `declare module 'vitest'` augmentation so TypeScript knows about them.
 
-**Demo:** *Rotation gizmo*. Sliders for axis and angle drive a quaternion; show the rotated basis vectors, the matching Euler angles, and gimbal lock when using Euler input. Walkthrough, file layout and skeletons: [DEMOS.md §10](./DEMOS.md#10-worked-example-the-phase-1-rotation-gizmo).
+**Demo:** *Rotation gizmo*. Sliders for axis and angle drive a quaternion; show the rotated basis vectors, the matching Euler angles, and gimbal lock when using Euler input. Built: `src/demos/phase1-rotation-gizmo.ts`. What's on screen and why: [DEMOS.md §10](./DEMOS.md#10-worked-example-the-phase-1-rotation-gizmo).
 
 **Web skills:** a reusable `<aether-slider>` component; a `<aether-vec3-input>` that emits a vector; formatting numbers in monospace for the UI.
 

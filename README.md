@@ -46,7 +46,7 @@ src/
 | Phase | Topic | Status |
 |---|---|---|
 | 0 | Scaffold and game loop | ✅ |
-| 1 | Math library | |
+| 1 | Math library | ✅ |
 | 2 | Particles and integration | |
 | 3 | Forces, springs and mass aggregates | |
 | 4 | Rigid bodies | |

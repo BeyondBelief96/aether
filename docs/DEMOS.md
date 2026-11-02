@@ -25,7 +25,7 @@ Contents:
                     ┌──────────────────────── aether-app ─────────────────────────┐
                     │ owns: FixedStepLoop, the current Demo, requestAnimationFrame│
                     │                                                             │
- registry.ts ──────▶│  #loadDemo(id): info.create() → demo.mount(scene)           │
+ registry.ts ──────▶│  #loadDemo(id): info.create() → demo.mount(scene, view)     │
  (DemoInfo[])       │                                                             │
                     │  every frame:                                               │
                     │    loop.advance(now, dt => demo.step(dt))   0..n times      │
@@ -299,6 +299,12 @@ export class VectorArrow extends ArrowHelper {
 
 Later phases will want a few more: a `PointMarker` (a small sphere), an `AabbOutline` (`Box3Helper`), and a line batch for contacts and normals (one `LineSegments` with a preallocated `BufferAttribute`, filled every frame). Phase 5's "Debug draw data" item is the engine-side half of that last one: the engine fills a plain array, and a demo helper uploads it.
 
+### Dragging things in the viewport
+
+`mount` also receives a `DemoView`: the camera, the viewport element, and `setOrbitEnabled`. Demos that don't need it can leave the parameter off.
+
+`DragHandle` (`src/demos/helpers/drag-handle.ts`) builds on it. Give it the view, an object to grab, and a callback. It turns orbiting off during the drag, captures the pointer, and passes your callback the pointer's world-space `Ray`. What that ray means (a point on a plane, on a sphere) is up to the demo. It skips targets with `visible = false`, so hiding a handle also makes it impossible to grab. Call `dispose()` in `unmount`.
+
 ## 6. Giving a demo its own controls
 
 The sidebar currently has only the loop controls. A demo needs a way to put its own sliders and readouts there. The plan does this in two stages:
@@ -475,7 +481,7 @@ These live in `src/ui/controls/`. They know nothing about demos or the engine, t
 Write this first; every readout and control uses it.
 
 ```ts
-// src/ui/format.ts
+// src/ui/format/format.ts
 
 /** Figure space: the same width as a digit in tabular fonts, used in place of a plus sign. */
 const FIGURE_SPACE = ' ';
@@ -639,13 +645,13 @@ export class AetherVec3Input extends LitElement {
     label: { type: String },
     value: { attribute: false },
     step: { type: Number },
-    unit: { type: Boolean }, // when set, emit a unit vector (useful for axes)
+    nonzero: { type: Boolean }, // when set, reject edits that make the zero vector
   };
 
   declare label: string;
   declare value: Vec3Like;
   declare step: number;
-  declare unit: boolean;
+  declare nonzero: boolean;
 
   static override styles = css`
     :host {
@@ -678,15 +684,15 @@ export class AetherVec3Input extends LitElement {
     this.label = '';
     this.value = { x: 0, y: 0, z: 0 };
     this.step = 0.1;
-    this.unit = false;
+    this.nonzero = false;
   }
 
   #onChange(axis: Axis, e: Event): void {
     const raw = Number((e.target as HTMLInputElement).value);
     if (!Number.isFinite(raw)) return;
     const next = { ...this.value, [axis]: raw };
-    // TODO: if this.unit, normalize `next` with the engine's Vec3, and ignore
-    // the change when the result would be the zero vector.
+    // TODO: if this.nonzero and `next` is the zero vector, call this.requestUpdate()
+    // and return. live() then puts the current value back in the field.
     this.dispatchEvent(new CustomEvent('value-change', { detail: next, bubbles: true, composed: true }));
   }
 
@@ -720,9 +726,11 @@ declare global {
 }
 ```
 
-The property is `unit`, not `normalize`, because every DOM element already has a `normalize()` method and TypeScript won't let a property shadow it. Watch for the same clash with names like `title`, `hidden`, `id` and `slot`.
+Values go out exactly as typed, and the demo normalizes wherever it uses the vector. An input that normalizes on every edit fights the user: start from `0, 1, 0`, type `1` in X, and you get `0.707, 0.707, 0`, with neither field showing what you typed.
 
-Use `@change` (fires when the user commits a value) instead of `@input`. Otherwise, normalizing while someone types "0.5" would rewrite the field before they finish typing.
+Don't name a property `normalize`: every DOM element already has a `normalize()` method, and TypeScript won't let a property shadow it. Watch for the same clash with names like `title`, `hidden`, `id` and `slot`.
+
+Use `@change` (fires when the user commits a value) instead of `@input`. Otherwise, rejecting a value while someone types "0.5" would rewrite the field before they finish typing.
 
 ## 8. Making it look good
 
@@ -844,12 +852,13 @@ Before committing a demo, check: light mode, dark mode, a 360px-wide window (the
 - **Compute derived values in `willUpdate`, not `render`.** `render` should stay a pure function of properties. If several outputs come from one expensive computation (say, Euler angles from a quaternion), do it in `willUpdate(changed)` when `changed.has('quaternion')`.
 - **Use `declare` fields, and set defaults in the constructor.** With `useDefineForClassFields`, a field initializer such as `value = 0` would shadow Lit's accessor. That is why the codebase uses `declare` plus constructor assignment.
 - **Clean up global listeners.** Anything added to `window` in `connectedCallback` is removed in `disconnectedCallback`, as `aether-app` does with `keydown`.
+- **Keep `<dd>` and `<output>` contents short enough to stay on one line.** `panelStyles` gives them `white-space: pre`, and Prettier formats `html` templates. If it wraps the contents, the line breaks and indentation render as text, which makes the row taller and can overflow the sidebar. Build long values in a variable before the template, as `axisText` does in `gizmo-panel.ts`.
 
 ---
 
 ## 10. Worked example: the Phase 1 rotation gizmo
 
-For a step-by-step build order with checks at each step, see [GIZMO-WALKTHROUGH.md](./GIZMO-WALKTHROUGH.md).
+This demo is finished, so this section describes it rather than giving a template. The code is in `src/demos/phase1-rotation-gizmo.ts` and `src/ui/panels/gizmo-panel.ts`.
 
 **Goal (from PLAN.md):** sliders for axis and angle drive a quaternion; show the rotated basis vectors and the matching Euler angles; show gimbal lock when using Euler input.
 
@@ -859,15 +868,15 @@ For a step-by-step build order with checks at each step, see [GIZMO-WALKTHROUGH.
 
 - A body (a box with uneven sides, so you can see its orientation) at `(0, 1, 0)`, oriented by the quaternion `q`.
 - Three basis arrows (`VectorArrow` in the axis colors) from the body's center: `q.rotateVec3(UNIT_X)`, `q.rotateVec3(UNIT_Y)` and `q.rotateVec3(UNIT_Z)`.
-- In axis-angle mode: a muted arrow showing the rotation axis.
+- In axis-angle mode: a muted arrow showing the rotation axis, with a handle at its tip that you can drag to aim it.
 - In Euler mode: three nested **gimbal rings** (`TorusGeometry`), shown in the diagram below.
 
 **Panel (`<aether-gizmo-panel>`)**
 
-- A mode switch with two segments: Axis–angle | Euler XYZ.
+- A mode switch with two buttons: Axis–angle | Euler XYZ. Switching starts the new mode from the current orientation, so the body doesn't jump.
 - Inputs:
-  - Axis–angle mode: `<aether-vec3-input unit>` for the axis and `<aether-slider>` for the angle (−180°…180°).
-  - Euler mode: three sliders X, Y, Z, labelled in axis colors. Y covers ±90° (or more, if you want to see what happens past it).
+  - Axis–angle mode: `<aether-vec3-input nonzero>` and preset buttons (X, Y, Z, XYZ) for the axis, and `<aether-slider>` for the angle (−180°…180°).
+  - Euler mode: three sliders X, Y, Z, labelled in axis colors. Y covers ±90°, the range `getEulerXYZ` returns, and exactly where the lock happens.
 - Readouts:
   - quaternion `w, x, y, z` and `|q|`;
   - axis–angle (from `getAxisAngle`);
@@ -880,13 +889,12 @@ For a step-by-step build order with checks at each step, see [GIZMO-WALKTHROUGH.
 `setFromEulerXYZ(x, y, z)` is `qx · qy · qz`: intrinsic X, then Y about the new Y, then Z about the newest Z. That is exactly a physical gimbal:
 
 ```
-outer ring   (child of the scene)        rotates about X by x
-  middle ring  (child of outer)          rotates about Y by y
-    inner ring   (child of middle)       rotates about Z by z
-      body       (child of inner)
+outer group                  rotates about X by x, holds the red ring
+  middle group (child of outer)   rotates about Y by y, holds the green ring
+    inner group (child of middle) rotates about Z by z, holds the blue ring
 ```
 
-Each ring's quaternion is `setFromAxisAngle(axis, angle)` from your library, copied onto the ring group. At `y = ±90°` the inner ring's axis lines up with the outer ring's axis. Two rings then spin about the same line, and one degree of freedom is gone. The viewer *sees* it: dragging the X and Z sliders produces the same motion. Turn the rings `--warn` orange while the lock warning is on.
+The inner group ends up oriented exactly like the body, which isn't parented to it: the body is drawn from `q`, so the rings and the quaternion can be compared. Each group's quaternion is `setFromAxisAngle(axis, angle)` from your library. The fixed turn that makes a ring face its own axis goes on the ring mesh, because on the group it would change which axis the gimbal angle turns about. At `y = ±90°` the inner ring's axis lines up with the outer ring's axis. Two rings then spin about the same line, and one degree of freedom is gone. The viewer *sees* it: dragging the X and Z sliders produces the same motion. Turn the rings `--warn` orange while the lock warning is on.
 
 Draw each ring in its axis color, with each ring slightly smaller than its parent.
 
@@ -895,12 +903,12 @@ Draw each ring in its axis color, with each ring slightly smaller than its paren
 ```
 src/
   ui/
-    format.ts                    formatNumber, formatDegrees (+ format.test.ts)
+    format/
+      format.ts                  formatNumber, formatDegrees (+ format.test.ts)
     shared-styles.ts             panelStyles, extracted from aether-sidebar
     controls/
       aether-slider.ts
       aether-vec3-input.ts
-      aether-segmented.ts        optional: the mode switch (or use two radio buttons)
     panels/
       gizmo-panel.ts             <aether-gizmo-panel>
   demos/
@@ -908,237 +916,10 @@ src/
       three.ts                   disposeObject
       colors.ts                  AXIS_COLORS
       vector-arrow.ts            VectorArrow
+      drag-handle.ts             DragHandle
     phase1-rotation-gizmo.ts
     registry.ts                  + rotationGizmoDemo
 ```
-
-### Demo skeleton
-
-```ts
-// src/demos/phase1-rotation-gizmo.ts
-import { Group, type Scene } from 'three';
-import { Mat3x3, Quaternion, Vec3, type Vec3Like } from '../math';
-import '../ui/panels/gizmo-panel';
-import type { GizmoMode } from '../ui/panels/gizmo-panel';
-import { AXIS_COLORS } from './helpers/colors';
-import { disposeObject } from './helpers/three';
-import { VectorArrow } from './helpers/vector-arrow';
-import type { Demo, DemoInfo } from './types';
-
-/**
- * Phase 1: quaternions, and why engines don't store Euler angles.
- *
- * Axis–angle input drives a quaternion directly. Euler input drives three nested
- * gimbals; at Y = ±90° two of them line up and a degree of freedom disappears.
- */
-
-const CENTER: Readonly<Vec3Like> = Object.freeze({ x: 0, y: 1, z: 0 });
-const UNIT_X: Readonly<Vec3Like> = Object.freeze({ x: 1, y: 0, z: 0 });
-const UNIT_Y: Readonly<Vec3Like> = Object.freeze({ x: 0, y: 1, z: 0 });
-const UNIT_Z: Readonly<Vec3Like> = Object.freeze({ x: 0, y: 0, z: 1 });
-const GIMBAL_LOCK_COS = 0.02;
-
-const _basis = new Vec3();
-const _matrix = new Mat3x3();
-const _euler = new Vec3();
-const _axis = new Vec3();
-
-class RotationGizmoDemo implements Demo {
-  readonly panel = document.createElement('aether-gizmo-panel');
-
-  // Input state. The panel shows it; the demo owns it.
-  #mode: GizmoMode = 'axis-angle';
-  #axis: Vec3Like = { x: 0, y: 1, z: 0 };
-  #angle = 0; // radians
-  #eulerAngles: Vec3Like = { x: 0, y: 0, z: 0 }; // radians
-
-  // Derived state.
-  #q = new Quaternion();
-  #dirty = true;
-
-  // View.
-  #group = new Group();
-  #arrows = [
-    new VectorArrow(AXIS_COLORS.x),
-    new VectorArrow(AXIS_COLORS.y),
-    new VectorArrow(AXIS_COLORS.z),
-  ];
-  // TODO: #body mesh, #axisArrow, #gimbals (outer, middle, inner groups)
-
-  constructor() {
-    this.#group.add(...this.#arrows);
-    // TODO: build the body and the gimbal rings.
-
-    // TODO: push the initial values into this.panel, then listen for its events:
-    //   'mode-change'  → this.#mode = detail
-    //   'axis-change'  → this.#axis = detail
-    //   'angle-change' → this.#angle = detail
-    //   'euler-change' → this.#eulerAngles = detail
-    // Each handler sets the field, sets this.#dirty = true, and passes the value back
-    // to the panel (the inputs are controlled).
-  }
-
-  mount(scene: Scene): void {
-    scene.add(this.#group);
-    this.sync(1);
-  }
-
-  step(_dt: number): void {
-    // Nothing to simulate: the orientation comes straight from the inputs.
-    // Stretch: animate a slerp between two orientations here.
-  }
-
-  sync(_alpha: number): void {
-    if (!this.#dirty) return; // inputs only change on user events
-    this.#dirty = false;
-
-    this.#updateQuaternion();
-    this.#updateView();
-    this.#updateReadouts();
-  }
-
-  #updateQuaternion(): void {
-    if (this.#mode === 'axis-angle') {
-      // TODO: this.#q.setFromAxisAngle(...)
-    } else {
-      // TODO: this.#q.setFromEulerXYZ(...)
-    }
-  }
-
-  #updateView(): void {
-    const units = [UNIT_X, UNIT_Y, UNIT_Z];
-    this.#arrows.forEach((arrow, i) => {
-      this.#q.rotateVec3(units[i]!, _basis);
-      arrow.update(CENTER, _basis, 1.5);
-    });
-    // TODO: body.quaternion.copy(this.#q)
-    // TODO: show the axis arrow in axis-angle mode, the gimbals in Euler mode.
-    // TODO: set each gimbal ring's quaternion from setFromAxisAngle.
-  }
-
-  #updateReadouts(): void {
-    _matrix.setFromQuaternion(this.#q);
-    const angle = this.#q.getAxisAngle(_axis);
-    this.#q.getEulerXYZ(_euler);
-    // TODO: pass fresh objects to the panel (Lit compares by identity):
-    //   this.panel.quaternion = { w, x, y, z }
-    //   this.panel.matrix = Array.from(_matrix.elements)
-    //   this.panel.euler = { x, y, z }, axisAngle = { axis, angle }
-    //   this.panel.gimbalLock = Math.abs(Math.cos(_euler.y)) < GIMBAL_LOCK_COS
-    void angle;
-  }
-
-  unmount(scene: Scene): void {
-    scene.remove(this.#group);
-    disposeObject(this.#group);
-  }
-}
-
-export const rotationGizmoDemo: DemoInfo = {
-  id: 'rotation-gizmo',
-  title: 'Rotation gizmo',
-  phase: 1,
-  summary:
-    'Rotate with an axis and angle, or switch to Euler angles and push Y to ±90° ' +
-    'to watch two gimbals line up.',
-  create: () => new RotationGizmoDemo(),
-};
-```
-
-### Panel skeleton
-
-```ts
-// src/ui/panels/gizmo-panel.ts
-import { LitElement, css, html, type PropertyValues } from 'lit';
-import type { QuatLike, Vec3Like } from '../../math';
-import { formatDegrees, formatNumber } from '../format';
-import { panelStyles } from '../shared-styles';
-import '../controls/aether-slider';
-import '../controls/aether-vec3-input';
-
-export type GizmoMode = 'axis-angle' | 'euler';
-
-/**
- * Inputs and readouts for the rotation gizmo demo.
- *
- * Events: `mode-change` (GizmoMode), `axis-change` (Vec3Like), `angle-change` (radians),
- * `euler-change` (Vec3Like, radians).
- */
-export class GizmoPanel extends LitElement {
-  static override properties = {
-    // Inputs
-    mode: { attribute: false },
-    axis: { attribute: false },
-    angle: { attribute: false },
-    eulerInput: { attribute: false },
-    // Readouts
-    quaternion: { attribute: false },
-    matrix: { attribute: false },
-    euler: { attribute: false },
-    gimbalLock: { attribute: false },
-  };
-
-  declare mode: GizmoMode;
-  declare axis: Vec3Like;
-  declare angle: number;
-  declare eulerInput: Vec3Like;
-  declare quaternion: QuatLike;
-  declare matrix: readonly number[]; // 9 values, row-major
-  declare euler: Vec3Like;
-  declare gimbalLock: boolean;
-
-  static override styles = [
-    panelStyles,
-    css`
-      /* TODO: .matrix grid from DEMOS.md §8, the segmented mode switch */
-    `,
-  ];
-
-  constructor() {
-    super();
-    // TODO: defaults for every property
-  }
-
-  protected override willUpdate(changed: PropertyValues<this>): void {
-    // TODO (optional): precompute formatted strings here when `quaternion` changes.
-    void changed;
-  }
-
-  override render() {
-    // TODO:
-    // 1. Mode switch: two buttons with aria-pressed, the active one .primary.
-    // 2. Inputs for the current mode:
-    //    axis-angle: <aether-vec3-input label="Axis" unit> + <aether-slider label="Angle">
-    //    euler:      three <aether-slider>s, color="var(--axis-x)" etc.
-    //    Convert degrees (slider) ↔ radians (events) here, not in the demo.
-    // 3. Readouts: <dl> for the quaternion and |q|, axis–angle and Euler (formatDegrees),
-    //    then the matrix grid with .c0/.c1/.c2 column classes.
-    // 4. ${this.gimbalLock ? html`<p class="warn">Gimbal lock: X and Z rotate about the same axis</p>` : nothing}
-    return html``;
-  }
-}
-
-customElements.define('aether-gizmo-panel', GizmoPanel);
-
-declare global {
-  interface HTMLElementTagNameMap {
-    'aether-gizmo-panel': GizmoPanel;
-  }
-}
-```
-
-### Suggested order
-
-1. `format.ts` and its tests.
-2. Axis color tokens in `styles.css`, and `shared-styles.ts` extracted from the sidebar. Check that the sidebar looks unchanged.
-3. The `panel` plumbing in `types.ts`, `aether-app` and `aether-sidebar` (§6.1). Check that the Phase 0 demo still works with no panel.
-4. `<aether-slider>`. Try it by replacing the sidebar's Physics-rate slider with it.
-5. Demo helpers: `disposeObject`, `AXIS_COLORS`, `VectorArrow`.
-6. The gizmo in axis-angle mode only: body, basis arrows, axis + angle inputs, quaternion readout.
-7. `<aether-vec3-input>` for the axis.
-8. The matrix and Euler readouts. Check them against the known values from your tests (90° about +Y maps +X to −Z).
-9. Euler mode, the gimbal rings and the lock warning.
-10. The look test (§8), then tick the Phase 1 demo boxes in PLAN.md.
 
 ### Stretch ideas
 
