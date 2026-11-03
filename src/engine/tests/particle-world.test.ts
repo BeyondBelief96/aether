@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Particle } from "./particle";
-import { ParticleWorld } from "./particle-world";
+import { Particle } from "../particle";
+import { ParticleWorld } from "../particle-world";
 
 describe("ParticleWorld", () => {
     it("starts empty and steps without particles", () => {

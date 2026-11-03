@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RingBuffer } from "./ring-buffer";
+import { RingBuffer } from "../charts/ring-buffer";
 
 const contents = (buffer: RingBuffer): (number | undefined)[] =>
     Array.from({ length: buffer.length }, (_, i) => buffer.at(i));

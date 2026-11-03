@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCompact, formatDegrees, formatNumber } from "./format";
+import { formatCompact, formatDegrees, formatNumber } from "../format/format";
 
 const FIGURE_SPACE = "\u2007";
 const MINUS = "\u2212";

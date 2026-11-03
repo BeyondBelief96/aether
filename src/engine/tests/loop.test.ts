@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FixedStepLoop } from './loop';
+import { FixedStepLoop } from '../loop';
 
 // 8 Hz keeps dt = 0.125, which is exact in binary floating point.
 const HZ = 8;

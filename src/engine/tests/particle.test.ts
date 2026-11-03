@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Particle } from "./particle";
+import { Particle } from "../particle";
 
 /** A particle at rest at the origin with no damping. */
 function undamped(): Particle {

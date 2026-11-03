@@ -42,7 +42,7 @@ src/
 docs/           this plan, resources, notes
 ```
 
-File names are lowercase kebab-case (`rigid-body.ts`), one main class per file, tests next to the code (`rigid-body.test.ts`). Each folder has an `index.ts` barrel; other modules import from the barrel, not from individual files.
+File names are lowercase kebab-case (`rigid-body.ts`), one main class per file, tests in a `tests/` folder inside each module (`engine/tests/rigid-body.test.ts`). Each folder has an `index.ts` barrel; other modules import from the barrel, not from individual files.
 
 ### Millington chapter map
 
@@ -151,7 +151,7 @@ More: [RESOURCES.md, Phase 0](./RESOURCES.md#phase-0-scaffold-and-game-loop)
 - [x] Export everything from `src/math/index.ts` and `src/index.ts`
 - [x] Record the API decision in `src/math/README.md`
 
-Deferred to the phase that first uses them: `Mat3.setInertiaTensorCoeffs` (Phase 4), `Mat3.setSkewSymmetric` and `Mat3.add` (Phase 7). The tests directory is `src/math/tests/` rather than next to each file.
+Deferred to the phase that first uses them: `Mat3.setInertiaTensorCoeffs` (Phase 4), `Mat3.setSkewSymmetric` and `Mat3.add` (Phase 7).
 
 **API decision.** The recommended default is mutable methods that write into `this` and return `this` for chaining (`v.add(w).scale(2)`), plus `clone()` when you need a copy. That avoids allocating in the inner loops of the solver. Keep `x`, `y`, `z` as plain public fields, not getters, so V8 can optimize them.
 

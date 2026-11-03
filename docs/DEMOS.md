@@ -512,7 +512,7 @@ export function formatDegrees(radians: number, digits = 1): string {
 }
 ```
 
-Write a `format.test.ts` for it (sign column, −0, rounding, `NaN`). It's pure, so it's as easy to test as the math.
+Write a `ui/tests/format.test.ts` for it (sign column, −0, rounding, `NaN`). It's pure, so it's as easy to test as the math.
 
 ### `<aether-slider>`
 
@@ -905,7 +905,7 @@ Draw each ring in its axis color, with each ring slightly smaller than its paren
 src/playground/
   ui/
     format/
-      format.ts                  formatNumber, formatDegrees (+ format.test.ts)
+      format.ts                  formatNumber, formatDegrees (tested in ui/tests/)
     shared-styles.ts             panelStyles, extracted from aether-sidebar
     controls/
       aether-slider.ts

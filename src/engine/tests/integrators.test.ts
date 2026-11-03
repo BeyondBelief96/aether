@@ -8,7 +8,7 @@ import {
     type AccelFn,
     type Integrator,
     type OscillatorState,
-} from "./integrators";
+} from "../integrators";
 
 const ALL: readonly (readonly [string, Integrator])[] = [
     ["explicitEuler", explicitEuler],

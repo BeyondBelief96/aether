@@ -133,6 +133,6 @@ Verlet and RK4 evaluate forces more than once per step, which a force accumulato
 
 ## Testing
 
-Tests sit next to the code as `*.test.ts`. The integrator tests measure each method's order of accuracy by halving `dt`, run undamped springs for 10,000 steps, and find each stability limit, so the claims in the table above are checked and not just stated.
+Tests live in `tests/`. The integrator tests measure each method's order of accuracy by halving `dt`, run undamped springs for 10,000 steps, and find each stability limit, so the claims in the table above are checked and not just stated.
 
 See [PLAN.md, Phase 2](../../docs/PLAN.md#phase-2-particles-and-integration).
