@@ -16,6 +16,12 @@
     --axis-y: #3a8f4b;
     --axis-z: #3b5fd0;
 
+    /* Data series in charts, one per thing being compared. */
+    --series-1: #d93f45;
+    --series-2: #1f8f80;
+    --series-3: #b7791f;
+    --series-4: #7c5cd6;
+
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
@@ -40,6 +46,10 @@
         --axis-x: #ff6b6f;
         --axis-y: #6fd17f;
         --axis-z: #7b9bff;
+        --series-1: #ff6b6f;
+        --series-2: #3cc9b4;
+        --series-3: #f0b429;
+        --series-4: #a78bfa;
     }
 }
 

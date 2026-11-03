@@ -1,4 +1,5 @@
 import type { Camera, Scene } from "three";
+import type { Vec3Like } from "aether-physics";
 
 /**
  * A self-contained scene that exercises one phase of the engine.
@@ -32,6 +33,8 @@ export interface DemoView {
     readonly element: HTMLElement;
     /** Turns camera orbiting off while a demo drags something, and back on after. */
     setOrbitEnabled(enabled: boolean): void;
+    /** Moves the camera and its orbit target. The app restores the default before each `mount`. */
+    setCamera(position: Vec3Like, target: Vec3Like): void;
 }
 
 export interface DemoInfo {

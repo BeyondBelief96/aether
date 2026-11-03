@@ -124,6 +124,7 @@ export class AetherApp extends LitElement {
         const viewport = this.#viewport;
         if (!info || !viewport) return;
         this.#demo?.unmount(viewport.scene);
+        viewport.resetCamera();
         this.#demo = info.create();
         this.#demo.mount(viewport.scene, viewport.view);
         this.panel = this.#demo.panel ?? null;

@@ -291,10 +291,13 @@ More: [RESOURCES.md, Phase 1](./RESOURCES.md#phase-1-math-library)
 
 ### Build
 
-- [ ] `src/engine/particle.ts`: `Particle`
-- [ ] `src/engine/integrators.ts`: four integrators behind one function type, for the shoot-out demo
-- [ ] `src/engine/particle-world.ts`: `ParticleWorld`
-- [ ] Export from `src/engine/index.ts` and `src/index.ts`
+- [x] `src/engine/particle.ts`: `Particle`
+- [x] `src/engine/integrators.ts`: four integrators behind one function type, for the shoot-out demo
+- [x] `src/engine/particle-world.ts`: `ParticleWorld`
+- [x] Export from `src/engine/index.ts` and `src/index.ts`
+- [x] Record the API decisions in `src/engine/README.md`
+
+Where the build goes beyond the sketch below: `setMass` and `integrate` throw a `RangeError` on invalid input, a particle with `inverseMass = 0` also ignores its own velocity, and `velocityVerlet` passes `accel` an estimate of the new velocity so that it stays second order on damped systems.
 
 ```ts
 class Particle {
@@ -348,7 +351,9 @@ class ParticleWorld {
 - *Ballistics* (Millington ch. 4): pistol, artillery, fireball and laser presets.
 - *Integrator shoot-out*: four mass-spring oscillators side by side, one per integrator, with a live energy graph.
 
-**Web skills:** a hand-written `<canvas>` line chart component (no chart library): ring buffer, resizing, `devicePixelRatio`. A segmented control for choosing the integrator.
+Built: `src/playground/demos/phase2-ballistics.ts` and `src/playground/demos/phase2-integrator-shootout.ts`. What's on screen and why: [DEMOS.md §11](./DEMOS.md#11-worked-examples-the-phase-2-demos).
+
+**Web skills:** a hand-written `<canvas>` line chart component (no chart library): ring buffer, resizing, `devicePixelRatio`. A segmented control for choosing the integrator. Built: `<aether-line-chart>`, `RingBuffer` and `<aether-segmented>`.
 
 ### Study
 
@@ -1071,4 +1076,4 @@ More: [RESOURCES.md, Phase 8](./RESOURCES.md#phase-8-stretch-goals)
 4. Implement the engine side in plain TypeScript, with terse TSDoc on public members.
 5. Build the demo and its debug visualization, following the checklist in [DEMOS.md](./DEMOS.md#2-checklist-for-a-new-demo).
 6. Add the phase's UI feature.
-7. Write down what surprised you in the notes file, tick the boxes here, and commit.
+7. Update the notes file, tick the boxes here, and commit.

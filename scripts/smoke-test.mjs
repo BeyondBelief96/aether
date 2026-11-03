@@ -80,6 +80,29 @@ try {
     await page.locator('aether-gizmo-panel button', { hasText: 'Euler XYZ' }).click();
     await page.locator('aether-gizmo-panel aether-slider[label="Y"] input').waitFor();
   });
+
+  await check('the ballistics demo fires and tracks a shot', async () => {
+    await demoSelect.selectOption('ballistics');
+    const panel = page.locator('aether-ballistics-panel');
+    await panel.locator('aether-segmented button', { hasText: 'Laser' }).click();
+    await panel.getByRole('button', { name: 'Fire', exact: true }).click();
+    // A laser shot crosses the range in about 2 s, then fills in "Last completed shot".
+    const flightTime = panel.locator('dd').nth(4);
+    await page.waitForFunction((el) => el.textContent.includes('s'), await flightTime.elementHandle());
+  });
+
+  await check('the shoot-out chart draws lines on its canvas', async () => {
+    await demoSelect.selectOption('integrator-shootout');
+    const chart = page.locator('aether-shootout-panel aether-line-chart canvas');
+    await chart.waitFor();
+    await page.waitForTimeout(1000);
+    const painted = await chart.evaluate((canvas) => {
+      const { width, height } = canvas;
+      const { data } = canvas.getContext('2d').getImageData(0, 0, width, height);
+      return data.some((_, i) => i % 4 === 3 && data[i] > 0);
+    });
+    if (!painted) throw new Error('the canvas is blank');
+  });
 } finally {
   await browser.close();
   await server.close();

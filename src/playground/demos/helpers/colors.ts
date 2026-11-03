@@ -9,6 +9,9 @@ export const AXIS_COLORS = {
     z: 0x3e63dd,
 } as const;
 
+/** Matches the --series-* tokens in styles.css (dark values, since the viewport is always dark). */
+export const SERIES_COLORS = [0xff6b6f, 0x3cc9b4, 0xf0b429, 0xa78bfa] as const;
+
 export const ACCENT = 0x2bb5a0;
 export const WARN = 0xe8833a;
 export const MUTED = 0xb0b8c4;

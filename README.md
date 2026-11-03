@@ -23,7 +23,22 @@ const q = new Quaternion().setFromAxisAngle({ x: 0, y: 1, z: 0 }, Math.PI / 2);
 q.rotateVec3({ x: 1, y: 0, z: 0 }, new Vec3()); // about (0, 0, -1)
 ```
 
-It's early: so far the package has the math library and a fixed-timestep loop. Physics arrives with the later phases below, and the API can change in any 0.x release.
+Point masses move under forces in a fixed-timestep world:
+
+```ts
+import { Particle, ParticleWorld } from 'aether-physics';
+
+const ball = new Particle();
+ball.position.set(0, 10, 0);
+ball.velocity.set(3, 4, 0);
+ball.acceleration.set(0, -9.81, 0);
+
+const world = new ParticleWorld();
+world.particles.push(ball);
+for (let i = 0; i < 60; i++) world.step(1 / 60); // one simulated second
+```
+
+It's early: so far the package has the math library, a fixed-timestep loop, particles and four integrators. Rigid bodies and collisions arrive with the later phases below, and the API can change in any 0.x release. See the [engine API guide](src/engine/README.md) and the [math API guide](src/math/README.md).
 
 ## Running it
 
@@ -67,7 +82,7 @@ src/
 |---|---|---|
 | 0 | Scaffold and game loop | ✅ |
 | 1 | Math library | ✅ |
-| 2 | Particles and integration | |
+| 2 | Particles and integration | ✅ |
 | 3 | Forces, springs and mass aggregates | |
 | 4 | Rigid bodies | |
 | 5 | Collision detection | |

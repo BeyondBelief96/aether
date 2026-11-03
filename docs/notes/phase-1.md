@@ -1,6 +1,6 @@
 # Phase 1: math library
 
-Drafted from the commit history and the final work session. The two sections at the end are personal, so they're left for you to fill in.
+Drafted from the commit history and the final work session. The section at the end is personal, so it's left for you to fill in.
 
 ## What got built
 
@@ -39,7 +39,3 @@ Drafted from the commit history and the final work session. The two sections at 
 ## What you read
 
 <!-- Which parts of Millington, Box3D and the other Phase 1 resources did you get through? -->
-
-## What surprised you
-
-<!-- What surprised you? What would you do differently? -->

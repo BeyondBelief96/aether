@@ -18,6 +18,17 @@ export function formatNumber(value: number, digits = 3): string {
     return sign + Math.abs(rounded).toFixed(digits);
 }
 
+/**
+ * Like `formatNumber`, but switches to exponent form at 1000 and above, so a value that
+ * grows without bound still fits a narrow column: " 12.500", " 1.2e+5".
+ */
+export function formatCompact(value: number, digits = 3): string {
+    if (!Number.isFinite(value) || Math.abs(value) < 1000)
+        return formatNumber(value, digits);
+    const sign = value < 0 ? MINUS : FIGURE_SPACE;
+    return sign + Math.abs(value).toExponential(1);
+}
+
 export const formatDegrees = (radians: number, digits = 1): string => {
     return `${formatNumber(radians * RAD_TO_DEG, digits)}°`;
 };

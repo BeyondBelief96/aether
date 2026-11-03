@@ -16,6 +16,7 @@ Contents:
 8. [Making it look good](#8-making-it-look-good)
 9. [Lit gotchas](#9-lit-gotchas)
 10. [Worked example: the Phase 1 rotation gizmo](#10-worked-example-the-phase-1-rotation-gizmo)
+11. [Worked examples: the Phase 2 demos](#11-worked-examples-the-phase-2-demos)
 
 ---
 
@@ -926,3 +927,62 @@ src/playground/
 - **Slerp playground:** set two orientations and animate between them in `step` with `slerpQuaternions`. Draw the path of the X arrow's tip, and compare it with naively lerping the Euler angles. The difference is the case for quaternions.
 - **Drag to rotate:** use `pointermove` on the viewport to build `setFromUnitVectors(from, to)` from a virtual trackball.
 - **`q` vs `−q`:** a button that negates the quaternion. The readouts flip sign and the body doesn't move.
+
+## 11. Worked examples: the Phase 2 demos
+
+These demos are finished, so this section describes them rather than giving templates.
+
+### Ballistics
+
+`src/playground/demos/phase2-ballistics.ts` and `src/playground/ui/panels/ballistics-panel.ts`.
+
+**Goal (from PLAN.md):** pistol, artillery, fireball and laser presets.
+
+Each shot is one `Particle` in a shared `ParticleWorld`. A shot ends when it reaches the ground, passes 200 m, or has flown for 5 s. Its trail stays until its slot is reused, so you can compare shots.
+
+| On screen | What it shows |
+|---|---|
+| Ball and trail | The simulated path, interpolated between steps |
+| White arrow | Velocity, at 0.1 m of arrow per m/s |
+| Dashed line | The same shot with no damping, from `x₀ + v₀t + ½at²` |
+| Range lines | 10 m apart, with a brighter line every 50 m |
+
+Things to try:
+
+- **Lower the damping slider.** The trail pulls away from the dashed line. The fireball shows this best, since its default damping is already 0.9.
+- **Change the physics rate.** Range barely changes between 30 Hz and 240 Hz, because damping is per second, not per step.
+- **Compare the masses.** Artillery is 2,000 times heavier than the laser, but no force acts on these particles, so mass has no effect on their motion. Their constant acceleration is applied directly.
+
+### Integrator shoot-out
+
+`src/playground/demos/phase2-integrator-shootout.ts` and `src/playground/ui/panels/shootout-panel.ts`.
+
+**Goal (from PLAN.md):** four mass-spring oscillators side by side, one per integrator, with a live energy graph.
+
+All four rows start from the same state and use the same 1 kg mass and spring. The translucent ball on each row is the exact solution `A·cos(ωt)`, shown while damping is off. The graph plots `E / E₀`, where a flat line at 1 is perfect, because energy drift is far easier to see than position error.
+
+Things to try:
+
+| Do this | You should see |
+|---|---|
+| Watch at the defaults | Explicit Euler climbs off the graph and its bob pulls away from its ghost. The others hold |
+| Set the range to ±10% | Semi-implicit Euler swings in a steady band of about ±3% and never drifts |
+| Set the range to ±0.1% | Verlet's much smaller band appears. RK4 sits on the line |
+| Set the physics rate to 5 Hz and raise the stiffness | `ω·dt` crosses 2 at k = 100, and semi-implicit Euler and Verlet blow up. RK4 survives until k = 200 |
+| Choose a damping model at 5 Hz | "Velocity kept per second" stays at `e^(−c)` for `e^(−c·dt)`. It drifts away from that for `1/(1+c·dt)`, which is cheaper but only matches at small `dt` |
+
+States that blow up are drawn pinned at the end of their travel, and readouts switch to exponent form. Non-finite values show as "—" and leave a gap in the graph. Press Restart to recover: changing the stiffness or damping model also restarts the run, because `E₀` or the comparison changes meaning.
+
+### New shared pieces
+
+| Piece | File | Notes |
+|---|---|---|
+| `<aether-line-chart>` | `ui/charts/aether-line-chart.ts` | Scrolling canvas chart. Call `push` at any rate: drawing is batched to one per animation frame. Series colors are CSS custom property names, resolved once and again when the color scheme changes |
+| `RingBuffer` | `ui/charts/ring-buffer.ts` | Fixed-capacity sample store behind the chart |
+| `<aether-segmented>` | `ui/controls/aether-segmented.ts` | Joined buttons for picking one option. Controlled, like the slider |
+| `Polyline` | `demos/helpers/polyline.ts` | A line rewritten in place without allocating, for trails and coils |
+| `formatCompact` | `ui/format/format.ts` | `formatNumber` that switches to exponent form at 1000, for values that can grow without bound |
+| `view.setCamera` | `demos/types.ts` | Lets a demo frame its own scene. The app restores the default camera before each `mount` |
+| `--series-1` to `--series-4` | `styles.css`, `demos/helpers/colors.ts` | One color per thing being compared, kept in step by hand like the axis colors |
+
+A panel that shows a chart creates it in its constructor and renders it with `${this.chart}`. The demo calls `panel.chart.push(...)` directly, so recording a sample doesn't re-render the panel.
