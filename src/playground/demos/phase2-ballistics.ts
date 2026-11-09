@@ -24,7 +24,7 @@ import type { Demo, DemoInfo, DemoView } from "./types";
  * Phase 2: particles on a shooting range.
  *
  * Each shot is one `Particle` in a `ParticleWorld`, with its own mass, muzzle velocity,
- * constant acceleration and damping. The dashed line is the same shot with no damping, from
+ * gravity scale and damping. The dashed line is the same shot with no damping, from
  * the closed-form `x₀ + v₀t + ½at²`, so the gap between it and the trail is what damping did.
  * Shots fly along +Z and the range lines are 10 m apart, with a brighter line every 50 m.
  */
@@ -34,7 +34,7 @@ interface Preset {
     label: string;
     mass: number; // kg
     velocity: Readonly<Vec3Like>; // m/s
-    acceleration: Readonly<Vec3Like>; // m/s²
+    gravityScale: number; // multiple of the world's gravity; negative rises
     damping: number; // fraction of velocity kept per second
     radius: number; // m, enlarged so shots are visible from the camera
     color: number;
@@ -46,7 +46,7 @@ const PRESETS: readonly Preset[] = [
         label: "Pistol",
         mass: 2,
         velocity: { x: 0, y: 0, z: 35 },
-        acceleration: { x: 0, y: -1, z: 0 },
+        gravityScale: 0.1,
         damping: 0.99,
         radius: 0.3,
         color: 0xb0b8c4,
@@ -56,7 +56,7 @@ const PRESETS: readonly Preset[] = [
         label: "Artillery",
         mass: 200,
         velocity: { x: 0, y: 30, z: 40 },
-        acceleration: { x: 0, y: -20, z: 0 },
+        gravityScale: 2,
         damping: 0.99,
         radius: 0.6,
         color: 0x46a758,
@@ -66,7 +66,7 @@ const PRESETS: readonly Preset[] = [
         label: "Fireball",
         mass: 1,
         velocity: { x: 0, y: 0, z: 10 },
-        acceleration: { x: 0, y: 0.6, z: 0 },
+        gravityScale: -0.06,
         damping: 0.9,
         radius: 0.8,
         color: 0xe8833a,
@@ -76,7 +76,7 @@ const PRESETS: readonly Preset[] = [
         label: "Laser",
         mass: 0.1,
         velocity: { x: 0, y: 0, z: 100 },
-        acceleration: { x: 0, y: 0, z: 0 },
+        gravityScale: 0,
         damping: 0.99,
         radius: 0.2,
         color: 0xff6b6f,
@@ -106,10 +106,7 @@ const _point = new Vec3();
 class Shot {
     readonly particle = new Particle();
     readonly previous = new Vec3();
-    readonly mesh = new Mesh(
-        new SphereGeometry(1, 16, 12),
-        new MeshStandardMaterial(),
-    );
+    readonly mesh = new Mesh(new SphereGeometry(1, 16, 12), new MeshStandardMaterial());
     readonly arrow = new VectorArrow(MUTED);
     readonly material = new LineBasicMaterial();
     readonly trail = new Polyline(TRAIL_POINTS, this.material);
@@ -211,20 +208,20 @@ class BallisticsDemo implements Demo {
 
     /** Passes the input state back to the panel (its inputs are controlled). */
     #pushInputs(): void {
-        const { id, mass, velocity, acceleration } = this.#preset;
+        const { id, mass, velocity, gravityScale } = this.#preset;
         this.panel.preset = id;
         this.panel.damping = this.#damping;
         this.panel.autoFire = this.#autoFire;
         this.panel.spec = {
             mass,
             speed: Math.hypot(velocity.x, velocity.y, velocity.z),
-            acceleration: Math.hypot(acceleration.x, acceleration.y, acceleration.z),
+            acceleration: Math.abs(gravityScale) * this.#world.gravity.magnitude(),
         };
     }
 
     /** Traces the current preset with no damping, ending where a real shot would. */
     #drawIdealPath(): void {
-        const { velocity: v, acceleration: a } = this.#preset;
+        const { velocity: v, gravityScale } = this.#preset;
         const dt = LIFETIME / (IDEAL_POINTS - 1);
         let count = 0;
         for (let i = 0; i < IDEAL_POINTS; i++) {
@@ -232,7 +229,7 @@ class BallisticsDemo implements Demo {
             _point
                 .copy(MUZZLE)
                 .addScaled(v, t)
-                .addScaled(a, 0.5 * t * t);
+                .addScaled(this.#world.gravity, 0.5 * gravityScale * t * t);
             if (hasEnded(_point, t)) break;
             this.#ideal.setPoint(count++, _point);
         }
@@ -246,13 +243,13 @@ class BallisticsDemo implements Demo {
         this.#nextShot = (this.#nextShot + 1) % MAX_SHOTS;
         if (shot.active) this.#removeFromWorld(shot);
 
-        const { mass, velocity, acceleration, radius, color } = this.#preset;
+        const { mass, velocity, gravityScale, radius, color } = this.#preset;
         const p = shot.particle;
         p.setMass(mass);
         p.damping = this.#damping;
         p.position.copy(MUZZLE);
         p.velocity.copy(velocity);
-        p.acceleration.copy(acceleration);
+        p.gravityScale = gravityScale;
         p.clearAccumulator();
         this.#world.particles.push(p);
 
@@ -311,8 +308,7 @@ class BallisticsDemo implements Demo {
             this.#fireTimer = AUTO_FIRE_INTERVAL;
         }
 
-        for (const shot of this.#shots)
-            if (shot.active) shot.previous.copy(shot.particle.position);
+        for (const shot of this.#shots) if (shot.active) shot.previous.copy(shot.particle.position);
 
         this.#world.step(dt);
 
@@ -359,7 +355,7 @@ export const ballisticsDemo: DemoInfo = {
     title: "Ballistics",
     phase: 2,
     summary:
-        "Four projectiles, each a particle with its own mass, velocity, acceleration and " +
+        "Four projectiles, each a particle with its own mass, velocity, gravity scale and " +
         "damping. The dashed line is the same shot with no damping. Range lines are 10 m apart.",
     create: () => new BallisticsDemo(),
 };

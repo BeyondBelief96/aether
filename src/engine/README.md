@@ -7,8 +7,7 @@ The simulation clock and the particle system. Pure TypeScript, with no `three` i
 | `FixedStepLoop` | Fixed-timestep clock with an accumulator, pause, single-step and time scale |
 | `Particle` | Point mass integrated with semi-implicit Euler |
 | `ParticleWorld` | Collection of particles stepped together |
-| `explicitEuler`, `semiImplicitEuler`, `velocityVerlet`, `rk4` | Interchangeable integrators for a one-dimensional state |
-| `OscillatorState`, `AccelFn`, `Integrator`, `FrameResult` | Supporting types |
+| `FrameResult` | Supporting type |
 
 All quantities are SI: meters, seconds, kilograms, newtons.
 
@@ -22,9 +21,8 @@ ball.setMass(2);
 ball.damping = 0.99;
 ball.position.set(0, 10, 0);
 ball.velocity.set(3, 4, 0);
-ball.acceleration.set(0, -9.81, 0);
 
-const world = new ParticleWorld();
+const world = new ParticleWorld(); // gravity defaults to (0, -9.81, 0)
 world.particles.push(ball);
 
 const loop = new FixedStepLoop(60);
@@ -64,38 +62,12 @@ drawn.copy(previous).lerp(ball.position, alpha);
 
 ### The integration step
 
-`Particle.integrate(dt)` does the following, in order:
+`ParticleWorld.step` runs the force generators and adds each movable particle's gravity, `gravity · gravityScale · mass`, as a force. `Particle.integrate(dt)` then does the following, in order:
 
-1. `v += (acceleration + forceAccum · inverseMass) · dt`
+1. `v += forceAccum · inverseMass · dt`
 2. `v *= damping^dt`
 3. `x += v · dt`
 4. Clears `forceAccum`.
-
-## Choosing an integrator
-
-`Particle` always uses semi-implicit Euler. The standalone integrators work on a one-dimensional `OscillatorState`, and a function can evaluate its acceleration as often as it needs to:
-
-```ts
-import { rk4, type AccelFn } from 'aether-physics';
-
-const k = 40; // N/m
-const m = 1; // kg
-const spring: AccelFn = (x) => (-k / m) * x;
-
-const state = { x: 1, v: 0 };
-for (let i = 0; i < 60; i++) rk4(state, spring, 1 / 60);
-```
-
-`state` is updated in place, and no integrator allocates.
-
-| Integrator | Order | `accel` calls per step | Undamped spring | Stable while |
-|---|---|---|---|---|
-| `explicitEuler` | 1 | 1 | Energy grows | Never |
-| `semiImplicitEuler` | 1 | 1 | Energy stays in a bounded band | `ω·dt < 2` |
-| `velocityVerlet` | 2 | 2 | Energy stays in a tighter band | `ω·dt < 2` |
-| `rk4` | 4 | 4 | Energy slowly decays | `ω·dt < 2√2` |
-
-Here `ω = √(k/m)` is the spring's angular frequency. The test suite verifies each order and limit.
 
 ## API decisions
 
@@ -107,15 +79,17 @@ Here `ω = √(k/m)` is the spring's angular frequency. The test suite verifies 
 
 ### Immovable particles ignore their velocity
 
-A particle with `inverseMass = 0` skips the whole update, including its own `velocity` and `acceleration`. Its accumulator is still cleared, so forces don't build up and take effect if it's later given a finite mass.
+A particle with `inverseMass = 0` skips the whole update, including its own `velocity` and gravity. Its accumulator is still cleared, so forces don't build up and take effect if it's later given a finite mass.
 
-### Gravity is an acceleration
+### Gravity belongs to the world
 
-`acceleration` isn't divided by mass, so a light particle and a heavy one fall at the same rate without scaling a force by each particle's mass.
+`ParticleWorld.gravity` is one acceleration shared by every particle, and each particle scales it by `gravityScale`: `0` ignores gravity and a negative value rises. The world adds gravity as a force proportional to mass, so a light particle and a heavy one fall at the same rate, and changing gravity means changing one vector rather than every particle. `Particle` itself knows nothing about gravity: a particle integrated outside a world gets none.
+
+Gravity that varies by particle or position, such as a point attractor, belongs in a force generator instead.
 
 ### Damping is per second
 
-`damping` is the fraction of velocity kept after one second, applied as `damping^dt`, so the decay is the same at any step size. `1` disables it and `0` stops the particle within a step. It applies to every source of velocity, so it also limits the speed reached under constant acceleration.
+`damping` is the fraction of velocity kept after one second, applied as `damping^dt`, so the decay is the same at any step size. `1` disables it and `0` stops the particle within a step. It applies to every source of velocity, so it also limits the speed reached under gravity.
 
 The field isn't validated. Values outside `[0, 1]` add energy or produce `NaN`.
 
@@ -123,16 +97,12 @@ The field isn't validated. Values outside `[0, 1]` add energy or produce `NaN`.
 
 `Particle.integrate` throws a `RangeError` unless `dt > 0`. A negative `dt` would make damping add energy, and a zero `dt` would silently consume queued forces. `ParticleWorld.step` inherits this through each particle, so an empty world accepts any `dt`.
 
-### Verlet with velocity-dependent acceleration
+### Particles use one integrator
 
-The standard form of velocity Verlet evaluates the new acceleration from position alone. `velocityVerlet` also passes `accel` an Euler estimate of the new velocity, which keeps the method second order on damped systems and gives the same result when `accel` ignores velocity.
-
-### Integrators are separate from `Particle`
-
-Verlet and RK4 evaluate forces more than once per step, which a force accumulator can't do: a force is added once and consumed once. Particles therefore stay on semi-implicit Euler, and the other integrators are pure functions over a state and an acceleration function.
+Verlet and RK4 evaluate forces more than once per step, which a force accumulator can't do: a force is added once and consumed once. Particles therefore stay on semi-implicit Euler.
 
 ## Testing
 
-Tests live in `tests/`. The integrator tests measure each method's order of accuracy by halving `dt`, run undamped springs for 10,000 steps, and find each stability limit, so the claims in the table above are checked and not just stated.
+Tests live in `tests/`.
 
 See [PLAN.md, Phase 2](../../docs/PLAN.md#phase-2-particles-and-integration).

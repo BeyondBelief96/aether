@@ -5,7 +5,7 @@ A 3D rigid-body physics engine written from scratch in TypeScript, plus a browse
 1. **Learn how physics engines work** by writing the math, integrators, collision detection and solvers by hand.
 2. **Learn modern web UI** (TypeScript, Lit web components, CSS layout, Canvas and WebGL, Web Workers) by building the playground around the engine.
 
-Each phase ends with something you can **see** (a demo) and something you can **trust** (tests). Every phase lists the classes to write, how to approach them, and what to read. The full reading list is in [RESOURCES.md](./RESOURCES.md). How to build a demo (templates, using the library from Three.js, per-demo controls and UI style) is in [DEMOS.md](./DEMOS.md).
+Each phase ends with something you can **see** (a demo) and something you can **trust** (tests). Every phase lists what to build in order, how to approach it, and what to read. The full reading list is in [RESOURCES.md](./RESOURCES.md). How to build a demo (templates, using the library from Three.js, per-demo controls and UI style) is in [DEMOS.md](./DEMOS.md).
 
 The class sketches below are starting points, not specifications. Signatures will change as you learn; record the decisions you make in the module READMEs and your phase notes.
 
@@ -292,18 +292,18 @@ More: [RESOURCES.md, Phase 1](./RESOURCES.md#phase-1-math-library)
 ### Build
 
 - [x] `src/engine/particle.ts`: `Particle`
-- [x] `src/engine/integrators.ts`: four integrators behind one function type, for the shoot-out demo
+- [x] `src/playground/demos/helpers/integrators.ts`: four integrators behind one function type, for the shoot-out demo only, so they are not part of the package
 - [x] `src/engine/particle-world.ts`: `ParticleWorld`
 - [x] Export from `src/engine/index.ts` and `src/index.ts`
 - [x] Record the API decisions in `src/engine/README.md`
 
-Where the build goes beyond the sketch below: `setMass` and `integrate` throw a `RangeError` on invalid input, a particle with `inverseMass = 0` also ignores its own velocity, and `velocityVerlet` passes `accel` an estimate of the new velocity so that it stays second order on damped systems.
+Where the build goes beyond the sketch below: gravity moved from a per-particle `acceleration` to `ParticleWorld.gravity`, which `step` adds to each movable particle as the force `gravity · gravityScale · mass`, so `Particle` knows nothing about gravity. `setMass` and `integrate` throw a `RangeError` on invalid input, a particle with `inverseMass = 0` also ignores its own velocity, and `velocityVerlet` passes `accel` an estimate of the new velocity so that it stays second order on damped systems.
 
 ```ts
 class Particle {
   readonly position = new Vec3()
   readonly velocity = new Vec3()
-  readonly acceleration = new Vec3()      // constant acceleration, e.g. gravity
+  gravityScale = 1                        // multiple of the world's gravity
   readonly forceAccum = new Vec3()
   damping = 0.99                          // fraction of velocity kept per second
   inverseMass = 1
@@ -322,6 +322,7 @@ type Integrator = (state: OscillatorState, accel: AccelFn, dt: number) => void
 
 class ParticleWorld {
   readonly particles: Particle[] = []
+  readonly gravity = new Vec3(0, -9.81, 0)
   step(dt: number): void
 }
 ```
@@ -329,7 +330,7 @@ class ParticleWorld {
 ### Guidance
 
 - **Store inverse mass.** Infinite mass becomes `0`, so you never divide by zero, and static objects fall out naturally: every `Δv = impulse · invMass` is zero.
-- **`Particle.integrate` uses semi-implicit Euler:** `a = acceleration + force · invMass`, then `v += a·dt`, then `v *= damping^dt`, then `x += v·dt`, then clear the accumulator. Updating velocity *before* position is the whole difference from explicit Euler.
+- **`Particle.integrate` uses semi-implicit Euler:** `a = force · invMass`, where the world has already added gravity as a force, then `v += a·dt`, then `v *= damping^dt`, then `x += v·dt`, then clear the accumulator. Updating velocity *before* position is the whole difference from explicit Euler.
 - **Frame-rate-independent damping.** `damping^dt` gives the same decay at 30 Hz and 120 Hz. A plain `v *= 0.99` per step does not. Box3D instead uses `v *= 1 / (1 + dt·c)`, with a damping rate `c` in 1/s: the Padé approximation of `e^(−c·dt)`, cheaper than `pow` and stable at any `dt`. Try both in the integrator shoot-out.
 - **Keep integrators separate from `Particle`.** RK4 and Verlet need to evaluate forces several times per step. That doesn't fit a force accumulator, so build them as pure functions over a 1D oscillator state for the demo. `Particle` stays on semi-implicit Euler.
 - **The four update rules** (with `a(x, v)` the acceleration function):
@@ -392,42 +393,252 @@ More: [RESOURCES.md, Phase 2](./RESOURCES.md#phase-2-particles-and-integration)
 
 ### Build
 
-- [ ] `src/forces/particle-force-generator.ts`: `ParticleForceGenerator` interface and `ParticleForceRegistry`
-- [ ] `src/forces/`: `ParticleGravity`, `ParticleDrag`, `ParticleSpring`, `ParticleAnchoredSpring`, `ParticleBungee`, `ParticleBuoyancy`
-- [ ] `src/constraints/particle-contact.ts`: `ParticleContact` and `ParticleContactResolver`
-- [ ] `src/constraints/particle-links.ts`: `ParticleCable`, `ParticleRod`, `GroundContacts` (all `ParticleContactGenerator`s)
-- [ ] `src/engine/verlet.ts`: a Jakobsen-style position-based system, as a comparison
-- [ ] Wire the registry and contact generators into `ParticleWorld.step`
+Forces come first because they only extend the integrator you already have. Contacts come next, then the structures built from them. Position-based methods come last, so you can compare them with something that already works.
+
+| Step | Adds | Afterward you can |
+|---|---|---|
+| 1 | Force generators, the registry, gravity | Apply forces through `ParticleWorld` |
+| 2 | Drag | Compare the two drag terms |
+| 3 | Springs and bungees | Break a spring on purpose in the stiffness lab |
+| 4 | Buoyancy | Float a particle |
+| 5 | `ParticleContact` | Resolve one contact by hand |
+| 6 | Contact generators, the resolver, the ground | Rest particles on the ground |
+| 7 | Cables and rods | Build the bridge |
+| 8 | Verlet and XPBD | Compare position-based constraints with contacts |
+| 9 | Dragging and tearing | Finish rope and cloth |
+
+**Module dependencies.** `ParticleWorld` imports `forces` and `constraints` at runtime, and they need the `Particle` type from `engine`. Use `import type` there and the barrels never form a runtime cycle. Phases 4–7 follow the same rule with `RigidBody`.
+
+#### Step 1: Force generators and the registry
+
+- [ ] `src/forces/particle-force.ts`: `ParticleForceGenerator` and `ParticleForce`
+- [ ] `src/forces/particle-force-registry.ts`: `ParticleForceRegistry`
+- [ ] `src/forces/particle-gravity.ts`: `ParticleGravity`
+- [ ] `ParticleWorld.step` runs the registry, then integrates
+- [ ] `ParticleWorld.remove` drops a particle and every force acting on it
+
+**Introduces:** two kinds of force. A `ParticleForceGenerator` holds only parameters, so one instance can be shared across many particles. A `ParticleForce` holds its own particles, so a force with two ends, like a spring, is computed once and applies equal and opposite forces. The registry runs both, and removing a particle removes every force whose `particles` include it, so nothing keeps acting on, or holding a reference to, a removed particle.
 
 ```ts
-interface ParticleForceGenerator {
+interface ParticleForceGenerator {          // shared: drag, buoyancy
   updateForce(particle: Particle, dt: number): void
 }
 
+interface ParticleForce {                   // owns its particles: springs
+  apply(dt: number): void
+  readonly particles: readonly Particle[]   // fixed while registered; indexes removal
+}
+
 class ParticleForceRegistry {
-  add(particle: Particle, generator: ParticleForceGenerator): void
-  remove(particle: Particle, generator: ParticleForceGenerator): void
+  add(force: ParticleForce): ParticleForce   // no-op if already registered
+  add(particle: Particle, generator: ParticleForceGenerator): ParticleForce   // returns a handle
+  remove(force: ParticleForce): boolean     // a force, or a handle from add
+  removeParticle(particle: Particle): number
   clear(): void
-  updateForces(dt: number): void
+  updateForces(dt: number): void            // insertion order, so runs repeat exactly
 }
 
+class ParticleGravity implements ParticleForceGenerator {
+  constructor(gravity: Vec3Like)            // force = gravity · mass
+}
+
+class ParticleWorld {
+  readonly particles: Particle[] = []
+  readonly forces = new ParticleForceRegistry()
+  remove(particle: Particle): boolean       // also removes its forces
+  step(dt: number): void
+}
+```
+
+**Working when:** `ParticleGravity` on a particle with `gravityScale = 0` gives the same trajectory as the world's built-in gravity, a particle with `inverseMass = 0` doesn't move, and removing a particle from the world leaves no force in the registry that involves it.
+
+#### Step 2: Drag
+
+- [ ] `src/forces/particle-drag.ts`: `ParticleDrag`
+
+**Introduces:** a force that depends on velocity.
+
+```ts
+class ParticleDrag implements ParticleForceGenerator {
+  constructor(k1: number, k2: number)       // k1·|v| + k2·|v|², opposing v
+}
+```
+
+**Working when:** the force at `|v| = 0` is exactly zero, not `NaN`, and a falling particle reaches the terminal speed you calculate by hand.
+
+#### Step 3: Springs and the stiffness lab
+
+- [ ] `src/forces/particle-spring.ts`: `ParticleSpring`, `ParticleAnchoredSpring`, `ParticleBungee`
+- [ ] Parameter schema in `src/playground/demos/types.ts`, and a generic panel that renders it
+- [ ] Demo: *Stiffness lab*
+
+**Introduces:** Hooke's law with damping, a `ParticleForce` that holds both ends and applies `+F` and `−F` from one calculation, and the `ω·dt < 2` stability limit.
+
+```ts
+class ParticleSpring implements ParticleForce {
+  constructor(a: Particle, b: Particle, stiffness: number, restLength: number, damping?: number)
+}
+
+class ParticleAnchoredSpring implements ParticleForce {
+  readonly anchor: Vec3                     // mutable: Step 9 drags with it
+  constructor(particle: Particle, anchor: Vec3Like, stiffness: number, restLength: number, damping?: number)
+}
+
+class ParticleBungee implements ParticleForce {
+  constructor(a: Particle, b: Particle, stiffness: number, restLength: number)   // pulls only
+}
+
+// Demo side
+type DemoParam =
+  | { kind: 'range'; key: string; label: string; min: number; max: number; step: number; value: number }
+  | { kind: 'toggle'; key: string; label: string; value: boolean }
+
+interface Demo {
+  // ...existing members
+  readonly params?: readonly DemoParam[]
+  setParam?(key: string, value: number | boolean): void
+}
+```
+
+**Working when:** a spring at rest length applies no force, the two ends of a stretched spring get equal and opposite forces, and the lab explodes at the stiffness you predicted from `ω·dt = 2`.
+
+#### Step 4: Buoyancy
+
+- [ ] `src/forces/particle-buoyancy.ts`: `ParticleBuoyancy`
+
+**Introduces:** a force that depends on position, with three regimes: out of the water, partly submerged and fully submerged.
+
+```ts
+class ParticleBuoyancy implements ParticleForceGenerator {
+  constructor(options: {
+    maxDepth: number; volume: number; surfaceHeight: number
+    density?: number; gravity?: number
+  })
+}
+```
+
+**Working when:** the force is zero above the surface, `ρ · volume · g` at full submersion, and linear in between.
+
+#### Step 5: A single contact
+
+- [ ] `src/constraints/particle-contact.ts`: `ParticleContact`, velocity resolution first, then position
+- [ ] `Particle.lastAcceleration`: the acceleration `integrate` actually applied, before it clears the accumulator
+- [ ] The resting-contact correction inside `ParticleContact`
+
+**Introduces:** separating velocity, restitution, position correction split by inverse mass, and the resting-contact correction. `Particle` needs the new field because `forceAccum` is already clear by the time contacts run.
+
+```ts
 class ParticleContact {
-  particles: [Particle, Particle | null]   // null: contact with immovable scenery
-  restitution: number
-  readonly normal: Vec3                    // from particles[1] toward particles[0]
-  penetration: number
-  resolve(dt: number): void
-}
+  particles!: [Particle, Particle | null]   // set by the generator. null: immovable scenery
+  restitution = 0
+  readonly normal = new Vec3()              // from particles[1] toward particles[0]
+  penetration = 0
 
+  separatingVelocity(): number
+  resolve(dt: number): void                 // velocity, then position
+}
+```
+
+**Working when:** two equal masses with `e = 1` swap velocities, a heavy and a light particle separate in proportion to inverse mass, `particles[1] === null` works, and two immovable particles do nothing.
+
+#### Step 6: Generators, the resolver and the ground
+
+- [ ] `src/constraints/particle-contact-resolver.ts`: `ParticleContactGenerator` and `ParticleContactResolver`
+- [ ] `src/constraints/ground-contacts.ts`: `GroundContacts`
+- [ ] `ParticleWorld.step` becomes forces → integrate → generate → resolve, over a preallocated contact array
+
+**Introduces:** the split between finding contacts and resolving them, and iteration, since resolving one contact disturbs its neighbors.
+
+```ts
 interface ParticleContactGenerator {
-  addContacts(out: ParticleContact[], limit: number): number   // returns the number written
+  // Fills out[start...] and returns how many it wrote. out.length is the limit.
+  addContacts(out: ParticleContact[], start: number): number
 }
 
 class ParticleContactResolver {
   constructor(iterations: number)
   resolveContacts(contacts: ParticleContact[], count: number, dt: number): void
 }
+
+class GroundContacts implements ParticleContactGenerator {
+  constructor(particles: Particle[], height?: number, restitution?: number)
+}
+
+class ParticleWorld {
+  // ...Step 1 members
+  readonly contactGenerators: ParticleContactGenerator[] = []
+  constructor(options?: { maxContacts?: number; resolverIterations?: number })
+}
 ```
+
+**Working when:** a particle on `GroundContacts` keeps near-zero velocity for 1,000 steps, and running out of `maxContacts` drops contacts without crashing. Pick contacts with a negative separating velocity *or* remaining penetration, or a slow overlap never gets pushed out.
+
+#### Step 7: Cables, rods and the bridge
+
+- [ ] `src/constraints/particle-links.ts`: `ParticleCable`, `ParticleRod`
+- [ ] Demo: *Bridge*
+
+**Introduces:** hard constraints written as contact generators, so structures need no new solver.
+
+```ts
+class ParticleCable implements ParticleContactGenerator {
+  constructor(a: Particle, b: Particle, maxLength: number, restitution?: number)
+}
+
+class ParticleRod implements ParticleContactGenerator {
+  constructor(a: Particle, b: Particle, length: number)
+}
+```
+
+**Working when:** a cable does nothing while slack, a rod keeps its length within tolerance under gravity, and the bridge sags and settles under a moving load.
+
+#### Step 8: Verlet and XPBD
+
+- [ ] `src/engine/verlet.ts`: `VerletSystem`, a Jakobsen-style position-based system
+- [ ] `compliance` on each stick, for XPBD
+
+**Introduces:** velocity held implicitly in two positions, constraints that move positions directly, and compliance as a stiffness that doesn't depend on iteration count. This is a separate system, not a mode of `Particle`.
+
+```ts
+class VerletPoint {
+  readonly position = new Vec3()
+  readonly previous = new Vec3()
+  inverseMass = 1
+}
+
+interface VerletStick {
+  a: VerletPoint; b: VerletPoint
+  restLength: number
+  compliance: number                        // m/N. 0 is rigid
+  lambda: number                            // reset at the start of each step
+}
+
+class VerletSystem {
+  readonly points: VerletPoint[] = []
+  readonly sticks: VerletStick[] = []
+  readonly gravity = new Vec3()
+  iterations = 8
+  step(dt: number): void                    // integrate, then iterate the sticks
+}
+```
+
+**Working when:** a stick with zero compliance holds its length under gravity, an unconstrained point follows the same arc as a `Particle`, and with converged iterations a compliant stick's stretch barely changes between 20 and 40 iterations.
+
+#### Step 9: Dragging, rope and cloth
+
+- [ ] Pointer dragging: cast a ray onto the plane through the point facing the camera
+- [ ] Holding a `Particle`: pull it with `ParticleAnchoredSpring`
+- [ ] Holding a `VerletPoint`: set `inverseMass = 0` while held and move it toward the pointer each step, since a `VerletSystem` has no force accumulator
+- [ ] Demo: *Rope and cloth*, with tearing when a stick's strain is too high
+
+**Introduces:** moving something through the simulation rather than teleporting it, in both the force-based and position-based forms, and removing a constraint at runtime.
+
+**Working when:** you can drag the cloth at 60 Hz without it exploding, and explain which of the three methods from this phase made that possible.
+
+#### Finishing up
+
+- [ ] Export from the `forces`, `constraints` and `engine` barrels and `src/index.ts`
+- [ ] Record the API decisions in each module's README, and replace the stub text
 
 ### Guidance
 
@@ -503,65 +714,245 @@ More: [RESOURCES.md, Phase 3](./RESOURCES.md#phase-3-forces-springs-and-mass-agg
 
 ### Build
 
-- [ ] `src/engine/rigid-body.ts`: `RigidBody`
-- [ ] `src/engine/inertia.ts`: inertia tensors for primitives; Mirtich's algorithm for convex hulls
-- [ ] `src/forces/body-force-generator.ts`: `BodyForceGenerator` and `BodyForceRegistry`
-- [ ] `src/forces/`: `BodyGravity`, `BodySpring` (between body-space points), `Aero`, `AeroControl`
-- [ ] `src/engine/world.ts`: `World`
-- [ ] Gyroscopic term in angular integration
+Build the body's state first, then the forces that act on it, then integration, and only then a world to run it in. Keep the gyroscopic term until after the first demo, so you can see what's missing without it.
+
+| Step | Adds | Afterward you can |
+|---|---|---|
+| 1 | Inertia tensors for primitives | Compute and test mass properties, with no body yet |
+| 2 | `RigidBody` state and derived data | Place a body and rotate its inertia into world space |
+| 3 | Forces, torques and point queries | Turn off-center forces into torque |
+| 4 | Integration | Move and spin a single body |
+| 5 | Force generators and `World` | Run several bodies with interpolated rendering |
+| 6 | The spinning-bodies demo | See that the tennis-racket flip is missing |
+| 7 | The gyroscopic term | Make the flip appear |
+| 8 | Velocity clamps | Keep extreme spins under control |
+| 9 | Body springs and aero surfaces | Fly the aircraft |
+| 10 | Mirtich's algorithm | Compute inertia for any convex hull |
+
+#### Step 1: Inertia tensors
+
 - [ ] `Mat3x3.setInertiaTensorCoeffs(ixx, iyy, izz, ixy?, ixz?, iyz?)`, deferred from Phase 1. Test first; callers pass positive products of inertia and the method negates the off-diagonals
+- [ ] `src/engine/inertia.ts`: sphere, box, cylinder and capsule
+
+**Introduces:** the inertia tensor as a plain matrix you can test before any body exists. Use half extents, to match Phase 5's `Box`.
+
+```ts
+function sphereInertia(mass: number, radius: number, out: Mat3x3): Mat3x3
+function boxInertia(mass: number, halfExtents: Vec3Like, out: Mat3x3): Mat3x3
+function cylinderInertia(mass: number, radius: number, halfHeight: number, out: Mat3x3): Mat3x3   // along Y
+function capsuleInertia(mass: number, radius: number, halfHeight: number, out: Mat3x3): Mat3x3    // along Y
+```
+
+**Working when:** each result matches its formula, and a dense point sampling of the box and the capsule agrees.
+
+#### Step 2: Body state and derived data
+
+- [ ] `src/engine/rigid-body.ts`: state, mass and inertia setters, `setStatic`, `calculateDerivedData`
+
+**Introduces:** the split between stored state and data derived from it each step, and the world-space inverse inertia `R · I⁻¹ · Rᵀ`.
 
 ```ts
 class RigidBody {
   readonly position = new Vec3()
-  readonly orientation = new Quat()
+  readonly orientation = new Quaternion()        // constructor order is (w, x, y, z)
   readonly velocity = new Vec3()
   readonly angularVelocity = new Vec3()          // world space, rad/s
-  readonly acceleration = new Vec3()             // constant, e.g. gravity
+  gravityScale = 1                               // multiple of the world's gravity
   inverseMass = 1
-  readonly inverseInertiaTensor = new Mat3()     // body space
+  readonly inertiaTensor = new Mat3x3()          // body space
+  readonly inverseInertiaTensor = new Mat3x3()   // body space
   linearDamping = 0.99
   angularDamping = 0.99
 
-  // Derived each step by calculateDerivedData()
-  readonly transform = new Mat4()
-  readonly inverseInertiaTensorWorld = new Mat3()
-  readonly lastFrameAcceleration = new Vec3()    // used by the Phase 6 v1 resolver
-
-  // Kept for render interpolation
-  readonly previousPosition = new Vec3()
-  readonly previousOrientation = new Quat()
+  // Derived by calculateDerivedData()
+  readonly transform = new Mat3x4()
+  readonly inverseInertiaTensorWorld = new Mat3x3()
 
   setMass(mass: number): void
-  setInertiaTensor(inertia: Mat3): void          // stores the inverse
+  setInertiaTensor(inertia: Mat3x3): void        // stores it and its inverse
+  setStatic(): void                              // zero inverse mass and inverse inertia
   calculateDerivedData(): void
-  addForce(force: Vec3Like): void
+}
+```
+
+`Mat3x3.setInverse` returns zero for a singular matrix, which would silently make a body unable to rotate. Have `setInertiaTensor` throw a `RangeError` in that case, and leave immovable bodies to `setStatic`.
+
+**Working when:** `inverseInertiaTensorWorld` equals `inverseInertiaTensor` at the identity orientation, and a 90° rotation swaps the expected diagonal entries of a box.
+
+#### Step 3: Forces, torques and points on the body
+
+- [ ] Accumulators, force and torque methods, and point queries on `RigidBody`
+
+**Introduces:** `τ = r × F`, and `v + ω × r`, the formula almost every contact and joint builds on.
+
+```ts
+class RigidBody {
+  // ...Step 2 members
+  readonly forceAccum = new Vec3()
+  readonly torqueAccum = new Vec3()
+
+  addForce(force: Vec3Like): void                // through the center of mass
   addForceAtPoint(force: Vec3Like, worldPoint: Vec3Like): void
   addForceAtBodyPoint(force: Vec3Like, bodyPoint: Vec3Like): void
   addTorque(torque: Vec3Like): void
   getPointInWorldSpace(bodyPoint: Vec3Like, out: Vec3): Vec3
   getVelocityAtPoint(worldPoint: Vec3Like, out: Vec3): Vec3   // v + ω × r
   clearAccumulators(): void
-  integrate(dt: number): void
 }
+```
 
+**Working when:** a force through the center adds no torque, and a pure couple adds torque with no net force.
+
+#### Step 4: Integration
+
+- [ ] `RigidBody.integrate`, semi-implicit, without a gyroscopic term
+- [ ] `previousPosition`, `previousOrientation` and `lastFrameAcceleration`
+
+**Introduces:** the angular half of semi-implicit Euler. Keep the velocity and position halves in separate methods, because Phase 6 runs a solver between them.
+
+```ts
+class RigidBody {
+  // ...earlier members
+  readonly previousPosition = new Vec3()         // for render interpolation
+  readonly previousOrientation = new Quaternion()
+  readonly lastFrameAcceleration = new Vec3()    // used by the Phase 6 v1 resolver
+
+  integrateVelocity(dt: number): void            // forces, damping, clear accumulators
+  integratePosition(dt: number): void            // x, q, then derived data
+  integrate(dt: number): void                    // both, in that order
+}
+```
+
+**Working when:** a force through the center adds no angular velocity, a couple adds no linear velocity, a symmetric body spun about a principal axis stays on it, and a static body never moves.
+
+#### Step 5: Force generators and the world
+
+- [ ] `src/forces/body-force-generator.ts`: `BodyForceGenerator` and `BodyForceRegistry`
+- [ ] `src/forces/body-gravity.ts`: `BodyGravity`
+- [ ] `src/engine/world.ts`: `World`
+
+**Introduces:** the rigid-body version of Phase 3's structure, and interpolating both position and orientation by `alpha` in a demo.
+
+```ts
 interface BodyForceGenerator {
   updateForce(body: RigidBody, dt: number): void
+}
+
+class BodyForceRegistry {
+  add(body: RigidBody, generator: BodyForceGenerator): void
+  remove(body: RigidBody, generator: BodyForceGenerator): void
+  clear(): void
+  updateForces(dt: number): void
 }
 
 class World {
   readonly bodies: RigidBody[] = []
   readonly registry = new BodyForceRegistry()
-  step(dt: number): void
+  readonly gravity = new Vec3(0, -9.81, 0)       // added as a force, as in ParticleWorld
+  step(dt: number): void                         // store previous state, forces and gravity, integrate
 }
 ```
+
+**Working when:** dropped bodies match the particle trajectories from Phase 2 with the same damping.
+
+#### Step 6: Spinning bodies, first version
+
+- [ ] Demo: *Spinning bodies*, with editable inertia and a spin about each principal axis
+
+**Introduces:** a way to see the bug in the next step. An asymmetric box spun about its intermediate axis should flip, and at this point it doesn't. Add a live readout of `|L|` and kinetic energy.
+
+**Working when:** you can show the flip failing to appear and `|L|` drifting.
+
+#### Step 7: The gyroscopic term
+
+- [ ] Option 1: integrate angular momentum
+- [ ] Option 2: one implicit Newton step in body space
+- [ ] A selectable mode, so the demo can compare all three
+
+**Introduces:** `ω × (I·ω)`, and the trade between an explicit method that gains energy and an implicit one that stays stable. For option 1, derive `L = I_world · ω` at the start of `integrateVelocity`, so setting `angularVelocity` directly stays safe, and recompute `ω` from `L` once the orientation has moved.
+
+```ts
+type GyroscopicMode = 'none' | 'momentum' | 'implicit'
+
+class RigidBody {
+  // ...earlier members
+  gyroscopicMode: GyroscopicMode = 'implicit'
+}
+```
+
+**Working when:** the flip appears on its own, and `|L|` stays within a few percent over 10 s with `'momentum'` and tighter with `'implicit'`.
+
+#### Step 8: Velocity clamps
+
+- [ ] `World` settings for maximum linear speed and maximum rotation per step
+
+**Introduces:** limits that keep a body from rotating past a contact between steps, ready for Phase 6.
+
+```ts
+interface WorldSettings {
+  maxLinearSpeed: number
+  maxRotationPerStep: number                     // radians, default 0.25π
+}
+
+class World {
+  // ...earlier members
+  constructor(settings?: Partial<WorldSettings>)
+}
+```
+
+**Working when:** a body given an absurd angular velocity rotates no more than the limit per step, and normal motion is unchanged.
+
+#### Step 9: Body springs, aero surfaces and the flight sim
+
+- [ ] `src/forces/body-spring.ts`: `BodySpring`, between body-space points
+- [ ] `src/forces/aero.ts`: `Aero`, `AeroControl`
+- [ ] Demo: *Flight sim*
+
+**Introduces:** generators that apply force at a point, and forces computed in body space and converted back to world space.
+
+```ts
+class BodySpring implements BodyForceGenerator {
+  constructor(localPoint: Vec3Like, other: RigidBody, otherLocalPoint: Vec3Like,
+              stiffness: number, restLength: number)
+}
+
+class Aero implements BodyForceGenerator {
+  constructor(tensor: Mat3x3, localPosition: Vec3Like, wind: Vec3Like)
+}
+
+class AeroControl extends Aero {
+  constructor(base: Mat3x3, min: Mat3x3, max: Mat3x3, localPosition: Vec3Like, wind: Vec3Like)
+  setControl(value: number): void                // -1 to 1, blends between the tensors
+}
+```
+
+**Working when:** a spring between off-center points spins both bodies, and the aircraft pitches, rolls and yaws from the matching controls.
+
+#### Step 10: Mirtich's algorithm
+
+- [ ] Mass properties for a closed mesh in `src/engine/inertia.ts`
+
+**Introduces:** mass properties computed from geometry. The center of mass usually isn't the origin of the mesh, so the result has to return it. Phase 5's `ConvexHull` is the first real user, so this can wait until then.
+
+```ts
+interface MassProperties { mass: number; centerOfMass: Vec3; inertia: Mat3x3 }
+
+function polyhedronMassProperties(vertices: Vec3Like[], faces: number[][], density: number): MassProperties
+```
+
+**Working when:** a box built as a mesh matches `boxInertia`.
+
+#### Finishing up
+
+- [ ] Export from the `engine`, `forces` and `math` barrels and `src/index.ts`
+- [ ] Record the API decisions in the module READMEs
 
 ### Guidance
 
 - **Derived data.** `calculateDerivedData` normalizes the orientation, builds `transform` from position and orientation, and computes `I⁻¹_world = R · I⁻¹_body · Rᵀ`. Call it after every integration and after anyone sets position or orientation directly.
 - **Why the inverse tensor.** Every use is `Δω = I⁻¹ · τ` or `I⁻¹ · (r × impulse)`. Inverting once at setup is cheaper than solving each time, and static bodies get a zero matrix just like `inverseMass = 0`.
 - **Force at a point:** add `F` to the force accumulator and `(p − position) × F` to the torque accumulator. A force through the center of mass produces no torque.
-- **Integration (semi-implicit):** `a = acceleration + F·invM`; `α = I⁻¹_world · τ`; `v += a·dt`, `ω += α·dt`; apply damping (`^dt` as in Phase 2); `x += v·dt`; `q.addScaledAngularVelocity(ω, dt)`; recompute derived data; clear accumulators. Copy `position`/`orientation` into `previous*` first.
+- **Integration (semi-implicit):** `a = F·invM`, with gravity already added as a force by `World`; `α = I⁻¹_world · τ`; `v += a·dt`, `ω += α·dt`; apply damping (`^dt` as in Phase 2); `x += v·dt`; `q.addScaledAngularVelocity(ω, dt)`; recompute derived data; clear accumulators. Copy `position`/`orientation` into `previous*` first.
 - **The gyroscopic term.** The integration above treats ω as constant when there's no torque. That's wrong for an asymmetric body: the true equation is `I·ω̇ = τ − ω × (I·ω)`. Without that term, the tennis-racket flip **never happens** and `|L|` isn't conserved. Two fixes:
   1. Track angular momentum `L` instead: `L += τ·dt`, then `ω = I⁻¹_world · L`. This is simple and correct in direction, but explicit, so energy slowly grows.
   2. Solve the gyroscopic term implicitly with one Newton step in body space, as Bullet and Box3D do (see Catto's *Numerical Methods* below). Box3D solves `I(ω₂ − ω₁) + h·ω₂ × (I·ω₂) = 0` for `ω₂` with one Newton–Raphson iteration. This is stable; do it once option 1 has shown you the effect.
@@ -632,35 +1023,42 @@ More: [RESOURCES.md, Phase 4](./RESOURCES.md#phase-4-rigid-bodies)
 
 ### Build
 
-- [ ] `src/collision/shapes.ts`: `Sphere`, `Box`, `Plane`, `Capsule`, `ConvexHull` as a discriminated union
-- [ ] `src/collision/collider.ts`: `Collider` (shape + body + local offset + material)
+Follow the data through the pipeline backward: first what a contact looks like, then how to produce one for each shape pair, and only then how to avoid testing every pair. Build the inspector early, because every later step uses it to find its bugs.
+
+| Step | Adds | Afterward you can |
+|---|---|---|
+| 1 | Shapes, support functions, `AABB` | Bound any shape |
+| 2 | `Collider` | Attach a shape to a body |
+| 3 | `Contact`, `ContactManifold`, the normal convention | Write down a collision result |
+| 4 | Dispatch table, sphere and plane pairs | Get the first real contacts |
+| 5 | Sphere–box and box–plane | Handle an oriented shape |
+| 6 | Debug draw and the collision inspector | See every later step working |
+| 7 | Box–box SAT, overlap only | Find the separating or least-overlap axis |
+| 8 | Box–box clipping and feature IDs | Get a stable 4-point manifold |
+| 9 | Brute force, the pipeline, sweep-and-prune | Run detection over a whole scene |
+| 10 | GJK | Test overlap and distance for any convex pair |
+| 11 | EPA | Get depth when GJK says they overlap |
+| 12 | Capsule and hull pairs | Cover the rest of the pair table |
+| 13 | Dynamic AABB tree | Scale to large, mostly idle scenes |
+| 14 | Hull SAT and the optional hull builder | Get stable hull manifolds |
+
+#### Step 1: Shapes and bounds
+
+- [ ] `src/collision/shapes.ts`: `Sphere`, `Box`, `Plane`, `Capsule`, `ConvexHull` as a discriminated union, with `support` and `computeAabb`
 - [ ] `src/collision/aabb.ts`: `AABB`
-- [ ] `src/collision/broadphase/`: `Broadphase` interface, `BruteForceBroadphase`, `SweepAndPrune`
-- [ ] `src/collision/narrowphase/`: one file per pair, plus a dispatch table
-- [ ] `src/collision/gjk.ts`, `src/collision/epa.ts`
-- [ ] `src/collision/contact.ts`: `Contact` and `ContactManifold`
-- [ ] Debug draw data: a plain array of lines and points the engine fills and demos render
-- [ ] `src/collision/broadphase/dynamic-tree.ts`: a dynamic AABB tree with fat AABBs, SAH sibling selection and tree rotations (Box3D's broadphase)
-- [ ] *Optional:* `src/collision/hull-builder.ts`: Quickhull from a point cloud, so `ConvexHull` shapes can come from arbitrary meshes (Box3D builds boxes as hulls this way)
+
+**Introduces:** shapes as plain data, the support function, and the bounding box as the cheap approximation that the broadphase runs on.
 
 ```ts
 type Shape =
   | { kind: 'sphere'; radius: number }
   | { kind: 'box'; halfExtents: Vec3 }
   | { kind: 'plane'; normal: Vec3; offset: number }       // static only
-  | { kind: 'capsule'; radius: number; halfHeight: number }
+  | { kind: 'capsule'; radius: number; halfHeight: number }  // along Y
   | { kind: 'hull'; vertices: Vec3[]; faces: number[][] }
 
-// Per kind: support(shape, localDir, out) and computeAabb(shape, transform, out)
-
-class Collider {
-  body: RigidBody | null           // null: static scenery
-  shape: Shape
-  readonly offset: Mat4            // shape frame relative to the body
-  friction = 0.5
-  restitution = 0.2
-  readonly aabb = new AABB()       // world space, updated each step
-}
+function support(shape: Shape, localDir: Vec3Like, out: Vec3): Vec3   // not defined for planes
+function computeAabb(shape: Shape, transform: Mat3x4, out: AABB): AABB
 
 class AABB {
   readonly min = new Vec3(); readonly max = new Vec3()
@@ -669,7 +1067,129 @@ class AABB {
   expand(margin: number): this
   surfaceArea(): number
 }
+```
 
+A plane is infinite, so give it a huge `AABB` and let the broadphase treat it as always a candidate.
+
+**Working when:** a rotated box's `AABB` contains all 8 of its corners and touches them, and each support point is the farthest in a brute-force sample of directions.
+
+#### Step 2: Colliders
+
+- [ ] `src/collision/collider.ts`: `Collider` (shape + body + local offset + material)
+
+**Introduces:** the separation between a body, which has mass and motion, and a shape, which has geometry.
+
+```ts
+class Collider {
+  body: RigidBody | null           // null: static scenery
+  shape: Shape
+  readonly offset: Mat3x4          // shape frame relative to the body
+  friction = 0.5
+  restitution = 0.2
+  readonly transform = new Mat3x4()    // world space, updated each step
+  readonly aabb = new AABB()           // world space, updated each step
+  update(margin?: number): void
+}
+```
+
+**Working when:** a collider with an offset on a rotated body reports the correct world position and `AABB`.
+
+#### Step 3: Contact data
+
+- [ ] `src/collision/contact.ts`: `Contact` and `ContactManifold`
+- [ ] The normal convention and the sign of `penetration`, written in the module README
+
+**Introduces:** the shape of every result that follows. The normal points from B toward A. `penetration` is negative when there's a gap, which is what speculative contacts rely on later.
+
+```ts
+class Contact {
+  readonly point = new Vec3()      // world space
+  readonly normal = new Vec3()     // from B toward A
+  penetration = 0                  // negative: a gap
+  id = 0                           // feature key, stable across frames (used in Phase 6)
+}
+
+class ContactManifold {
+  a: Collider; b: Collider
+  readonly normal = new Vec3()
+  readonly points: Contact[]       // preallocated, up to 4
+  count = 0
+}
+```
+
+**Working when:** this compiles and the convention is written down. There's nothing to run yet.
+
+#### Step 4: Dispatch and the first pairs
+
+- [ ] `src/collision/narrowphase/index.ts`: the dispatch table
+- [ ] `sphere-sphere.ts`, `sphere-plane.ts`
+
+**Introduces:** one function per pair, a lookup by shape kinds, and one place that handles reversed arguments. Each function takes a `margin`, so contacts within that gap are reported with negative `penetration`.
+
+```ts
+type NarrowphaseFn = (a: Collider, b: Collider, margin: number, out: ContactManifold) => boolean
+
+function collide(a: Collider, b: Collider, margin: number, out: ContactManifold): boolean
+// Looks up 'sphere:plane'. For 'plane:sphere' it swaps the arguments and negates the normal.
+```
+
+**Working when:** each pair passes its separated, touching, shallow and deep cases with the normal sign checked, and reversed arguments give the same contact with a negated normal.
+
+#### Step 5: Sphere–box and box–plane
+
+- [ ] `sphere-box.ts`, `box-plane.ts`
+
+**Introduces:** working in a shape's local space, and the first manifold with more than one point.
+
+**Working when:** a sphere whose center is inside the box is pushed out along the axis of least penetration, and a box flat on a plane gives exactly 4 contacts at its corners.
+
+#### Step 6: Debug draw and the collision inspector
+
+- [ ] Debug draw data: a plain array of lines and points the engine fills and demos render
+- [ ] A line-batch helper in `src/playground/demos/helpers/`
+- [ ] Demo: *Collision inspector*, with the pairs built so far
+
+**Introduces:** a way to see contacts, which makes the harder steps ahead much easier to debug. The engine stays free of Three.js, because it writes only numbers.
+
+```ts
+class DebugDraw {
+  readonly lines: number[] = []    // x1, y1, z1, x2, y2, z2, color per line
+  readonly points: number[] = []   // x, y, z, color per point
+  clear(): void
+  line(from: Vec3Like, to: Vec3Like, color: number): void
+  point(at: Vec3Like, color: number): void
+}
+```
+
+**Working when:** you can drag two shapes with gizmos and watch the point, normal and depth update.
+
+#### Step 7: Box–box SAT, overlap only
+
+- [ ] `box-box.ts`: test 15 axes and return the axis of least overlap, with no contact points yet
+
+**Introduces:** the separating axis theorem. Draw the chosen axis in the inspector before writing any clipping.
+
+**Working when:** hand-computed separated, face-overlap and edge-overlap cases pick the expected axis, and a parallel-edge axis doesn't produce `NaN`.
+
+#### Step 8: Box–box contact points
+
+- [ ] Reference and incident faces, Sutherland–Hodgman clipping, and edge–edge closest points
+- [ ] Reduction to at most 4 points
+- [ ] Feature IDs on each contact
+
+**Introduces:** the manifold as a contact area rather than a point, and the IDs that make Phase 6's warm starting possible.
+
+**Working when:** a box flat on a box gives 4 stable points, an edge–edge case gives 1, and IDs stay the same as a box moves slightly.
+
+#### Step 9: The broadphase and the pipeline
+
+- [ ] `src/collision/broadphase/`: `Broadphase` interface, `BruteForceBroadphase`, `SweepAndPrune`
+- [ ] `src/collision/collision-pipeline.ts`: update colliders → find pairs → run the narrowphase
+- [ ] Demo: *Broadphase heatmap*
+
+**Introduces:** the funnel of broadphase then narrowphase, with brute force as the reference to test other broadphases against. `CollisionPipeline` is what `World` calls in Phase 6.
+
+```ts
 interface Broadphase {
   add(collider: Collider): void
   remove(collider: Collider): void
@@ -677,19 +1197,105 @@ interface Broadphase {
   pairs(out: [Collider, Collider][]): number
 }
 
-class Contact {
-  readonly point = new Vec3()      // world space
-  readonly normal = new Vec3()     // from B toward A
-  penetration = 0
-  id = 0                           // feature key, stable across frames (used in Phase 6)
-}
-
-class ContactManifold {
-  a: Collider; b: Collider
-  readonly normal = new Vec3()
-  readonly points: Contact[]       // up to 4
+class CollisionPipeline {
+  readonly manifolds: ContactManifold[] = []
+  manifoldCount = 0
+  margin = 0                       // speculative margin, used from Phase 6 v3
+  constructor(broadphase: Broadphase)
+  add(collider: Collider): void
+  remove(collider: Collider): void
+  update(): void
 }
 ```
+
+**Working when:** `SweepAndPrune` returns a superset of the brute-force pairs on random scenes, and the heatmap shows it winning at 1,000 AABBs.
+
+#### Step 10: GJK
+
+- [ ] `src/collision/gjk.ts`
+
+**Introduces:** the Minkowski difference and simplex iteration. Overlap comes first. Distance and closest points come next, because shapes in a speculative margin need them.
+
+```ts
+interface GjkResult {
+  overlapping: boolean
+  distance: number                 // 0 when overlapping
+  readonly pointA: Vec3; readonly pointB: Vec3   // closest points when separated
+  readonly simplex: Vec3[]         // start of EPA when overlapping
+  simplexCount: number
+}
+
+function gjk(a: Collider, b: Collider, out: GjkResult): boolean
+```
+
+**Working when:** GJK agrees with SAT on overlap for 10,000 random box pairs, and distance matches a hand-computed case.
+
+#### Step 11: EPA
+
+- [ ] `src/collision/epa.ts`
+
+**Introduces:** finding depth by expanding a polytope from GJK's final simplex. Handle a simplex with fewer than 4 points, which is what GJK returns when shapes just touch.
+
+```ts
+interface EpaResult {
+  readonly normal: Vec3            // from B toward A
+  depth: number
+  readonly pointA: Vec3; readonly pointB: Vec3
+}
+
+function epa(a: Collider, b: Collider, simplex: GjkResult, out: EpaResult): boolean
+```
+
+**Working when:** EPA's depth agrees with SAT's on random overlapping boxes within tolerance, and the inspector shows its normal matching SAT's axis.
+
+#### Step 12: The rest of the pair table
+
+- [ ] Capsule pairs and hull pairs, using GJK and EPA
+
+**Introduces:** treating a capsule or a rounded shape as a core plus a radius: run GJK on the core, then subtract the radius. Fill in the table in this order:
+
+| | sphere | box | plane | capsule | hull |
+|---|---|---|---|---|---|
+| **sphere** | Step 4 | Step 5 | Step 4 | Closest point on a segment | GJK |
+| **box** | | Steps 7–8 | Step 5 | GJK + EPA | GJK + EPA |
+| **plane** | | | none: both static | 2 end spheres | Test the vertices |
+| **capsule** | | | | Closest points between segments | GJK + EPA |
+| **hull** | | | | | GJK + EPA, then Step 14 |
+
+**Working when:** every cell passes the same cases as Step 4, and the inspector can select each shape.
+
+#### Step 13: Dynamic AABB tree
+
+- [ ] `src/collision/broadphase/dynamic-tree.ts`: a dynamic AABB tree with fat AABBs, SAH sibling selection and tree rotations (Box3D's broadphase)
+
+**Introduces:** surface-area cost, incremental rebalancing, and fat AABBs that spare a body from re-insertion. It implements `Broadphase`, so nothing else changes.
+
+```ts
+class DynamicTree {
+  createProxy(aabb: AABB, userData: number): number
+  destroyProxy(proxy: number): void
+  moveProxy(proxy: number, aabb: AABB): boolean   // false: still inside its fat AABB
+  query(aabb: AABB, visit: (userData: number) => boolean): void
+}
+
+class DynamicTreeBroadphase implements Broadphase { /* wraps DynamicTree */ }
+```
+
+**Working when:** it returns a superset of the brute-force pairs, and the heatmap compares all three broadphases.
+
+#### Step 14: Hull SAT and the hull builder
+
+- [ ] Hull–hull SAT with Gauss-map pruning, replacing the GJK + EPA entry for hull pairs
+- [ ] *Optional:* `src/collision/hull-builder.ts`: Quickhull from a point cloud, so `ConvexHull` shapes can come from arbitrary meshes (Box3D builds boxes as hulls this way)
+
+**Introduces:** face-based manifolds for general hulls, since EPA alone gives one point per frame. Hulls now need their edges, so compute them when you build the hull.
+
+**Working when:** a box built as a hull gives the same manifold as Step 8.
+
+#### Finishing up
+
+- [ ] Export from the `collision` barrel and `src/index.ts`
+- [ ] Record the API decisions in `src/collision/README.md`
 
 ### Guidance
 
@@ -775,14 +1381,109 @@ More: [RESOURCES.md, Phase 5](./RESOURCES.md#phase-5-collision-detection)
 
 ### Build
 
-- [ ] `src/constraints/contact-resolver.ts`: v1, Millington-style resolver (worst contact first)
-- [ ] `src/constraints/contact-solver.ts`: v2, sequential impulses with friction and warm starting
-- [ ] `src/constraints/soft-step-solver.ts`: v3, Box3D's **Soft Step**: substeps, soft contacts, relax and restitution passes, speculative contacts
-- [ ] `src/constraints/softness.ts`: `makeSoft(hertz, dampingRatio, h)` → `{ biasRate, massScale, impulseScale }`, shared with Phase 7's joints
+There are three solvers here, and each one reuses the work of the last. A `Solver` interface goes in first, because each solver runs the step in a different order and the comparison demo needs all three to keep working.
+
+| Step | Adds | Afterward you can |
+|---|---|---|
+| 1 | `Solver`, settings and `World` running collision | See contacts in a live scene, with nothing resolved yet |
+| 2 | v1: contact basis and velocity resolution | Make a body bounce |
+| 3 | v1: penetration and friction | See where worst-first stops working on a stack |
+| 4 | v2: normal impulses | Stop a body at the ground, with accumulated clamping |
+| 5 | v2: Baumgarte and restitution | Correct drift and bounce properly |
+| 6 | v2: friction | Hold a box on a slope |
+| 7 | Persistent manifolds and warm starting | Stack 10 boxes |
+| 8 | `makeSoft` | Test the softness math on its own |
+| 9 | v3: the substep loop and fixed anchors | Step without re-running collision each substep |
+| 10 | v3: soft bias and relax | Push out penetration without adding bounce |
+| 11 | v3: restitution pass and speculative contacts | Finish Soft Step |
+| 12 | The comparison demo and friction upgrade | Compare all three solvers |
+
+#### Step 1: The solver seam
+
+- [ ] `src/constraints/solver.ts`: the `Solver` interface
 - [ ] `src/constraints/solver-settings.ts`: iterations, Baumgarte factor, slop, restitution threshold, warm starting on/off
-- [ ] Persistent manifolds in `World`: match this step's contacts to last step's by body pair and feature ID
-- [ ] `World.step` runs the full pipeline: forces → broadphase → narrowphase → solve → integrate
+- [ ] `World` owns a `CollisionPipeline` and hands the step to its solver
 - [ ] Solver settings exposed in the UI
+
+**Introduces:** the step order as something each solver chooses. Add a `NullSolver` that integrates and then runs collision, so you can watch contacts appear before anything responds to them.
+
+```ts
+interface Solver {
+  step(world: World, dt: number): void
+}
+
+interface SolverSettings {
+  iterations: number               // about 10
+  baumgarte: number                // about 0.2
+  slop: number                     // about 0.005 m
+  restitutionThreshold: number     // about 1 m/s
+  warmStarting: boolean
+  // Added for v3 in Step 9
+  substeps: number                 // 4
+  contactHertz: number             // 30
+  contactDampingRatio: number      // 10
+  contactSpeed: number             // 3 m/s
+}
+
+class World {
+  // ...Phase 4 members
+  readonly collision: CollisionPipeline
+  solver: Solver
+  addCollider(collider: Collider): void
+  applyForces(dt: number): void    // used by every solver
+}
+```
+
+| Solver | Order |
+|---|---|
+| v1 | forces → integrate → collide → resolve penetration → resolve velocity |
+| v2 | forces → integrate velocities → collide → prepare → warm start → iterate → integrate positions → store impulses |
+| v3 | forces → collide → prepare → per substep (integrate velocities → warm start → solve → integrate positions → relax) → restitution → store impulses |
+
+**Working when:** bodies fall straight through the ground, with their contacts drawn as they pass.
+
+#### Step 2: v1, velocity
+
+- [ ] `src/constraints/contact-basis.ts`: build a stable basis from a normal
+- [ ] `src/constraints/contact-resolver.ts`: v1, Millington-style resolver (worst contact first), velocity pass
+
+**Introduces:** contact coordinates, and velocity change per unit impulse: the single-contact formula in 3D with the angular terms. Derive it in your notes first.
+
+```ts
+function contactBasis(normal: Vec3Like, tangent1: Vec3, tangent2: Vec3): void   // same input, same output
+
+class ContactResolver implements Solver {
+  constructor(settings: SolverSettings)
+  step(world: World, dt: number): void
+}
+
+interface ResolverContact {        // per point, private to v1
+  manifold: ContactManifold; point: Contact
+  readonly basis: Mat3x3           // contact space to world space
+  readonly rA: Vec3; readonly rB: Vec3
+  readonly contactVelocity: Vec3   // in contact space
+  desiredDeltaVelocity: number
+}
+```
+
+**Working when:** a ball with restitution 1 returns to its drop height within a few percent, and an off-center hit spins the body the correct way.
+
+#### Step 3: v1, penetration, friction and resting
+
+- [ ] Nonlinear position projection, split between linear and angular motion
+- [ ] Removing the velocity added by the last step's acceleration, using `lastFrameAcceleration`
+- [ ] Friction impulses
+- [ ] Demo: *Restitution and friction lab*, first version
+
+**Introduces:** resting contact as tiny collisions, and the limits of resolving one contact at a time. Stop polishing as soon as this works.
+
+**Working when:** a box rests on the ground, holds on a shallow ramp and slides on a steep one. A tall stack jittering here is expected, and it's the reason for v2.
+
+#### Step 4: v2, normal impulses
+
+- [ ] `src/constraints/contact-solver.ts`: v2, sequential impulses, `prepare` and `solveVelocities` for the normal only
+
+**Introduces:** the effective mass and clamping the *accumulated* impulse rather than each increment.
 
 ```ts
 interface ContactPoint {           // per point, solver-side
@@ -793,14 +1494,137 @@ interface ContactPoint {           // per point, solver-side
   velocityBias: number
 }
 
-class ContactSolver {
+class ContactSolver implements Solver {
   constructor(settings: SolverSettings)
-  prepare(manifolds: ContactManifold[], dt: number): void
-  warmStart(): void
+  step(world: World, dt: number): void
+  prepare(manifolds: ContactManifold[], count: number, dt: number): void
+  warmStart(): void                // Step 7
   solveVelocities(): void          // one iteration
-  storeImpulses(): void            // copy back for next frame's warm start
+  storeImpulses(): void            // Step 7: copy back for next frame's warm start
 }
 ```
+
+Leave `pipeline.margin` at `0` for v1 and v2, so they only see contacts that are touching.
+
+**Working when:** a dropped box comes to rest, slowly sinking, and accumulated normal impulses are never negative.
+
+#### Step 5: v2, drift and bounce
+
+- [ ] Baumgarte bias in `velocityBias`
+- [ ] Restitution above the threshold
+
+**Introduces:** position error corrected through velocity, its energy cost, and why low-speed restitution has to be off.
+
+**Working when:** a resting box stays at `slop` depth, and a ball with restitution 1 returns to its drop height within a few percent, then settles.
+
+#### Step 6: v2, friction
+
+- [ ] Two tangent rows per point, solved before the normal and clamped to `[−μ·Pₙ, μ·Pₙ]`
+
+**Introduces:** friction as constraints whose limit depends on another constraint, and the friction pyramid.
+
+**Working when:** a box on a slope stays put when `tan θ < μ` and slides when `tan θ > μ`, and tangent impulses never exceed `μ·Pₙ`.
+
+#### Step 7: Persistent manifolds and warm starting
+
+- [ ] Persistent manifolds in `World`: match this step's contacts to last step's by body pair and feature ID
+- [ ] `normalImpulse` and `tangentImpulse` fields on `Contact`, to carry impulses between steps
+- [ ] `warmStart` and `storeImpulses`
+- [ ] Demos: *Stacking* and *Dominoes*
+
+**Introduces:** carrying the answer between frames, the biggest single stacking improvement.
+
+```ts
+class ManifoldCache {
+  // Copies impulses from last step's matching points onto this step's.
+  match(manifolds: ContactManifold[], count: number): void
+}
+```
+
+**Working when:** a 10-box stack drifts less than 1 cm over 10 s at 60 Hz with 10 iterations, and turning warm starting off makes it visibly worse.
+
+#### Step 8: `makeSoft`
+
+- [ ] `src/constraints/softness.ts`: `makeSoft(hertz, dampingRatio, h)` → `{ biasRate, massScale, impulseScale }`, shared with Phase 7's joints
+
+**Introduces:** a constraint described as a damped spring, in hertz and damping ratio.
+
+```ts
+interface Softness { biasRate: number; massScale: number; impulseScale: number }
+
+function makeSoft(hertz: number, dampingRatio: number, h: number, out?: Softness): Softness
+// hertz = 0 is rigid: { biasRate: 0, massScale: 1, impulseScale: 0 }
+```
+
+**Working when:** the `makeSoft` tests below pass. No scene is needed yet.
+
+#### Step 9: v3, the substep loop
+
+- [ ] `src/constraints/soft-step-solver.ts`: v3, Box3D's **Soft Step**: substeps, soft contacts, relax and restitution passes, speculative contacts. This step is the loop, using v2's rigid bias
+- [ ] `deltaPosition` and `deltaRotation` on `RigidBody`, reset at the start of each step
+- [ ] Anchors stored once per step, with separation estimated in each substep
+
+**Introduces:** running collision once and the solver many times, by estimating how each contact's separation has changed.
+
+```ts
+class RigidBody {
+  // ...earlier members
+  readonly deltaPosition = new Vec3()         // accumulated within the step
+  readonly deltaRotation = new Quaternion()
+}
+
+class SoftStepSolver implements Solver {
+  constructor(settings: SolverSettings)
+  step(world: World, dt: number): void
+}
+
+interface SoftContactPoint extends ContactPoint {
+  readonly localAnchorA: Vec3; readonly localAnchorB: Vec3   // fixed for the whole step
+  readonly normal: Vec3
+  baseSeparation: number                                     // s₀, from the narrowphase
+  relativeVelocity: number                                   // before the solve, for restitution
+}
+
+function estimateSeparation(point: SoftContactPoint, bodyA: RigidBody, bodyB: RigidBody | null): number
+```
+
+Refresh derived data in every substep at first. That's the simple, correct version; only change it if profiling asks you to.
+
+**Working when:** after a small motion, `estimateSeparation` matches a fresh narrowphase result within tolerance, and a dropped box stops at the ground.
+
+#### Step 10: v3, soft bias and relax
+
+- [ ] Soft contact bias from `makeSoft`
+- [ ] The relax pass, with no bias on penetrating contacts
+
+**Introduces:** penetration pushed out like a damped spring, then the extra velocity removed so that push-out doesn't become bounce. This replaces Baumgarte and split impulses.
+
+**Working when:** v3 with 4 substeps and 1 iteration keeps the 10-box stack within v2's drift bound, and a deep overlap separates no faster than `contactSpeed`, without launching.
+
+#### Step 11: v3, restitution and speculative contacts
+
+- [ ] A restitution pass after the substeps
+- [ ] `pipeline.margin = 4 × slop`, and the `s > 0` branch of the bias
+
+**Introduces:** restitution as a separate pass, and contacts that begin before bodies touch.
+
+**Working when:** a box released 1 cm above the ground lands without penetrating or bouncing, and a 100 kg box on a 1 kg box doesn't sink through. Record where v2 fails that same test.
+
+#### Step 12: Comparison and upgrades
+
+- [ ] Demo: *Solver comparison*, with substep and iteration sliders
+- [ ] Demos: *Card house* and *Jenga*
+- [ ] *Optional:* one friction constraint per manifold, plus twist and rolling friction
+- [ ] Save and load scenes as JSON
+
+**Introduces:** a measured comparison, using the same scene and settings across all three solvers.
+
+**Working when:** you can point at the scene where each solver fails and explain why.
+
+#### Finishing up
+
+- [ ] Export from the `constraints` and `engine` barrels and `src/index.ts`
+- [ ] Record the API decisions in `src/constraints/README.md`
 
 ### Guidance
 
@@ -834,7 +1658,7 @@ class ContactSolver {
 - A 10-box stack settles and drifts less than 1 cm over 10 s at 60 Hz with 10 iterations and warm starting on.
 - The same stack with warm starting off visibly sinks or jitters (assert drift is larger, as documentation).
 - Accumulated normal impulses are never negative; tangent impulses never exceed `μ·Pₙ`.
-- `makeSoft`: `massScale + impulseScale = 1` for any input; `hertz = 0` gives all zeros (rigid); as `hertz → ∞`, `biasRate → 1/h` and `massScale → 1`.
+- `makeSoft`: `massScale + impulseScale = 1` for any input; `hertz = 0` is rigid (`biasRate = 0`, `massScale = 1`, `impulseScale = 0`); as `hertz → ∞`, `biasRate → 1/h` and `massScale → 1`.
 - v3 with 4 substeps and 1 iteration keeps the 10-box stack within the same drift bound as v2 with 10 iterations.
 - v3, speculative contacts: a box released 1 cm above the ground (inside the speculative margin) lands without penetrating or bouncing.
 - v3, mass ratio: a 100 kg box resting on a 1 kg box doesn't sink through (Box3D's *HighMassRatio* robustness sample). Record where v2 fails the same test.
@@ -901,13 +1725,31 @@ More: [RESOURCES.md, Phase 6](./RESOURCES.md#phase-6-collision-response-and-fric
 
 ### Build
 
+Start by moving contacts behind a general `Constraint` interface. Then add joints from the simplest, one row, to the hardest. Islands and sleeping come after, since they're about scale rather than correctness.
+
+| Step | Adds | Afterward you can |
+|---|---|---|
+| 1 | `Constraint`, with contacts migrated | Solve everything in one list, with Phase 6's results unchanged |
+| 2 | `DistanceJoint` | Swing a pendulum and build Newton's cradle |
+| 3 | `BallSocketJoint` | Hang a chain |
+| 4 | `HingeJoint` axis | Build a door |
+| 5 | Hinge limits and motors | Drive a car |
+| 6 | `FixedJoint` | Weld two bodies |
+| 7 | Soft joints | Give any joint a frequency and damping ratio |
+| 8 | Ragdoll | Combine the joints on one figure |
+| 9 | Islands | Group bodies that affect each other |
+| 10 | Sleeping | Stop simulating bodies at rest |
+| 11 | Stats and determinism | Measure a step and repeat a run exactly |
+| 12 | Box3D extensions | Add more joints, events and sensors |
+
+#### Step 1: The constraint interface
+
 - [ ] `src/constraints/constraint.ts`: a `Constraint` interface that contacts also implement
-- [ ] `src/constraints/joints/`: `DistanceJoint`, `BallSocketJoint`, `HingeJoint` (limits, motor), `FixedJoint`
-- [ ] `Mat3x3.setSkewSymmetric(v)` (`M · w == v × w`) and `Mat3x3.add(m)`, deferred from Phase 1. The ball-socket `K` matrix needs both. Test first
-- [ ] `src/engine/islands.ts`: union-find island builder
-- [ ] Sleeping on `RigidBody` and `World`: `isAwake`, `sleepTime`, `wake()`
-- [ ] `World.stats`: time per phase (broadphase, narrowphase, solve, integrate)
-- [ ] *Box3D extensions:* `SphericalJoint` with cone and twist limits (for the ragdoll), `PrismaticJoint`, `WheelJoint`; breakable joints; contact begin/end/hit events and sensor shapes
+- [ ] `src/constraints/contact-constraint.ts`: one per manifold
+- [ ] v2 and v3 iterate over `Constraint`s
+- [ ] `World.addJoint` and `World.removeJoint`
+
+**Introduces:** the idea that a contact is just a constraint with an inequality clamp. The hook has to fit v3's solve and relax passes, so it takes a `useBias` argument. Leave v1 as it is, for the comparison demo.
 
 ```ts
 interface Constraint {
@@ -915,18 +1757,203 @@ interface Constraint {
   readonly bodyB: RigidBody | null
   prepare(dt: number): void
   warmStart(): void
-  solveVelocity(): void
+  solveVelocity(useBias: boolean): void
   solvePosition?(): boolean        // optional; true when the error is within tolerance
 }
+```
 
+**Working when:** every Phase 6 test passes unchanged. If a stack test moves, the migration changed behavior.
+
+#### Step 2: Distance joint
+
+- [ ] `src/constraints/joints/distance-joint.ts`: `DistanceJoint`
+- [ ] Demo: *Newton's cradle*
+
+**Introduces:** the recipe from `C` to `J` to `K` to `λ`, on its simplest case: one row, with a scalar effective mass.
+
+```ts
+class DistanceJoint implements Constraint {
+  constructor(a: RigidBody, b: RigidBody | null, worldAnchorA: Vec3Like, worldAnchorB: Vec3Like)
+  length: number                   // defaults to the initial distance
+}
+```
+
+Joints turn world anchors into body-local ones at construction, and every later joint does the same.
+
+**Working when:** a pendulum keeps its length within tolerance over 10 s.
+
+#### Step 3: Ball-socket joint
+
+- [ ] `Mat3x3.setSkewSymmetric(v)` (`M · w == v × w`) and `Mat3x3.add(m)`, deferred from Phase 1. The ball-socket `K` matrix needs both. Test first
+- [ ] `src/constraints/joints/ball-socket-joint.ts`: `BallSocketJoint`
+- [ ] Demo: *Chain bridge*
+
+**Introduces:** a three-row block solved together, with a matrix for the effective mass.
+
+```ts
+class BallSocketJoint implements Constraint {
+  constructor(a: RigidBody, b: RigidBody | null, worldPivot: Vec3Like)
+}
+```
+
+**Working when:** a hanging chain keeps all its anchors coincident, and `setSkewSymmetric(v).transformVec3(w)` equals `v × w`.
+
+#### Step 4: Hinge axis
+
+- [ ] `src/constraints/joints/hinge-joint.ts`: `HingeJoint`, ball-socket rows plus two angular rows
+
+**Introduces:** angular constraint rows, and using two perpendicular vectors to hold an axis.
+
+```ts
 class HingeJoint implements Constraint {
   constructor(a: RigidBody, b: RigidBody | null, worldPivot: Vec3Like, worldAxis: Vec3Like)
+  angle(): number                  // relative rotation about the axis
+}
+```
+
+**Working when:** the hinge keeps its axis aligned under off-axis torque, and spins freely about the axis.
+
+#### Step 5: Hinge limits and motors
+
+- [ ] Limits and a motor on `HingeJoint`
+- [ ] Demo: *Car*, with hinge-joint wheels and motors
+
+**Introduces:** a one-sided row, clamped like a contact, and a row with a target speed and a bounded impulse.
+
+```ts
+class HingeJoint implements Constraint {
+  // ...Step 4 members
   enableLimit(lower: number, upper: number): void
   enableMotor(speed: number, maxTorque: number): void
+}
+```
+
+**Working when:** a limited hinge never exceeds its limits, and a motor reaches its target speed unloaded without exceeding `maxTorque`.
+
+#### Step 6: Fixed joint
+
+- [ ] `src/constraints/joints/fixed-joint.ts`: `FixedJoint`
+
+**Introduces:** a rotation error taken from the relative orientation, using the rest orientation captured at construction.
+
+```ts
+class FixedJoint implements Constraint {
+  constructor(a: RigidBody, b: RigidBody | null, worldPivot: Vec3Like)
+}
+```
+
+**Working when:** two welded bodies move as one under gravity and off-center hits.
+
+#### Step 7: Soft joints
+
+- [ ] `frequencyHz` and `dampingRatio` on each joint, using `makeSoft`
+
+**Introduces:** one softness model across contacts and joints. Clamp stiffness to a quarter of the substep rate.
+
+```ts
+interface SoftJoint {
   frequencyHz: number              // 0 for rigid
   dampingRatio: number
 }
 ```
+
+**Working when:** a soft distance joint oscillates at close to its set frequency, and `frequencyHz = 0` matches the rigid result.
+
+#### Step 8: Ragdoll
+
+- [ ] Demo: *Ragdoll*, using ball-socket and hinge joints with limits
+
+**Introduces:** several joint types working together, and high mass ratios between limbs. Cone and twist limits come in Step 12, so expect some unnatural poses here.
+
+**Working when:** the figure falls, lands and settles without exploding.
+
+#### Step 9: Islands
+
+- [ ] `src/engine/islands.ts`: union-find island builder, rebuilt every step
+
+**Introduces:** bodies and constraints as a graph, with static bodies left out of it.
+
+```ts
+class IslandBuilder {
+  build(bodies: RigidBody[], constraints: Constraint[]): void
+  readonly islands: readonly Island[]
+}
+
+interface Island {
+  readonly bodies: RigidBody[]
+  readonly constraints: Constraint[]
+}
+```
+
+**Working when:** two separate stacks form two islands, and a body touching only the ground is its own island.
+
+#### Step 10: Sleeping
+
+- [ ] Sleeping on `RigidBody` and `World`: `isAwake`, `sleepTime`, `wake()`
+- [ ] Demo: *Sleep visualizer*, tinting sleeping bodies and coloring by island
+
+**Introduces:** putting whole islands to sleep, and the events that wake them.
+
+```ts
+class RigidBody {
+  // ...earlier members
+  isAwake = true
+  sleepTime = 0
+  wake(): void
+}
+
+interface WorldSettings {
+  // ...earlier members
+  enableSleep: boolean
+  sleepLinearTolerance: number
+  sleepAngularTolerance: number
+  sleepTimeThreshold: number       // 0.5 s
+}
+```
+
+**Working when:** sleeping bodies don't move, and a sleeping island wakes when an awake body hits it.
+
+#### Step 11: Stats and determinism
+
+- [ ] `World.stats`: time per phase (broadphase, narrowphase, solve, integrate)
+- [ ] A stable order for every list, checked by a determinism test
+
+**Introduces:** measuring the step without allocating, and treating repeatability as something tests can check.
+
+```ts
+interface WorldStats {
+  broadphase: number; narrowphase: number; solve: number; integrate: number   // ms, last step
+  awakeBodies: number; islands: number; contacts: number
+}
+```
+
+**Working when:** running the same scene twice gives bit-identical body states, and 500 boxes settle, sleep and let the frame rate recover.
+
+#### Step 12: Box3D extensions
+
+- [ ] *Box3D extensions:* `SphericalJoint` with cone and twist limits (for the ragdoll), `PrismaticJoint`, `WheelJoint`; breakable joints; contact begin/end/hit events and sensor shapes
+
+**Introduces:** joint-specific limits, plus events gathered during the step and read afterward. Do these in whatever order your demos need them.
+
+```ts
+interface ContactEvents {
+  readonly begin: ContactManifold[]
+  readonly end: ContactManifold[]
+  readonly hit: { manifold: ContactManifold; approachSpeed: number }[]
+}
+
+class World {
+  // ...earlier members
+  readonly contactEvents: ContactEvents    // cleared at the start of each step
+}
+```
+
+**Working when:** a joint breaks at its threshold, a sensor reports overlap without applying force, and no user code runs inside the solver.
+
+#### Finishing up
+
+- [ ] Export from the `constraints` and `engine` barrels and `src/index.ts`
+- [ ] Record the API decisions in the module READMEs
 
 ### Guidance
 
@@ -1071,9 +2098,8 @@ More: [RESOURCES.md, Phase 8](./RESOURCES.md#phase-8-stretch-goals)
 ## Working rhythm for each phase
 
 1. Work through the phase's **Study** section in order. Take notes in `docs/notes/phase-N.md`.
-2. Sketch the classes from the **Build** section; adjust the signatures to your API decisions.
-3. Write tests for the math first.
-4. Implement the engine side in plain TypeScript, with terse TSDoc on public members.
-5. Build the demo and its debug visualization, following the checklist in [DEMOS.md](./DEMOS.md#2-checklist-for-a-new-demo).
-6. Add the phase's UI feature.
-7. Update the notes file, tick the boxes here, and commit.
+2. Work through the **Build** steps in order. For each one, adjust the sketch to your API decisions, write the tests, implement it in plain TypeScript with terse TSDoc on public members, and move on once its **Working when** line holds.
+3. Write tests first for anything in the math library.
+4. When a step adds a demo, build it and its debug visualization, following the checklist in [DEMOS.md](./DEMOS.md#2-checklist-for-a-new-demo).
+5. Add the phase's UI feature.
+6. Update the notes file, tick the boxes here, and commit.

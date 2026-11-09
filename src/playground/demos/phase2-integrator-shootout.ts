@@ -7,8 +7,11 @@ import {
     SphereGeometry,
     type Scene,
 } from "three";
+import { clamp } from "aether-physics";
+import "../ui/panels/shootout-panel";
+import type { DampingMode, EnergyRange } from "../ui/panels/shootout-panel";
+import { SERIES_COLORS } from "./helpers/colors";
 import {
-    clamp,
     explicitEuler,
     rk4,
     semiImplicitEuler,
@@ -16,10 +19,7 @@ import {
     type AccelFn,
     type Integrator,
     type OscillatorState,
-} from "aether-physics";
-import "../ui/panels/shootout-panel";
-import type { DampingMode, EnergyRange } from "../ui/panels/shootout-panel";
-import { SERIES_COLORS } from "./helpers/colors";
+} from "./helpers/integrators";
 import { Polyline } from "./helpers/polyline";
 import { disposeObject } from "./helpers/three";
 import { VectorArrow } from "./helpers/vector-arrow";

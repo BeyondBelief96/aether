@@ -44,7 +44,9 @@
         "typecheck": "tsc",
         "test": "vitest",
         "test:run": "vitest run",
-        "test:smoke": "node scripts/smoke-test.mjs"
+        "test:smoke": "node scripts/smoke-test.mjs",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
     },
     "devEngines": {},
     "devDependencies": {
@@ -52,6 +54,7 @@
         "fast-check": "^4.10.2",
         "lit": "^3.3.3",
         "playwright-core": "^1.58.0",
+        "prettier": "3.9.10",
         "three": "^0.186.1",
         "typescript": "^7.0.2",
         "vite": "^8.3.4",

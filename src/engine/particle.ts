@@ -12,8 +12,8 @@ export class Particle {
     readonly position = new Vec3();
     /** Velocity in meters per second. */
     readonly velocity = new Vec3();
-    /** Constant acceleration in m/s², independent of mass. Typically gravity. */
-    readonly acceleration = new Vec3();
+    /** Multiplier on the world's gravity. `0` ignores gravity; negative values rise. */
+    gravityScale = 1;
     /** Sum of forces in newtons applied since the last `integrate`. */
     readonly forceAccum = new Vec3();
     /** Fraction of velocity kept per second, in [0, 1]. `1` disables damping. */
@@ -33,8 +33,7 @@ export class Particle {
      * @throws RangeError If `mass` is not positive.
      */
     setMass(mass: number): void {
-        if (!(mass > 0))
-            throw new RangeError(`mass must be positive, got ${mass}`);
+        if (!(mass > 0)) throw new RangeError(`mass must be positive, got ${mass}`);
         this.inverseMass = 1 / mass;
     }
 
@@ -71,7 +70,6 @@ export class Particle {
 
         if (this.inverseMass > 0) {
             this.velocity
-                .addScaled(this.acceleration, dt)
                 .addScaled(this.forceAccum, this.inverseMass * dt)
                 .scale(Math.pow(this.damping, dt));
             this.position.addScaled(this.velocity, dt);

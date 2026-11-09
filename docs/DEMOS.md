@@ -951,7 +951,7 @@ Things to try:
 
 - **Lower the damping slider.** The trail pulls away from the dashed line. The fireball shows this best, since its default damping is already 0.9.
 - **Change the physics rate.** Range barely changes between 30 Hz and 240 Hz, because damping is per second, not per step.
-- **Compare the masses.** Artillery is 2,000 times heavier than the laser, but no force acts on these particles, so mass has no effect on their motion. Their constant acceleration is applied directly.
+- **Compare the masses.** Artillery is 2,000 times heavier than the laser, but no force acts on these particles, so mass has no effect on their motion. Gravity is applied as an acceleration, scaled by each preset's `gravityScale`.
 
 ### Integrator shoot-out
 

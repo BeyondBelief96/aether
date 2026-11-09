@@ -69,16 +69,10 @@ describe("Particle forces", () => {
         expect(p.velocity.x).toBeCloseTo(2.5, 12);
     });
 
-    it("applies acceleration independently of mass", () => {
-        const light = undamped();
-        const heavy = undamped();
-        heavy.setMass(1000);
-        for (const p of [light, heavy]) {
-            p.acceleration.set(0, -10, 0);
-            p.integrate(0.5);
-        }
-        expect(light.velocity.y).toBeCloseTo(-5, 12);
-        expect(heavy.velocity.y).toBeCloseTo(-5, 12);
+    it("applies no gravity on its own", () => {
+        const p = undamped();
+        p.integrate(0.5);
+        expect(p.velocity).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
     });
 
     it("clears forces after each step, so a force lasts one step", () => {
@@ -95,7 +89,7 @@ describe("Particle.integrate", () => {
     it("moves the position with the updated velocity", () => {
         const p = undamped();
         p.velocity.set(1, 0, 0);
-        p.acceleration.set(2, 0, 0);
+        p.addForce({ x: 2, y: 0, z: 0 });
         p.integrate(0.5);
         expect(p.velocity.x).toBeCloseTo(2, 12);
         expect(p.position.x).toBeCloseTo(1, 12);
@@ -109,8 +103,10 @@ describe("Particle.integrate", () => {
         const t = steps * dt;
         const p = undamped();
         p.velocity.set(0, v0, 0);
-        p.acceleration.set(0, a, 0);
-        for (let i = 0; i < steps; i++) p.integrate(dt);
+        for (let i = 0; i < steps; i++) {
+            p.addForce({ x: 0, y: a, z: 0 });
+            p.integrate(dt);
+        }
 
         const exact = v0 * t + 0.5 * a * t * t;
         expect(p.position.y - exact).toBeCloseTo(0.5 * a * dt * t, 9);
@@ -125,12 +121,11 @@ describe("Particle.integrate", () => {
 });
 
 describe("immovable particles", () => {
-    it("never move under forces, acceleration or their own velocity", () => {
+    it("never move under forces or their own velocity", () => {
         const p = new Particle();
         p.inverseMass = 0;
         p.position.set(1, 2, 3);
         p.velocity.set(5, 5, 5);
-        p.acceleration.set(0, -10, 0);
         for (let i = 0; i < 100; i++) {
             p.addForce({ x: 1e6, y: 1e6, z: 1e6 });
             p.integrate(1 / 60);
@@ -187,8 +182,7 @@ describe("a particle on a spring", () => {
         for (let i = 0; i < 10_000; i++) {
             p.addForce({ x: -k * p.position.x, y: 0, z: 0 });
             p.integrate(1 / 60);
-            const energy =
-                0.5 * p.velocity.x ** 2 + 0.5 * k * p.position.x ** 2;
+            const energy = 0.5 * p.velocity.x ** 2 + 0.5 * k * p.position.x ** 2;
             expect(Math.abs(energy / initial - 1)).toBeLessThan(0.11);
         }
     });
