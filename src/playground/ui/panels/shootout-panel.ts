@@ -27,9 +27,7 @@ export interface IntegratorRow {
     energyRatio: number;
 }
 
-const RANGES: Readonly<
-    Record<EnergyRange, { min: number; max: number; digits: number }>
-> = {
+const RANGES: Readonly<Record<EnergyRange, { min: number; max: number; digits: number }>> = {
     full: { min: 0, max: 3, digits: 1 },
     zoom: { min: 0.9, max: 1.1, digits: 2 },
     fine: { min: 0.999, max: 1.001, digits: 3 },
@@ -121,9 +119,7 @@ export class ShootoutPanel extends LitElement {
     }
 
     #emit(name: string, detail?: unknown): void {
-        this.dispatchEvent(
-            new CustomEvent(name, { detail, bubbles: true, composed: true }),
-        );
+        this.dispatchEvent(new CustomEvent(name, { detail, bubbles: true, composed: true }));
     }
 
     protected override willUpdate(changed: PropertyValues): void {
@@ -196,12 +192,14 @@ export class ShootoutPanel extends LitElement {
                 <dt>ω·dt</dt>
                 <dd class=${pastLimit ? "warn" : ""}>${omegaDtText}</dd>
             </dl>
-            ${pastLimit
-                ? html`<p class="warn">
-                      Past ω·dt = 2: semi-implicit Euler and Verlet are unstable.
-                      ${this.omegaDt >= 2 * Math.SQRT2 ? "So is RK4." : nothing}
-                  </p>`
-                : nothing}
+            ${
+                pastLimit
+                    ? html`<p class="warn">
+                          Past ω·dt = 2: semi-implicit Euler and Verlet are unstable.
+                          ${this.omegaDt >= 2 * Math.SQRT2 ? "So is RK4." : nothing}
+                      </p>`
+                    : nothing
+            }
 
             <aether-segmented
                 label="Damping"
@@ -210,25 +208,27 @@ export class ShootoutPanel extends LitElement {
                 @value-change=${(e: CustomEvent<DampingMode>) =>
                     this.#emit("damping-mode-change", e.detail)}
             ></aether-segmented>
-            ${this.dampingMode === "none"
-                ? nothing
-                : html`
-                      <aether-slider
-                          label="Damping rate c"
-                          min="0.1"
-                          max="3"
-                          step="0.1"
-                          digits="1"
-                          unit=" 1/s"
-                          .value=${this.dampingRate}
-                          @value-change=${(e: CustomEvent<number>) =>
-                              this.#emit("damping-rate-change", e.detail)}
-                      ></aether-slider>
-                      <dl>
-                          <dt>Velocity kept per second</dt>
-                          <dd>${keptText}</dd>
-                      </dl>
-                  `}
+            ${
+                this.dampingMode === "none"
+                    ? nothing
+                    : html`
+                          <aether-slider
+                              label="Damping rate c"
+                              min="0.1"
+                              max="3"
+                              step="0.1"
+                              digits="1"
+                              unit=" 1/s"
+                              .value=${this.dampingRate}
+                              @value-change=${(e: CustomEvent<number>) =>
+                                  this.#emit("damping-rate-change", e.detail)}
+                          ></aether-slider>
+                          <dl>
+                              <dt>Velocity kept per second</dt>
+                              <dd>${keptText}</dd>
+                          </dl>
+                      `
+            }
 
             <div class="buttons">
                 <button @click=${() => this.#emit("restart")}>Restart</button>

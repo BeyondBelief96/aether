@@ -1,17 +1,17 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  resolve: {
-    // The "aether-physics" alias is defined once, in tsconfig.json.
-    tsconfigPaths: true,
-  },
-  build: {
-    outDir: 'dist-playground', // dist/ is the npm package
-    // Three.js alone is ~550 kB minified; it is one dependency, not a sign of bloat.
-    chunkSizeWarningLimit: 800,
-  },
-  test: {
-    include: ['src/**/*.test.ts'],
-    setupFiles: ['src/math/tests/matchers.ts'],
-  },
+    resolve: {
+        // The "aether-physics" alias is defined once, in tsconfig.json.
+        tsconfigPaths: true,
+    },
+    build: {
+        outDir: "dist-playground", // dist/ is the npm package
+        // Three.js alone is ~550 kB minified; it is one dependency, not a sign of bloat.
+        chunkSizeWarningLimit: 800,
+    },
+    test: {
+        include: ["src/**/*.test.ts"],
+        setupFiles: ["src/math/tests/matchers.ts"],
+    },
 });

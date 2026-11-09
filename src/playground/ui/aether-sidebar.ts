@@ -95,9 +95,7 @@ export class AetherSidebar extends LitElement {
     }
 
     #emit(name: string, detail?: unknown): void {
-        this.dispatchEvent(
-            new CustomEvent(name, { detail, bubbles: true, composed: true }),
-        );
+        this.dispatchEvent(new CustomEvent(name, { detail, bubbles: true, composed: true }));
     }
 
     override render() {
@@ -118,17 +116,11 @@ export class AetherSidebar extends LitElement {
                 <select
                     aria-label="Demo"
                     @change=${(e: Event) =>
-                        this.#emit(
-                            "demo-change",
-                            (e.target as HTMLSelectElement).value,
-                        )}
+                        this.#emit("demo-change", (e.target as HTMLSelectElement).value)}
                 >
                     ${this.demos.map(
                         (d) =>
-                            html`<option
-                                value=${d.id}
-                                ?selected=${d.id === this.demoId}
-                            >
+                            html`<option value=${d.id} ?selected=${d.id === this.demoId}>
                                 Phase ${d.phase} · ${d.title}
                             </option>`,
                     )}
@@ -136,26 +128,22 @@ export class AetherSidebar extends LitElement {
                 <p class="summary">${current?.summary}</p>
             </section>
 
-            ${this.panel
-                ? html` <section>
-                      <h2>Controls</h2>
-                      ${this.panel}
-                  </section>`
-                : nothing}
+            ${
+                this.panel
+                    ? html` <section>
+                          <h2>Controls</h2>
+                          ${this.panel}
+                      </section>`
+                    : nothing
+            }
 
             <section>
                 <h2>Simulation</h2>
                 <div class="buttons">
-                    <button
-                        class="primary"
-                        @click=${() => this.#emit("toggle-pause")}
-                    >
+                    <button class="primary" @click=${() => this.#emit("toggle-pause")}>
                         ${this.paused ? "Play" : "Pause"}
                     </button>
-                    <button
-                        ?disabled=${!this.paused}
-                        @click=${() => this.#emit("step-once")}
-                    >
+                    <button ?disabled=${!this.paused} @click=${() => this.#emit("step-once")}>
                         Step
                     </button>
                     <button @click=${() => this.#emit("reset")}>Reset</button>
@@ -168,8 +156,7 @@ export class AetherSidebar extends LitElement {
                     digits="0"
                     unit=" Hz"
                     .value=${this.hz}
-                    @value-change=${(e: CustomEvent<number>) =>
-                        this.#emit("hz-change", e.detail)}
+                    @value-change=${(e: CustomEvent<number>) => this.#emit("hz-change", e.detail)}
                 ></aether-slider>
                 <aether-slider
                     label="Time scale"
@@ -196,9 +183,7 @@ export class AetherSidebar extends LitElement {
                 </dl>
             </section>
 
-            <footer>
-                <kbd>Space</kbd> pause · <kbd>.</kbd> step · <kbd>R</kbd> reset
-            </footer>
+            <footer><kbd>Space</kbd> pause · <kbd>.</kbd> step · <kbd>R</kbd> reset</footer>
         `;
     }
 }

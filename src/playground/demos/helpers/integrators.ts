@@ -22,11 +22,7 @@ export type AccelFn = (x: number, v: number) => number;
  * @param accel Acceleration function, evaluated one or more times.
  * @param dt Step length in seconds.
  */
-export type Integrator = (
-    state: OscillatorState,
-    accel: AccelFn,
-    dt: number,
-) => void;
+export type Integrator = (state: OscillatorState, accel: AccelFn, dt: number) => void;
 
 /**
  * First-order explicit Euler. Position and velocity both advance from the old state.

@@ -150,12 +150,7 @@ export class Quaternion implements QuatLike {
      * since it avoids the square root.
      */
     magnitudeSquared(): number {
-        return (
-            this.w * this.w +
-            this.x * this.x +
-            this.y * this.y +
-            this.z * this.z
-        );
+        return this.w * this.w + this.x * this.x + this.y * this.y + this.z * this.z;
     }
 
     /**
@@ -322,9 +317,7 @@ export class Quaternion implements QuatLike {
         // sin(s)/s → 1 as s → 0. Only an exactly zero s needs the limit: for any representable
         // s > 0, Math.sin(s) is accurate enough that the division loses nothing.
         const k =
-            vectorMagnitude === 0
-                ? scale
-                : (scale * Math.sin(vectorMagnitude)) / vectorMagnitude;
+            vectorMagnitude === 0 ? scale : (scale * Math.sin(vectorMagnitude)) / vectorMagnitude;
 
         this.w = scale * Math.cos(vectorMagnitude);
         this.x = k * x;

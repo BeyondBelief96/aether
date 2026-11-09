@@ -3,14 +3,7 @@ import { Quaternion } from "../geometry/quaternion";
 import { Vec3 } from "../geometry/vec3";
 import { Mat3x3 } from "../geometry/mat3x3";
 
-function expectQuat(
-    actual: Quaternion,
-    w: number,
-    x: number,
-    y: number,
-    z: number,
-    digits = 12,
-) {
+function expectQuat(actual: Quaternion, w: number, x: number, y: number, z: number, digits = 12) {
     expect(actual.w).toBeCloseTo(w, digits);
     expect(actual.x).toBeCloseTo(x, digits);
     expect(actual.y).toBeCloseTo(y, digits);
@@ -24,12 +17,7 @@ function expectVec3(actual: Vec3, x: number, y: number, z: number, digits = 12) 
 }
 
 function hasNaN(q: Quaternion): boolean {
-    return (
-        Number.isNaN(q.w) ||
-        Number.isNaN(q.x) ||
-        Number.isNaN(q.y) ||
-        Number.isNaN(q.z)
-    );
+    return Number.isNaN(q.w) || Number.isNaN(q.x) || Number.isNaN(q.y) || Number.isNaN(q.z);
 }
 
 describe("Quaternion", () => {
@@ -70,17 +58,13 @@ describe("Quaternion", () => {
         it("is 1 for a rotation quaternion", () => {
             const half = Math.PI / 6;
             const s = Math.sin(half) / Math.sqrt(3);
-            expect(
-                new Quaternion(Math.cos(half), s, s, s).magnitude(),
-            ).toBeCloseTo(1, 12);
+            expect(new Quaternion(Math.cos(half), s, s, s).magnitude()).toBeCloseTo(1, 12);
         });
     });
 
     describe("normalize", () => {
         it("produces unit magnitude", () => {
-            expect(
-                new Quaternion(3, -4, 12, 84).normalize().magnitude(),
-            ).toBeCloseTo(1, 12);
+            expect(new Quaternion(3, -4, 12, 84).normalize().magnitude()).toBeCloseTo(1, 12);
         });
 
         it("preserves direction", () => {
@@ -103,9 +87,7 @@ describe("Quaternion", () => {
         });
 
         it("handles very small quaternions", () => {
-            expect(
-                new Quaternion(1e-150, 1e-150, 0, 0).normalize().magnitude(),
-            ).toBeCloseTo(1, 12);
+            expect(new Quaternion(1e-150, 1e-150, 0, 0).normalize().magnitude()).toBeCloseTo(1, 12);
         });
 
         it("corrects drift from repeated small perturbations", () => {
@@ -155,7 +137,9 @@ describe("Quaternion", () => {
         });
 
         it("treats q and -q as different, even though they are the same rotation", () => {
-            expect(new Quaternion(1, 0, 0, 0).equals(new Quaternion(-1, 0, 0, 0), 1e-9)).toBe(false);
+            expect(new Quaternion(1, 0, 0, 0).equals(new Quaternion(-1, 0, 0, 0), 1e-9)).toBe(
+                false,
+            );
         });
     });
 
@@ -216,7 +200,10 @@ describe("Quaternion", () => {
             //   = (6, 7, 8) + (10, 15, 20) + (-4, 8, -4) = (12, 30, 24)
             expectQuat(
                 new Quaternion(1, 2, 3, 4).multiply(new Quaternion(5, 6, 7, 8)),
-                -60, 12, 30, 24,
+                -60,
+                12,
+                30,
+                24,
             );
         });
 
@@ -246,9 +233,10 @@ describe("Quaternion", () => {
         });
 
         it("preserves unit magnitude", () => {
-            expect(
-                new Quaternion(0.5, 0.5, -0.5, 0.5).multiply(rotX()).magnitude(),
-            ).toBeCloseTo(1, 12);
+            expect(new Quaternion(0.5, 0.5, -0.5, 0.5).multiply(rotX()).magnitude()).toBeCloseTo(
+                1,
+                12,
+            );
         });
 
         it("multiplies magnitudes", () => {
@@ -291,7 +279,10 @@ describe("Quaternion", () => {
             // cross product flipped, so v = (6, 7, 8) + (10, 15, 20) + (4, -8, 4) = (20, 14, 32).
             expectQuat(
                 new Quaternion(1, 2, 3, 4).premultiply(new Quaternion(5, 6, 7, 8)),
-                -60, 20, 14, 32,
+                -60,
+                20,
+                14,
+                32,
             );
         });
 
@@ -448,12 +439,24 @@ describe("Quaternion", () => {
         const s = Math.SQRT1_2;
 
         it("builds [cos(θ/2), sin(θ/2)·n] for a unit axis", () => {
-            expectQuat(new Quaternion().setFromAxisAngle(new Vec3(0, 0, 1), Math.PI / 2), s, 0, 0, s);
+            expectQuat(
+                new Quaternion().setFromAxisAngle(new Vec3(0, 0, 1), Math.PI / 2),
+                s,
+                0,
+                0,
+                s,
+            );
             expectQuat(new Quaternion().setFromAxisAngle(new Vec3(1, 0, 0), Math.PI), 0, 1, 0, 0);
         });
 
         it("normalizes a non-unit axis", () => {
-            expectQuat(new Quaternion().setFromAxisAngle({ x: 0, y: 5, z: 0 }, Math.PI / 2), s, 0, s, 0);
+            expectQuat(
+                new Quaternion().setFromAxisAngle({ x: 0, y: 5, z: 0 }, Math.PI / 2),
+                s,
+                0,
+                s,
+                0,
+            );
         });
 
         it("does not modify the axis", () => {
@@ -469,11 +472,23 @@ describe("Quaternion", () => {
         });
 
         it("gives the identity for a zero angle", () => {
-            expectQuat(new Quaternion(5, 6, 7, 8).setFromAxisAngle(new Vec3(1, 2, 3), 0), 1, 0, 0, 0);
+            expectQuat(
+                new Quaternion(5, 6, 7, 8).setFromAxisAngle(new Vec3(1, 2, 3), 0),
+                1,
+                0,
+                0,
+                0,
+            );
         });
 
         it("gives [-1, 0] for a full turn", () => {
-            expectQuat(new Quaternion().setFromAxisAngle(new Vec3(0, 1, 0), 2 * Math.PI), -1, 0, 0, 0);
+            expectQuat(
+                new Quaternion().setFromAxisAngle(new Vec3(0, 1, 0), 2 * Math.PI),
+                -1,
+                0,
+                0,
+                0,
+            );
         });
 
         it("gives the identity for a zero axis instead of producing NaN", () => {
@@ -504,7 +519,13 @@ describe("Quaternion", () => {
             const a = new Quaternion(1, 2, 3, 4);
             const b = new Quaternion(-2, 0.5, 1, -1);
             const expected = b.clone().inverse().multiply(a);
-            expectQuat(a.setToDifferenceQuaternion(b), expected.w, expected.x, expected.y, expected.z);
+            expectQuat(
+                a.setToDifferenceQuaternion(b),
+                expected.w,
+                expected.x,
+                expected.y,
+                expected.z,
+            );
         });
 
         it("does not modify its argument", () => {
@@ -555,7 +576,7 @@ describe("Quaternion", () => {
 
         it("gives different logarithms for q and -q", () => {
             const s = Math.SQRT1_2;
-            expectQuat(new Quaternion(-s, 0, 0, -s).log(), 0, 0, 0, -3 * Math.PI / 4);
+            expectQuat(new Quaternion(-s, 0, 0, -s).log(), 0, 0, 0, (-3 * Math.PI) / 4);
         });
 
         it("stays accurate for tiny angles", () => {
@@ -701,7 +722,15 @@ describe("Quaternion", () => {
             expectVec3(a.clone().multiply(b).rotateVec3(v), expected.x, expected.y, expected.z);
 
             // +Y about X → +Z, then about Z stays +Z. The other order would give −X.
-            expectVec3(a.clone().multiply(b).rotateVec3(new Vec3(0, 1, 0)), 0, 0, 1);
+            expectVec3(
+                a
+                    .clone()
+                    .multiply(b)
+                    .rotateVec3(new Vec3(0, 1, 0)),
+                0,
+                0,
+                1,
+            );
         });
 
         it("writes to out and returns it", () => {
@@ -732,7 +761,12 @@ describe("Quaternion", () => {
 
         it("accepts any Vec3Like", () => {
             const expected = q.rotateVec3(v);
-            expectVec3(q.rotateVec3({ x: v.x, y: v.y, z: v.z }), expected.x, expected.y, expected.z);
+            expectVec3(
+                q.rotateVec3({ x: v.x, y: v.y, z: v.z }),
+                expected.x,
+                expected.y,
+                expected.z,
+            );
         });
     });
 
@@ -859,7 +893,10 @@ describe("Quaternion", () => {
             // 0° and 270° about Z are 90° apart the short way, so halfway is −45°.
             const end = new Quaternion().setFromAxisAngle(zAxis, 1.5 * Math.PI);
             const expected = new Quaternion().setFromAxisAngle(zAxis, -Math.PI / 4);
-            expectSameRotation(new Quaternion().slerpQuaternions(new Quaternion(), end, 0.5), expected);
+            expectSameRotation(
+                new Quaternion().slerpQuaternions(new Quaternion(), end, 0.5),
+                expected,
+            );
         });
 
         it("falls back to a normalized lerp for nearly equal inputs", () => {
@@ -918,10 +955,22 @@ describe("Quaternion", () => {
             const expected = new Quaternion().slerpQuaternions(a, b, 0.3);
 
             const asA = a.clone();
-            expectQuat(asA.slerpQuaternions(asA, b, 0.3), expected.w, expected.x, expected.y, expected.z);
+            expectQuat(
+                asA.slerpQuaternions(asA, b, 0.3),
+                expected.w,
+                expected.x,
+                expected.y,
+                expected.z,
+            );
 
             const asB = b.clone();
-            expectQuat(asB.slerpQuaternions(a, asB, 0.3), expected.w, expected.x, expected.y, expected.z);
+            expectQuat(
+                asB.slerpQuaternions(a, asB, 0.3),
+                expected.w,
+                expected.x,
+                expected.y,
+                expected.z,
+            );
         });
 
         it("returns itself in both branches", () => {
@@ -1010,9 +1059,20 @@ describe("Quaternion", () => {
             const dt = 0.05;
 
             const delta = new Quaternion(0, omega.x, omega.y, omega.z).multiply(q).scale(0.5 * dt);
-            const expected = new Quaternion(q.w + delta.w, q.x + delta.x, q.y + delta.y, q.z + delta.z);
+            const expected = new Quaternion(
+                q.w + delta.w,
+                q.x + delta.x,
+                q.y + delta.y,
+                q.z + delta.z,
+            );
 
-            expectQuat(q.addScaledAngularVelocity(omega, dt), expected.w, expected.x, expected.y, expected.z);
+            expectQuat(
+                q.addScaledAngularVelocity(omega, dt),
+                expected.w,
+                expected.x,
+                expected.y,
+                expected.z,
+            );
         });
 
         it("approaches the exact rotation as steps get smaller", () => {
@@ -1090,7 +1150,9 @@ describe("Quaternion", () => {
 
         it("matches Mat3x3.setFromAxisAngle", () => {
             const axis = new Vec3(2, -1, 0.5).normalize();
-            const q = new Quaternion().setFromRotationMatrix(new Mat3x3().setFromAxisAngle(axis, 2.2));
+            const q = new Quaternion().setFromRotationMatrix(
+                new Mat3x3().setFromAxisAngle(axis, 2.2),
+            );
             expect(q.equalsRotation(new Quaternion().setFromAxisAngle(axis, 2.2))).toBe(true);
         });
 

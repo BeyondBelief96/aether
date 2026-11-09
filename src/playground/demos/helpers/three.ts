@@ -1,4 +1,4 @@
-import { Line, Mesh, Points, type Object3D } from 'three';
+import { Line, Mesh, Points, type Object3D } from "three";
 
 /**
  * Frees the GPU resources of everything under `root`. Call after removing it from the scene.
@@ -8,12 +8,12 @@ import { Line, Mesh, Points, type Object3D } from 'three';
  * get disposed twice (an ArrowHelper's cone is also a Mesh child), which Three.js allows.
  */
 export function disposeObject(root: Object3D): void {
-  root.traverse((obj) => {
-    if (obj instanceof Mesh || obj instanceof Line || obj instanceof Points) {
-      obj.geometry.dispose();
-      const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
-      for (const material of materials) material.dispose();
-    }
-    obj.dispose();
-  });
+    root.traverse((obj) => {
+        if (obj instanceof Mesh || obj instanceof Line || obj instanceof Points) {
+            obj.geometry.dispose();
+            const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+            for (const material of materials) material.dispose();
+        }
+        obj.dispose();
+    });
 }

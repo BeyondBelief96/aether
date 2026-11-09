@@ -1,2 +1,2 @@
-import './styles.css';
-import './ui/aether-app';
+import "./styles.css";
+import "./ui/aether-app";

@@ -57,14 +57,8 @@ const _near = new Vec3();
 const _far = new Vec3();
 
 /** A thin ring in its local XY plane, so its hole faces +Z. */
-function makeRing(
-    radius: number,
-    color: number,
-): Mesh<TorusGeometry, MeshBasicMaterial> {
-    return new Mesh(
-        new TorusGeometry(radius, RING_TUBE, 12, 96),
-        new MeshBasicMaterial({ color }),
-    );
+function makeRing(radius: number, color: number): Mesh<TorusGeometry, MeshBasicMaterial> {
+    return new Mesh(new TorusGeometry(radius, RING_TUBE, 12, 96), new MeshBasicMaterial({ color }));
 }
 
 class RotationGizmoDemo implements Demo {
@@ -208,10 +202,7 @@ class RotationGizmoDemo implements Demo {
             _near.copy(o).addScaled(d, -b - s);
             _far.copy(o).addScaled(d, -b + s);
             _tip.copy(this.#axis).normalize().scale(r);
-            hit =
-                _near.distanceToSquared(_tip) <= _far.distanceToSquared(_tip)
-                    ? _near
-                    : _far;
+            hit = _near.distanceToSquared(_tip) <= _far.distanceToSquared(_tip) ? _near : _far;
         }
 
         if (hit.magnitudeSquared() < 1e-12) return; // ray straight through the center
@@ -222,9 +213,7 @@ class RotationGizmoDemo implements Demo {
 
     mount(scene: Scene, view: DemoView): void {
         scene.add(this.#group);
-        this.#drag = new DragHandle(view, this.#axisHandle, (ray) =>
-            this.#dragAxis(ray),
-        );
+        this.#drag = new DragHandle(view, this.#axisHandle, (ray) => this.#dragAxis(ray));
         this.sync(1);
     }
 
@@ -251,10 +240,7 @@ class RotationGizmoDemo implements Demo {
     }
 
     #isGimbalLocked(): boolean {
-        return (
-            this.#mode === "euler" &&
-            Math.abs(Math.cos(this.#eulerAngles.y)) < GIMBAL_LOCK_COS
-        );
+        return this.#mode === "euler" && Math.abs(Math.cos(this.#eulerAngles.y)) < GIMBAL_LOCK_COS;
     }
 
     #updateView(): void {
@@ -272,9 +258,7 @@ class RotationGizmoDemo implements Demo {
             // The arrow's length comes from the vector, so draw it from the unit axis.
             _axisDir.copy(this.#axis).normalize();
             this.#rotationAxisArrow.update(ORIGIN, _axisDir, AXIS_ARROW_LENGTH);
-            this.#axisHandle.position
-                .copy(_axisDir)
-                .multiplyScalar(AXIS_ARROW_LENGTH);
+            this.#axisHandle.position.copy(_axisDir).multiplyScalar(AXIS_ARROW_LENGTH);
         }
 
         this.#gimbals.visible = euler;

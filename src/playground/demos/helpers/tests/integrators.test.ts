@@ -140,9 +140,7 @@ describe("order of accuracy", () => {
     function error(integrator: Integrator, accel: AccelFn, steps: number) {
         const start = { x: 1, v: 0 };
         const reference = run(rk4, start, accel, 2 / 20_000, 20_000);
-        return Math.abs(
-            run(integrator, start, accel, 2 / steps, steps).x - reference.x,
-        );
+        return Math.abs(run(integrator, start, accel, 2 / steps, steps).x - reference.x);
     }
 
     for (const { name: caseName, accel } of cases) {
@@ -150,8 +148,7 @@ describe("order of accuracy", () => {
             `$name has order $order on a ${caseName} oscillator`,
             ({ integrator, order }) => {
                 const measured = Math.log2(
-                    error(integrator, accel, 400) /
-                        error(integrator, accel, 800),
+                    error(integrator, accel, 400) / error(integrator, accel, 800),
                 );
                 expect(measured).toBeGreaterThan(order - 0.2);
                 expect(measured).toBeLessThan(order + 0.2);
@@ -171,10 +168,7 @@ describe("energy over 10,000 steps of an undamped spring", () => {
         let worst = 0;
         for (let i = 0; i < 10_000; i++) {
             integrator(state, accel, dt);
-            worst = Math.max(
-                worst,
-                Math.abs(relativeEnergy(state, omega) - 1),
-            );
+            worst = Math.max(worst, Math.abs(relativeEnergy(state, omega) - 1));
         }
         return { worst, final: relativeEnergy(state, omega) };
     }

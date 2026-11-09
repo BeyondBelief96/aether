@@ -7,12 +7,7 @@ import {
     type PropertyDeclarations,
 } from "lit";
 import type { QuatLike, Vec3Like } from "aether-physics";
-import {
-    DEG_TO_RAD,
-    formatDegrees,
-    formatNumber,
-    RAD_TO_DEG,
-} from "../format/format";
+import { DEG_TO_RAD, formatDegrees, formatNumber, RAD_TO_DEG } from "../format/format";
 import { panelStyles } from "../shared-styles";
 import "../controls/aether-slider";
 import "../controls/aether-vec3-input";
@@ -121,9 +116,7 @@ export class GizmoPanel extends LitElement {
     }
 
     #emit(name: string, detail: unknown): void {
-        this.dispatchEvent(
-            new CustomEvent(name, { detail, bubbles: true, composed: true }),
-        );
+        this.dispatchEvent(new CustomEvent(name, { detail, bubbles: true, composed: true }));
     }
 
     #renderModeSwitch() {
@@ -138,8 +131,7 @@ export class GizmoPanel extends LitElement {
         `;
         return html`
             <div class="buttons" role="group" aria-label="Input mode">
-                ${button("axis-angle", "Axis–angle")}
-                ${button("euler", "Euler XYZ")}
+                ${button("axis-angle", "Axis–angle")} ${button("euler", "Euler XYZ")}
             </div>
         `;
     }
@@ -150,16 +142,12 @@ export class GizmoPanel extends LitElement {
                 label="Axis"
                 nonzero
                 .value=${this.axis}
-                @value-change=${(e: CustomEvent<Vec3Like>) =>
-                    this.#emit("axis-change", e.detail)}
+                @value-change=${(e: CustomEvent<Vec3Like>) => this.#emit("axis-change", e.detail)}
             ></aether-vec3-input>
             <div class="buttons" role="group" aria-label="Axis presets">
                 ${AXIS_PRESETS.map(
                     ({ label, axis }) => html`
-                        <button
-                            @click=${() =>
-                                this.#emit("axis-change", { ...axis })}
-                        >
+                        <button @click=${() => this.#emit("axis-change", { ...axis })}>
                             ${label}
                         </button>
                     `,
@@ -208,9 +196,7 @@ export class GizmoPanel extends LitElement {
         const e = this.euler;
         // Built here because dd is `white-space: pre`: if Prettier wrapped this inside the
         // template, the line breaks and indentation would render as text.
-        const axisText = [axis.x, axis.y, axis.z]
-            .map((v) => formatNumber(v, 2))
-            .join(" ");
+        const axisText = [axis.x, axis.y, axis.z].map((v) => formatNumber(v, 2)).join(" ");
         return html`
             ${this.#renderModeSwitch()}
             ${
@@ -220,9 +206,7 @@ export class GizmoPanel extends LitElement {
             }
             ${
                 this.gimbalLock
-                    ? html`<p class="warn">
-                          Gimbal lock: X and Z now rotate about the same axis.
-                      </p>`
+                    ? html`<p class="warn">Gimbal lock: X and Z now rotate about the same axis.</p>`
                     : nothing
             }
 
@@ -260,8 +244,7 @@ export class GizmoPanel extends LitElement {
             <h3>Rotation matrix</h3>
             <div class="matrix">
                 ${this.matrix.map(
-                    (v, i) =>
-                        html`<span class="c${i % 3}">${formatNumber(v)}</span>`,
+                    (v, i) => html`<span class="c${i % 3}">${formatNumber(v)}</span>`,
                 )}
             </div>
         `;

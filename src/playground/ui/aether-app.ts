@@ -140,10 +140,7 @@ export class AetherApp extends LitElement {
     #onKey = (e: KeyboardEvent): void => {
         // Let focused controls keep their own keys (Space on a button already clicks it).
         const target = e.composedPath()[0];
-        if (
-            target instanceof HTMLElement &&
-            target.matches("button, input, select, textarea")
-        )
+        if (target instanceof HTMLElement && target.matches("button, input, select, textarea"))
             return;
         if (e.key === " ") {
             e.preventDefault();
@@ -166,8 +163,7 @@ export class AetherApp extends LitElement {
                 .timeScale=${this.timeScale}
                 .stats=${this.stats}
                 .panel=${this.panel}
-                @demo-change=${(e: CustomEvent<string>) =>
-                    this.#loadDemo(e.detail)}
+                @demo-change=${(e: CustomEvent<string>) => this.#loadDemo(e.detail)}
                 @toggle-pause=${() => this.#togglePause()}
                 @step-once=${() => this.#loop.stepOnce()}
                 @reset=${() => this.#loadDemo(this.demoId)}

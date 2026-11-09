@@ -23,8 +23,7 @@ export function formatNumber(value: number, digits = 3): string {
  * grows without bound still fits a narrow column: " 12.500", " 1.2e+5".
  */
 export function formatCompact(value: number, digits = 3): string {
-    if (!Number.isFinite(value) || Math.abs(value) < 1000)
-        return formatNumber(value, digits);
+    if (!Number.isFinite(value) || Math.abs(value) < 1000) return formatNumber(value, digits);
     const sign = value < 0 ? MINUS : FIGURE_SPACE;
     return sign + Math.abs(value).toExponential(1);
 }

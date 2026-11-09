@@ -183,11 +183,7 @@ export class AetherLineChart extends LitElement {
         ctx.restore();
     }
 
-    #drawAxis(
-        ctx: CanvasRenderingContext2D,
-        width: number,
-        toY: (value: number) => number,
-    ): void {
+    #drawAxis(ctx: CanvasRenderingContext2D, width: number, toY: (value: number) => number): void {
         ctx.font = `11px ${this.#color("--mono")}`;
         ctx.textBaseline = "middle";
         ctx.textAlign = "right";

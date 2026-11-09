@@ -25,8 +25,7 @@ export class RingBuffer {
 
     /** The value `index` places after the oldest. `undefined` when out of range. */
     at(index: number): number | undefined {
-        if (!Number.isInteger(index) || index < 0 || index >= this.#length)
-            return undefined;
+        if (!Number.isInteger(index) || index < 0 || index >= this.#length) return undefined;
         const oldest = (this.#next - this.#length + this.capacity) % this.capacity;
         return this.#values[(oldest + index) % this.capacity];
     }

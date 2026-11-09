@@ -19,8 +19,7 @@ function expectApprox(m: Mat3x3, expected: number[]): void {
 }
 
 const sample = () => new Mat3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
-const sampleRotation = () =>
-    new Mat3x3().setFromAxisAngle(new Vec3(1, 2, 3).normalize(), 0.7);
+const sampleRotation = () => new Mat3x3().setFromAxisAngle(new Vec3(1, 2, 3).normalize(), 0.7);
 
 describe("Mat3", () => {
     describe("construction", () => {
@@ -38,9 +37,7 @@ describe("Mat3", () => {
         });
 
         it("fills omitted arguments from the identity", () => {
-            expect(elementsOf(new Mat3x3(5))).toEqual([
-                5, 0, 0, 0, 1, 0, 0, 0, 1,
-            ]);
+            expect(elementsOf(new Mat3x3(5))).toEqual([5, 0, 0, 0, 1, 0, 0, 0, 1]);
         });
 
         it("gives each instance its own storage", () => {
@@ -63,9 +60,7 @@ describe("Mat3", () => {
         it("is not affected by earlier mutation of another identity", () => {
             const a = new Mat3x3().identity();
             a.elements[0] = 42;
-            expect(
-                elementsOf(new Mat3x3(9, 9, 9, 9, 9, 9, 9, 9, 9).identity()),
-            ).toEqual(IDENTITY);
+            expect(elementsOf(new Mat3x3(9, 9, 9, 9, 9, 9, 9, 9, 9).identity())).toEqual(IDENTITY);
         });
     });
 
@@ -100,9 +95,7 @@ describe("Mat3", () => {
         });
 
         it("scales uniformly when given one factor", () => {
-            expect(elementsOf(new Mat3x3().setScale(3))).toEqual([
-                3, 0, 0, 0, 3, 0, 0, 0, 3,
-            ]);
+            expect(elementsOf(new Mat3x3().setScale(3))).toEqual([3, 0, 0, 0, 3, 0, 0, 0, 3]);
         });
 
         it("is the identity for a factor of 1", () => {
@@ -365,7 +358,9 @@ describe("Mat3", () => {
         });
 
         it("scales transformed vectors by k", () => {
-            const r = sample().multiplyScalar(2).transformVec3(new Vec3(1, 2, 3));
+            const r = sample()
+                .multiplyScalar(2)
+                .transformVec3(new Vec3(1, 2, 3));
             expect([r.x, r.y, r.z]).toEqual([28, 64, 100]);
         });
     });
@@ -376,34 +371,24 @@ describe("Mat3", () => {
             const b = new Mat3x3(9, 8, 7, 6, 5, 4, 3, 2, 1);
             const result = a.multiply(b);
             expect(result).toBe(a);
-            expect(elementsOf(a)).toEqual([
-                30, 24, 18, 84, 69, 54, 138, 114, 90,
-            ]);
+            expect(elementsOf(a)).toEqual([30, 24, 18, 84, 69, 54, 138, 114, 90]);
         });
 
         it("is not commutative", () => {
             const a = sample();
             const b = new Mat3x3(9, 8, 7, 6, 5, 4, 3, 2, 1);
-            expect(elementsOf(b.multiply(a))).toEqual([
-                90, 114, 138, 54, 69, 84, 18, 24, 30,
-            ]);
+            expect(elementsOf(b.multiply(a))).toEqual([90, 114, 138, 54, 69, 84, 18, 24, 30]);
         });
 
         it("leaves a matrix unchanged when multiplied by the identity on either side", () => {
-            expect(elementsOf(sample().multiply(new Mat3x3()))).toEqual(
-                elementsOf(sample()),
-            );
-            expect(elementsOf(new Mat3x3().multiply(sample()))).toEqual(
-                elementsOf(sample()),
-            );
+            expect(elementsOf(sample().multiply(new Mat3x3()))).toEqual(elementsOf(sample()));
+            expect(elementsOf(new Mat3x3().multiply(sample()))).toEqual(elementsOf(sample()));
         });
 
         it("squares a matrix when multiplied by itself", () => {
             const m = sample();
             m.multiply(m);
-            expect(elementsOf(m)).toEqual([
-                30, 36, 42, 66, 81, 96, 102, 126, 150,
-            ]);
+            expect(elementsOf(m)).toEqual([30, 36, 42, 66, 81, 96, 102, 126, 150]);
         });
 
         it("does not modify the operand", () => {
@@ -419,31 +404,22 @@ describe("Mat3", () => {
             const b = new Mat3x3(9, 8, 7, 6, 5, 4, 3, 2, 1);
             const result = a.premultiply(b);
             expect(result).toBe(a);
-            expect(elementsOf(a)).toEqual([
-                90, 114, 138, 54, 69, 84, 18, 24, 30,
-            ]);
+            expect(elementsOf(a)).toEqual([90, 114, 138, 54, 69, 84, 18, 24, 30]);
         });
 
         it("squares a matrix when multiplied by itself", () => {
             const m = sample();
             m.premultiply(m);
-            expect(elementsOf(m)).toEqual([
-                30, 36, 42, 66, 81, 96, 102, 126, 150,
-            ]);
+            expect(elementsOf(m)).toEqual([30, 36, 42, 66, 81, 96, 102, 126, 150]);
         });
     });
 
     describe("multiplyMatrices", () => {
         it("sets this to a · b and returns itself", () => {
             const out = new Mat3x3();
-            const result = out.multiplyMatrices(
-                sample(),
-                new Mat3x3(9, 8, 7, 6, 5, 4, 3, 2, 1),
-            );
+            const result = out.multiplyMatrices(sample(), new Mat3x3(9, 8, 7, 6, 5, 4, 3, 2, 1));
             expect(result).toBe(out);
-            expect(elementsOf(out)).toEqual([
-                30, 24, 18, 84, 69, 54, 138, 114, 90,
-            ]);
+            expect(elementsOf(out)).toEqual([30, 24, 18, 84, 69, 54, 138, 114, 90]);
         });
 
         it("overwrites any previous contents of this", () => {
@@ -482,9 +458,7 @@ describe("Mat3", () => {
         });
 
         it("restores the original when applied twice", () => {
-            expect(elementsOf(sample().transpose().transpose())).toEqual(
-                elementsOf(sample()),
-            );
+            expect(elementsOf(sample().transpose().transpose())).toEqual(elementsOf(sample()));
         });
 
         it("leaves the identity unchanged", () => {
@@ -494,10 +468,7 @@ describe("Mat3", () => {
         it("satisfies (a · b)ᵀ = bᵀ · aᵀ", () => {
             const b = new Mat3x3(9, 8, 7, 6, 5, 4, 3, 2, 1);
             const lhs = new Mat3x3().multiplyMatrices(sample(), b).transpose();
-            const rhs = new Mat3x3().multiplyMatrices(
-                b.clone().transpose(),
-                sample().transpose(),
-            );
+            const rhs = new Mat3x3().multiplyMatrices(b.clone().transpose(), sample().transpose());
             expect(elementsOf(lhs)).toEqual(elementsOf(rhs));
         });
     });
@@ -513,9 +484,7 @@ describe("Mat3", () => {
 
         it("computes a general determinant", () => {
             expect(new Mat3x3(1, 2, 3, 0, 1, 4, 5, 6, 0).determinant()).toBe(1);
-            expect(new Mat3x3(2, -3, 1, 2, 0, -1, 1, 4, 5).determinant()).toBe(
-                49,
-            );
+            expect(new Mat3x3(2, -3, 1, 2, 0, -1, 1, 4, 5).determinant()).toBe(49);
         });
 
         it("is 0 for a singular matrix", () => {
@@ -523,9 +492,7 @@ describe("Mat3", () => {
         });
 
         it("changes sign when two rows are swapped", () => {
-            expect(new Mat3x3(0, 1, 4, 1, 2, 3, 5, 6, 0).determinant()).toBe(
-                -1,
-            );
+            expect(new Mat3x3(0, 1, 4, 1, 2, 3, 5, 6, 0).determinant()).toBe(-1);
         });
 
         it("is unchanged by transposition", () => {
@@ -537,17 +504,13 @@ describe("Mat3", () => {
             const a = new Mat3x3(2, -3, 1, 2, 0, -1, 1, 4, 5);
             const b = new Mat3x3(0.3, -1.2, 2.5, 4.1, 0.7, -0.6, 1.9, 3.3, 0.2);
             const product = new Mat3x3().multiplyMatrices(a, b).determinant();
-            expect(
-                approxEqual(product, a.determinant() * b.determinant()),
-            ).toBe(true);
+            expect(approxEqual(product, a.determinant() * b.determinant())).toBe(true);
         });
 
         it("is the reciprocal of the inverse's determinant", () => {
             const m = new Mat3x3(0.3, -1.2, 2.5, 4.1, 0.7, -0.6, 1.9, 3.3, 0.2);
             const inv = m.clone().inverse();
-            expect(approxEqual(m.determinant() * inv.determinant(), 1)).toBe(
-                true,
-            );
+            expect(approxEqual(m.determinant() * inv.determinant(), 1)).toBe(true);
         });
 
         it("does not modify the matrix", () => {
@@ -561,21 +524,15 @@ describe("Mat3", () => {
         it("inverts a general matrix and returns itself", () => {
             // det = 1, so the inverse is exact.
             const out = new Mat3x3();
-            const result = out.setInverse(
-                new Mat3x3(1, 2, 3, 0, 1, 4, 5, 6, 0),
-            );
+            const result = out.setInverse(new Mat3x3(1, 2, 3, 0, 1, 4, 5, 6, 0));
             expect(result).toBe(out);
-            expect(elementsOf(out)).toEqual([
-                -24, 18, 5, 20, -15, -4, -5, 4, 1,
-            ]);
+            expect(elementsOf(out)).toEqual([-24, 18, 5, 20, -15, -4, -5, 4, 1]);
         });
 
         it("inverts a diagonal matrix", () => {
-            expect(
-                elementsOf(
-                    new Mat3x3().setInverse(new Mat3x3().setDiagonal(2, 4, 8)),
-                ),
-            ).toEqual([0.5, 0, 0, 0, 0.25, 0, 0, 0, 0.125]);
+            expect(elementsOf(new Mat3x3().setInverse(new Mat3x3().setDiagonal(2, 4, 8)))).toEqual([
+                0.5, 0, 0, 0, 0.25, 0, 0, 0, 0.125,
+            ]);
         });
 
         it("produces the identity when multiplied by the original on either side", () => {
@@ -588,11 +545,7 @@ describe("Mat3", () => {
         it("inverts matrices with very small entries", () => {
             // det = 1e-12, well below EPSILON, but the matrix is invertible.
             expect(
-                elementsOf(
-                    new Mat3x3().setInverse(
-                        new Mat3x3().setDiagonal(1e-4, 1e-4, 1e-4),
-                    ),
-                ),
+                elementsOf(new Mat3x3().setInverse(new Mat3x3().setDiagonal(1e-4, 1e-4, 1e-4))),
             ).toEqual([1e4, 0, 0, 0, 1e4, 0, 0, 0, 1e4]);
         });
 
@@ -655,13 +608,8 @@ describe("Mat3", () => {
 
         it("differs from setInverse once scale is present", () => {
             const m = sampleRotation().multiply(new Mat3x3().setScale(2, 3, 4));
-            const wrong = new Mat3x3().multiplyMatrices(
-                m,
-                new Mat3x3().setInverseOrthonormal(m),
-            );
-            expect(
-                elementsOf(wrong).every((x, i) => approxEqual(x, IDENTITY[i]!)),
-            ).toBe(false);
+            const wrong = new Mat3x3().multiplyMatrices(m, new Mat3x3().setInverseOrthonormal(m));
+            expect(elementsOf(wrong).every((x, i) => approxEqual(x, IDENTITY[i]!))).toBe(false);
         });
 
         it("works when the operand is this", () => {
@@ -688,9 +636,9 @@ describe("Mat3", () => {
         });
 
         it("restores the original when applied twice", () => {
-            expect(
-                elementsOf(sampleRotation().inverseOrthonormal().inverseOrthonormal()),
-            ).toEqual(elementsOf(sampleRotation()));
+            expect(elementsOf(sampleRotation().inverseOrthonormal().inverseOrthonormal())).toEqual(
+                elementsOf(sampleRotation()),
+            );
         });
     });
 
@@ -790,9 +738,7 @@ describe("Mat3", () => {
         it("undoes transformVec3 for a rotation", () => {
             const m = sampleRotation();
             const r = m.transformInverseVec3(m.transformVec3(new Vec3(4, -5, 6)));
-            expect(
-                approxEqual(r.x, 4) && approxEqual(r.y, -5) && approxEqual(r.z, 6),
-            ).toBe(true);
+            expect(approxEqual(r.x, 4) && approxEqual(r.y, -5) && approxEqual(r.z, 6)).toBe(true);
         });
 
         it("does not modify the matrix", () => {
@@ -843,17 +789,11 @@ describe("Mat3", () => {
         });
 
         it("is inverted by the opposite angle", () => {
-            expectApprox(
-                rotation(0.7).multiply(rotation(-0.7)),
-                IDENTITY,
-            );
+            expectApprox(rotation(0.7).multiply(rotation(-0.7)), IDENTITY);
         });
 
         it("adds angles under composition", () => {
-            expectApprox(
-                rotation(0.3).multiply(rotation(0.4)),
-                elementsOf(rotation(0.7)),
-            );
+            expectApprox(rotation(0.3).multiply(rotation(0.4)), elementsOf(rotation(0.7)));
         });
 
         it("returns to the identity after a full turn", () => {
@@ -863,8 +803,7 @@ describe("Mat3", () => {
 
     describe("setFromAxisAngle", () => {
         const axis = new Vec3(1, 2, 3).normalize();
-        const rotation = (theta: number) =>
-            new Mat3x3().setFromAxisAngle(axis, theta);
+        const rotation = (theta: number) => new Mat3x3().setFromAxisAngle(axis, theta);
 
         function expectVec(v: Vec3, x: number, y: number, z: number): void {
             expect(
@@ -929,18 +868,12 @@ describe("Mat3", () => {
         });
 
         it("adds angles under composition about the same axis", () => {
-            expectApprox(
-                rotation(0.3).multiply(rotation(0.4)),
-                elementsOf(rotation(0.7)),
-            );
+            expectApprox(rotation(0.3).multiply(rotation(0.4)), elementsOf(rotation(0.7)));
         });
 
         it("accepts any Vec3Like axis", () => {
             expectApprox(
-                new Mat3x3().setFromAxisAngle(
-                    { x: axis.x, y: axis.y, z: axis.z },
-                    0.7,
-                ),
+                new Mat3x3().setFromAxisAngle({ x: axis.x, y: axis.y, z: axis.z }, 0.7),
                 elementsOf(rotation(0.7)),
             );
         });
@@ -951,7 +884,10 @@ describe("Mat3", () => {
         const q = new Quaternion().setFromAxisAngle(axis, 0.7);
 
         it("gives the identity for the identity quaternion", () => {
-            expectApprox(new Mat3x3(2, 3, 4, 5, 6, 7, 8, 9, 10).setFromQuaternion(new Quaternion()), IDENTITY);
+            expectApprox(
+                new Mat3x3(2, 3, 4, 5, 6, 7, 8, 9, 10).setFromQuaternion(new Quaternion()),
+                IDENTITY,
+            );
         });
 
         it("maps +X to +Y for 90° about +Z", () => {
@@ -977,7 +913,10 @@ describe("Mat3", () => {
 
         it("gives the same matrix for q and −q", () => {
             const negated = q.clone().scale(-1);
-            expectApprox(new Mat3x3().setFromQuaternion(negated), elementsOf(new Mat3x3().setFromQuaternion(q)));
+            expectApprox(
+                new Mat3x3().setFromQuaternion(negated),
+                elementsOf(new Mat3x3().setFromQuaternion(q)),
+            );
         });
 
         it("produces an orthonormal matrix with determinant 1", () => {

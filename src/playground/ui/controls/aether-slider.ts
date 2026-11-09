@@ -85,10 +85,7 @@ export class AetherSlider extends LitElement {
         return html`
             <label>
                 <span>${this.label}</span>
-                <output
-                    >${formatNumber(this.value, this.digits)}${this
-                        .unit}</output
-                >
+                <output>${formatNumber(this.value, this.digits)}${this.unit}</output>
                 <input
                     type="range"
                     min=${this.min}

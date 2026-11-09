@@ -20,8 +20,10 @@ interface MathMatchers<R> {
 
 declare module "vitest" {
     // Vitest 5's signature: `R` is the assertion's return type, `T` the received value's type.
-    interface Matchers<R extends void | Promise<void> = void | Promise<void>, T = unknown>
-        extends MathMatchers<R> {}
+    interface Matchers<
+        R extends void | Promise<void> = void | Promise<void>,
+        T = unknown,
+    > extends MathMatchers<R> {}
 }
 
 const DEFAULT_DIGITS = 12;

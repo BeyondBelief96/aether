@@ -33,9 +33,18 @@ function rigid(
     const s = Math.sin(angle);
     const k = 1 - c;
     return new Mat3x4(
-        c + x * x * k, x * y * k - z * s, x * z * k + y * s, tx,
-        y * x * k + z * s, c + y * y * k, y * z * k - x * s, ty,
-        z * x * k - y * s, z * y * k + x * s, c + z * z * k, tz,
+        c + x * x * k,
+        x * y * k - z * s,
+        x * z * k + y * s,
+        tx,
+        y * x * k + z * s,
+        c + y * y * k,
+        y * z * k - x * s,
+        ty,
+        z * x * k - y * s,
+        z * y * k + x * s,
+        c + z * z * k,
+        tz,
     );
 }
 
@@ -149,9 +158,9 @@ describe("Mat3x4", () => {
 
         it("scales the determinant by k³", () => {
             const m = sampleRigid();
-            expect(approxEqual(m.clone().multiplyScalar(2).determinant(), 8 * m.determinant())).toBe(
-                true,
-            );
+            expect(
+                approxEqual(m.clone().multiplyScalar(2).determinant(), 8 * m.determinant()),
+            ).toBe(true);
         });
 
         it("scales transformed points by k", () => {
@@ -235,7 +244,9 @@ describe("Mat3x4", () => {
             const out = new Mat3x4();
             const result = out.multiplyMatrices(sample(), reversed());
             expect(result).toBe(out);
-            expect(elementsOf(out)).toEqual([40, 34, 28, 26, 136, 118, 100, 90, 232, 202, 172, 154]);
+            expect(elementsOf(out)).toEqual([
+                40, 34, 28, 26, 136, 118, 100, 90, 232, 202, 172, 154,
+            ]);
         });
 
         it("overwrites any previous contents of this", () => {
@@ -335,7 +346,9 @@ describe("Mat3x4", () => {
 
         it("inverts a scale and translation", () => {
             expect(
-                elementsOf(new Mat3x4().setInverse(new Mat3x4(2, 0, 0, 4, 0, 4, 0, 8, 0, 0, 8, 16))),
+                elementsOf(
+                    new Mat3x4().setInverse(new Mat3x4(2, 0, 0, 4, 0, 4, 0, 8, 0, 0, 8, 16)),
+                ),
             ).toEqual([0.5, 0, 0, -2, 0, 0.25, 0, -2, 0, 0, 0.125, -2]);
         });
 
@@ -394,9 +407,9 @@ describe("Mat3x4", () => {
         });
 
         it("transposes a pure rotation", () => {
-            expect(elementsOf(new Mat3x4().setInverseOrthonormal(rotationZ90())).map((x) => x + 0)).toEqual(
-                elementsOf(rotationZ90().transposeLinear()),
-            );
+            expect(
+                elementsOf(new Mat3x4().setInverseOrthonormal(rotationZ90())).map((x) => x + 0),
+            ).toEqual(elementsOf(rotationZ90().transposeLinear()));
         });
 
         it("rotates the negated translation by the inverse rotation", () => {
@@ -426,11 +439,16 @@ describe("Mat3x4", () => {
             const m = sampleRigid();
             const result = m.inverseOrthonormal();
             expect(result).toBe(m);
-            expect(elementsOf(m)).toEqual(elementsOf(new Mat3x4().setInverseOrthonormal(sampleRigid())));
+            expect(elementsOf(m)).toEqual(
+                elementsOf(new Mat3x4().setInverseOrthonormal(sampleRigid())),
+            );
         });
 
         it("restores the original when applied twice", () => {
-            expectApprox(sampleRigid().inverseOrthonormal().inverseOrthonormal(), elementsOf(sampleRigid()));
+            expectApprox(
+                sampleRigid().inverseOrthonormal().inverseOrthonormal(),
+                elementsOf(sampleRigid()),
+            );
         });
     });
 
@@ -691,9 +709,9 @@ describe("Mat3x4", () => {
         });
 
         it("matches the Mat3x4 rotation for a Mat3x3 rotation", () => {
-            expect(
-                elementsOf(new Mat3x4().setFromMat3x3(new Mat3x3().setRotationZ(0.7))),
-            ).toEqual(elementsOf(new Mat3x4().setRotationZ(0.7)));
+            expect(elementsOf(new Mat3x4().setFromMat3x3(new Mat3x3().setRotationZ(0.7)))).toEqual(
+                elementsOf(new Mat3x4().setRotationZ(0.7)),
+            );
         });
 
         it("transforms points as m·p + t", () => {
@@ -863,17 +881,11 @@ describe("Mat3x4", () => {
         });
 
         it("matches the general axis-angle rotation", () => {
-            expectApprox(
-                rotation(0.7),
-                elementsOf(rigid(axis.x, axis.y, axis.z, 0.7, 0, 0, 0)),
-            );
+            expectApprox(rotation(0.7), elementsOf(rigid(axis.x, axis.y, axis.z, 0.7, 0, 0, 0)));
         });
 
         it("is inverted orthonormally by the opposite angle", () => {
-            expectApprox(
-                rotation(0.7).inverseOrthonormal(),
-                elementsOf(rotation(-0.7)),
-            );
+            expectApprox(rotation(0.7).inverseOrthonormal(), elementsOf(rotation(-0.7)));
         });
 
         it("has determinant 1", () => {
@@ -881,24 +893,17 @@ describe("Mat3x4", () => {
         });
 
         it("adds angles under composition", () => {
-            expectApprox(
-                rotation(0.3).multiply(rotation(0.4)),
-                elementsOf(rotation(0.7)),
-            );
+            expectApprox(rotation(0.3).multiply(rotation(0.4)), elementsOf(rotation(0.7)));
         });
     });
 
     it("setRotationZ(90°) matches the rotationZ90 fixture", () => {
-        expectApprox(
-            new Mat3x4().setRotationZ(Math.PI / 2),
-            elementsOf(rotationZ90()),
-        );
+        expectApprox(new Mat3x4().setRotationZ(Math.PI / 2), elementsOf(rotationZ90()));
     });
 
     describe("setFromAxisAngle", () => {
         const axis = new Vec3(1, 2, 3).normalize();
-        const rotation = (theta: number) =>
-            new Mat3x4().setFromAxisAngle(axis, theta);
+        const rotation = (theta: number) => new Mat3x4().setFromAxisAngle(axis, theta);
 
         it("overwrites every element, clearing translation, and returns itself", () => {
             const m = sample();
@@ -909,10 +914,7 @@ describe("Mat3x4", () => {
         });
 
         it("matches the general rigid transform with no translation", () => {
-            expectApprox(
-                rotation(0.7),
-                elementsOf(rigid(axis.x, axis.y, axis.z, 0.7, 0, 0, 0)),
-            );
+            expectApprox(rotation(0.7), elementsOf(rigid(axis.x, axis.y, axis.z, 0.7, 0, 0, 0)));
         });
 
         it.each([
@@ -943,10 +945,7 @@ describe("Mat3x4", () => {
         });
 
         it("is inverted orthonormally by the opposite angle", () => {
-            expectApprox(
-                rotation(0.7).inverseOrthonormal(),
-                elementsOf(rotation(-0.7)),
-            );
+            expectApprox(rotation(0.7).inverseOrthonormal(), elementsOf(rotation(-0.7)));
         });
 
         it("has determinant 1", () => {
@@ -954,10 +953,7 @@ describe("Mat3x4", () => {
         });
 
         it("adds angles under composition about the same axis", () => {
-            expectApprox(
-                rotation(0.3).multiply(rotation(0.4)),
-                elementsOf(rotation(0.7)),
-            );
+            expectApprox(rotation(0.3).multiply(rotation(0.4)), elementsOf(rotation(0.7)));
         });
     });
 

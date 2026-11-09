@@ -22,7 +22,12 @@ const unitQuat = fc
 /** Matrices with entries in [−10, 10] and |det| ≥ 1, so the inverse is not ill conditioned. */
 const invertibleMat3x3 = fc
     .array(coord(10), { minLength: 9, maxLength: 9 })
-    .map((e) => new Mat3x3(...(e as [number, number, number, number, number, number, number, number, number])))
+    .map(
+        (e) =>
+            new Mat3x3(
+                ...(e as [number, number, number, number, number, number, number, number, number]),
+            ),
+    )
     .filter((m) => Math.abs(m.determinant()) >= 1);
 
 const invertibleMat3x4 = fc
@@ -76,7 +81,9 @@ describe("Quaternion properties", () => {
     it("round-trips through a rotation matrix", () => {
         fc.assert(
             fc.property(unitQuat, (q) => {
-                const back = new Quaternion().setFromRotationMatrix(new Mat3x3().setFromQuaternion(q));
+                const back = new Quaternion().setFromRotationMatrix(
+                    new Mat3x3().setFromQuaternion(q),
+                );
                 expect(back).toBeCloseToQuat(q, 9);
             }),
         );
@@ -85,7 +92,10 @@ describe("Quaternion properties", () => {
     it("multiplied by its conjugate gives the identity", () => {
         fc.assert(
             fc.property(unitQuat, (q) => {
-                expect(q.clone().multiply(q.clone().conjugate())).toBeCloseToQuat(new Quaternion(), 12);
+                expect(q.clone().multiply(q.clone().conjugate())).toBeCloseToQuat(
+                    new Quaternion(),
+                    12,
+                );
             }),
         );
     });
@@ -115,7 +125,9 @@ describe("Mat3x3 properties", () => {
             fc.property(invertibleMat3x3, invertibleMat3x3, (a, b) => {
                 const expected = a.determinant() * b.determinant();
                 const actual = new Mat3x3().multiplyMatrices(a, b).determinant();
-                expect(Math.abs(actual - expected)).toBeLessThan(1e-9 * Math.max(1, Math.abs(expected)));
+                expect(Math.abs(actual - expected)).toBeLessThan(
+                    1e-9 * Math.max(1, Math.abs(expected)),
+                );
             }),
         );
     });

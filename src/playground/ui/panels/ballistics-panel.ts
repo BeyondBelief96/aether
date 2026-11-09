@@ -83,9 +83,7 @@ export class BallisticsPanel extends LitElement {
     }
 
     #emit(name: string, detail?: unknown): void {
-        this.dispatchEvent(
-            new CustomEvent(name, { detail, bubbles: true, composed: true }),
-        );
+        this.dispatchEvent(new CustomEvent(name, { detail, bubbles: true, composed: true }));
     }
 
     protected override render(): TemplateResult {
@@ -106,8 +104,7 @@ export class BallisticsPanel extends LitElement {
                 label="Projectile"
                 .options=${this.presets}
                 .value=${this.preset}
-                @value-change=${(e: CustomEvent<string>) =>
-                    this.#emit("preset-change", e.detail)}
+                @value-change=${(e: CustomEvent<string>) => this.#emit("preset-change", e.detail)}
             ></aether-segmented>
             <aether-slider
                 label="Damping (kept per second)"
@@ -116,8 +113,7 @@ export class BallisticsPanel extends LitElement {
                 step="0.01"
                 digits="2"
                 .value=${this.damping}
-                @value-change=${(e: CustomEvent<number>) =>
-                    this.#emit("damping-change", e.detail)}
+                @value-change=${(e: CustomEvent<number>) => this.#emit("damping-change", e.detail)}
             ></aether-slider>
             <div class="buttons">
                 <button class="primary" @click=${() => this.#emit("fire")}>Fire</button>

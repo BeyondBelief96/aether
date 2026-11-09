@@ -42,8 +42,7 @@ export class FixedStepLoop {
     }
 
     set hz(value: number) {
-        if (!(value > 0))
-            throw new RangeError(`hz must be positive, got ${value}`);
+        if (!(value > 0)) throw new RangeError(`hz must be positive, got ${value}`);
         this.#dt = 1 / value;
     }
 
@@ -73,8 +72,7 @@ export class FixedStepLoop {
     advance(nowMs: number, step: (dt: number) => void): FrameResult {
         const last = this.#lastTimeMs;
         this.#lastTimeMs = nowMs;
-        const frameTime =
-            last === null ? 0 : Math.min((nowMs - last) / 1000, MAX_FRAME_TIME);
+        const frameTime = last === null ? 0 : Math.min((nowMs - last) / 1000, MAX_FRAME_TIME);
 
         let steps = 0;
         const run = (): void => {
