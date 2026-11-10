@@ -399,7 +399,7 @@ Forces come first because they only extend the integrator you already have. Cont
 |---|---|---|
 | 1 | Force generators, the registry, gravity | Apply forces through `ParticleWorld` |
 | 2 | Drag | Compare the two drag terms |
-| 3 | Springs and bungees | Break a spring on purpose in the stiffness lab |
+| 3 | Springs and bungees | Compare the three springs side by side |
 | 4 | Buoyancy | Float a particle |
 | 5 | `ParticleContact` | Resolve one contact by hand |
 | 6 | Contact generators, the resolver, the ground | Rest particles on the ground |
@@ -411,11 +411,11 @@ Forces come first because they only extend the integrator you already have. Cont
 
 #### Step 1: Force generators and the registry
 
-- [ ] `src/forces/particle-force-generator.ts`: `ParticleForceGenerator`
-- [ ] `src/forces/particle-force-registry.ts`: `ParticleForceRegistry`
-- [ ] `src/forces/particle-gravity.ts`: `ParticleGravity`
-- [ ] `ParticleWorld.step` runs the registry, then integrates
-- [ ] `ParticleWorld.remove` drops a particle and every generator registered on it
+- [x] `src/forces/particle-force-generator.ts`: `ParticleForceGenerator`
+- [x] `src/forces/particle-force-registry.ts`: `ParticleForceRegistry`
+- [x] `src/forces/particle-gravity.ts`: `ParticleGravity`
+- [x] `ParticleWorld.step` runs the registry, then integrates
+- [x] `ParticleWorld.remove` drops a particle and every generator registered on it
 
 **Introduces:** force generators. A `ParticleForceGenerator` adds a force to whichever particle it is given, so one that holds only parameters, like drag, can be shared across many particles. The registry stores each particle's generators together, so a step is two plain loops and removing a particle is one `Map.delete`. Generators run grouped by particle, in a fixed order, so runs repeat exactly.
 
@@ -433,12 +433,13 @@ class ParticleForceRegistry {               // Map<Particle, ParticleForceGenera
 }
 
 class ParticleGravity implements ParticleForceGenerator {
-  constructor(gravity: Vec3Like)            // force = gravity · mass
+  constructor(gravitationalAcceleration: Vec3Like)   // force = acceleration · mass
 }
 
 class ParticleWorld {
   readonly particles: Particle[] = []
-  readonly forces = new ParticleForceRegistry()
+  readonly forceRegistry = new ParticleForceRegistry()
+  readonly gravity = new Vec3(0, -9.81, 0)  // scaled by each particle's gravityScale
   remove(particle: Particle): boolean       // also removes its generators
   step(dt: number): void
 }
@@ -448,7 +449,7 @@ class ParticleWorld {
 
 #### Step 2: Drag
 
-- [ ] `src/forces/particle-drag.ts`: `ParticleDrag`
+- [x] `src/forces/particle-drag.ts`: `ParticleDrag`
 
 **Introduces:** a force that depends on velocity.
 
@@ -460,41 +461,31 @@ class ParticleDrag implements ParticleForceGenerator {
 
 **Working when:** the force at `|v| = 0` is exactly zero, not `NaN`, and a falling particle reaches the terminal speed you calculate by hand.
 
-#### Step 3: Springs and the stiffness lab
+#### Step 3: Springs
 
-- [ ] `src/forces/particle-spring.ts`: `ParticleSpring`, `ParticleAnchoredSpring`, `ParticleBungee`
-- [ ] Parameter schema in `src/playground/demos/types.ts`, and a generic panel that renders it
-- [ ] Demo: *Stiffness lab*
+- [x] `src/forces/particle-spring.ts`: `ParticleSpring`
+- [x] `src/forces/particle-anchored-spring.ts`: `ParticleAnchoredSpring`
+- [x] `src/forces/particle-bungee.ts`: `ParticleBungee`
+- [x] Demo: *Springs*
 
-**Introduces:** Hooke's law with damping, and the `ω·dt < 2` stability limit. A spring pushes only the particle it is registered on, so a spring between two moving particles is registered once on each end, each pointing at the other. Removing one end leaves the spring on the other end in place, so whoever removes a connected particle also removes the springs pointing at it.
+**Introduces:** Hooke's law. A spring pushes only the particle it is registered on, so a spring between two moving particles is registered once on each end, each pointing at the other. Removing one end leaves the spring on the other end in place, so whoever removes a connected particle also removes the springs pointing at it.
 
 ```ts
 class ParticleSpring implements ParticleForceGenerator {
-  constructor(other: Particle, springConstant: number, restLength: number, damping?: number)
+  constructor(other: Particle, springConstant: number, restLength: number)
 }
 
 class ParticleAnchoredSpring implements ParticleForceGenerator {
-  readonly anchor: Vec3                     // mutable: Step 9 drags with it
-  constructor(anchor: Vec3Like, springConstant: number, restLength: number, damping?: number)
+  readonly anchor: Vec3                     // copied at construction; mutable: Step 9 drags with it
+  constructor(anchor: Vec3Like, springConstant: number, restLength: number)
 }
 
 class ParticleBungee implements ParticleForceGenerator {
   constructor(other: Particle, springConstant: number, restLength: number)   // pulls only
 }
-
-// Demo side
-type DemoParam =
-  | { kind: 'range'; key: string; label: string; min: number; max: number; step: number; value: number }
-  | { kind: 'toggle'; key: string; label: string; value: boolean }
-
-interface Demo {
-  // ...existing members
-  readonly params?: readonly DemoParam[]
-  setParam?(key: string, value: number | boolean): void
-}
 ```
 
-**Working when:** a spring at rest length applies no force, the two ends of a stretched spring get equal and opposite forces, and the lab explodes at the stiffness you predicted from `ω·dt = 2`.
+**Working when:** a spring at rest length applies no force, the two ends of a stretched spring get equal and opposite forces, a bungee applies no force while slack, and the *Springs* demo's free pair keeps zero total momentum.
 
 #### Step 4: Buoyancy
 
@@ -622,6 +613,7 @@ class VerletSystem {
 
 - [ ] Pointer dragging: cast a ray onto the plane through the point facing the camera
 - [ ] Holding a `Particle`: pull it with `ParticleAnchoredSpring`
+- [ ] Optional `damping` along the spring axis on `ParticleSpring` and `ParticleAnchoredSpring`, so rope and cloth settle without slowing as a whole
 - [ ] Holding a `VerletPoint`: set `inverseMass = 0` while held and move it toward the pointer each step, since a `VerletSystem` has no force accumulator
 - [ ] Demo: *Rope and cloth*, with tearing when a stick's strain is too high
 
@@ -641,7 +633,7 @@ class VerletSystem {
 - **Spring between two particles:** with `d = pₐ − p_b`, `F = −k·(|d| − L)·d̂`. Add a damping term `−c·((vₐ − v_b)·d̂)·d̂`, or a stiff spring rings forever. Apply equal and opposite forces, or register the generator once per end.
 - **Bungee** is a spring that only pulls: no force when `|d| < L`.
 - **Buoyancy:** depth below the surface, `maxDepth` and `volume` give a submerged fraction; the force is `fraction · ρ · volume · g` upward.
-- **Stiffness limit.** Semi-implicit Euler is stable for a spring only while `ω·dt < 2`, with `ω = √(k/m)`. The stiffness lab demo should show the explosion happening right at that line. That's why a higher physics rate helps.
+- **Stiffness limit.** Semi-implicit Euler is stable for a spring only while `ω·dt < 2`, with `ω = √(k/m)`. The Phase 2 integrator shoot-out shows the explosion happening right at that line. That's why a higher physics rate helps.
 - **Contact resolution (velocity):** separating velocity `vₛ = (vₐ − v_b)·n`. If `vₛ > 0` they're already separating. Otherwise the target is `vₛ' = −e·vₛ`, the impulse is `(vₛ' − vₛ) / (invMₐ + invM_b)`, and each particle gets `Δv = impulse · invM · ±n`.
 - **Resting contact.** A particle resting on the ground picks up `a·dt` of downward velocity each step, which then bounces. Subtract the separating velocity caused by the last step's acceleration before applying restitution.
 - **Contact resolution (position):** move each particle out of penetration along `n`, split in proportion to inverse mass.
@@ -662,15 +654,15 @@ class VerletSystem {
 **Demos**
 - *Bridge* (Millington's mass-aggregate bridge)
 - *Rope and cloth*: drag particles with the mouse; tear the cloth if the strain is too high
-- *Stiffness lab*: raise spring stiffness until it explodes; watch it stabilize at a higher physics rate
+- *Springs*: an anchored spring you can drag, a free pair joined by a spring on each end, and a bungee
 
-**Web skills:** pointer events and raycasting from the screen to a 3D plane to drag particles. An auto-generated parameter panel: each demo declares a parameter schema (a union type such as `{ kind: 'range', key, label, min, max, step, value } | { kind: 'toggle', … }`) and the sidebar renders sliders and toggles from it.
+**Web skills:** pointer events and raycasting from the screen to a 3D plane to drag particles.
 
 ### Study
 
 **Focus on**
 - **Force accumulation (D'Alembert's principle).** Many forces become one sum per step, so generators stay independent of each other.
-- **Why stiff springs explode.** Know the `ω·dt < 2` limit and be able to predict the stiffness lab's breaking point before running it.
+- **Why stiff springs explode.** Know the `ω·dt < 2` limit and be able to predict the integrator shoot-out's breaking point before running it.
 - **Three ways to keep particles apart or together:** stiff springs (forces), contacts with impulses (Millington's rods and cables), and position projection (Jakobsen, XPBD). Each has a failure mode. The point of this phase is to feel all three.
 - **Closing velocity, restitution and the contact normal.** These ideas carry straight into Phase 6; master them here in the simple linear case.
 - **Resting contact.** Why a particle on the ground jitters, and the "remove last step's acceleration" fix.

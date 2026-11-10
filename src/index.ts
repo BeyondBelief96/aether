@@ -2,6 +2,8 @@ export { FixedStepLoop, Particle, ParticleWorld } from "./engine/index.js";
 export type { FrameResult } from "./engine/index.js";
 
 export {
+    ParticleAnchoredSpring,
+    ParticleBungee,
     ParticleDrag,
     ParticleForceRegistry,
     ParticleGravity,

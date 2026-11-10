@@ -308,12 +308,7 @@ Later phases will want a few more: a `PointMarker` (a small sphere), an `AabbOut
 
 ## 6. Giving a demo its own controls
 
-The sidebar currently has only the loop controls. A demo needs a way to put its own sliders and readouts there. The plan does this in two stages:
-
-| When | How | Why |
-|---|---|---|
-| **Phase 1** (now) | Each demo builds its own **panel element**, and the sidebar shows it. | One demo, hand-written controls. You learn how Lit components and events work before abstracting them. |
-| **Phase 3** | Demos declare a **parameter schema**, and a generic panel renders it. | By then you'll have several demos with sliders and toggles, and the repetition shows you what the schema needs. Hand-written panels stay available for the rest. |
+Each demo builds its own **panel element**, and the sidebar shows it. Panels hold readouts, charts and segmented controls as well as sliders, so they stay hand-written rather than generated from a schema. If several demos end up with near-identical panels, extract a shared one then.
 
 ### 6.1 Shell changes (once)
 
