@@ -253,9 +253,9 @@ export function disposeObject(root: Object3D): void {
  * "X" is the same color as the X arrow in the viewport.
  */
 export const AXIS_COLORS = {
-  x: 0xe5484d,
-  y: 0x46a758,
-  z: 0x3e63dd,
+  x: 0xff6b6f,
+  y: 0x6fd17f,
+  z: 0x7b9bff,
 } as const;
 
 export const ACCENT = 0x2bb5a0;

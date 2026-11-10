@@ -15,6 +15,12 @@ export const panelStyles = css`
         text-transform: uppercase;
         color: var(--muted);
     }
+    h3 {
+        margin-top: var(--space-2);
+    }
+    ::selection {
+        background: color-mix(in srgb, var(--accent) 30%, transparent);
+    }
     select,
     button {
         font: inherit;

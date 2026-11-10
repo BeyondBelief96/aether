@@ -6,10 +6,21 @@
     --border: #dde1e7;
     --text: #1b1f24;
     --muted: #5d6673;
-    --accent: #1f8f80;
+    --accent: #1a7d70;
     --accent-text: #ffffff;
     --warn: #c2410c;
     --viewport-bg: #15181d;
+
+    /* Overlays on the viewport, which is dark in both themes. */
+    --hud-bg: #1e2229;
+    --hud-border: #313844;
+    --hud-hover: #2a303a;
+    --hud-text: #e6e9ee;
+    --hud-muted: #8b95a3;
+    --hud-accent: #3cc9b4;
+    --hud-accent-hover: #5ad6c3;
+    --hud-accent-text: #0b1512;
+    --hud-warn: #fb923c;
 
     /* X red, Y green, Z blue everywhere. */
     --axis-x: #d93f45;
@@ -69,4 +80,9 @@ body {
     background: var(--bg);
     color: var(--text);
     font: 14px/1.45 var(--font);
+    -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
 }

@@ -2,8 +2,9 @@ import { LitElement, css, html } from "lit";
 import { demos } from "../demos/registry";
 import type { Demo } from "../demos/types";
 import { FixedStepLoop, type FrameResult } from "aether-physics";
-import type { LoopStats } from "./aether-sidebar";
+import type { LoopStats } from "./aether-transport";
 import "./aether-sidebar";
+import "./aether-transport";
 import "./aether-viewport";
 
 /** How often the sidebar's stats refresh. */
@@ -36,11 +37,26 @@ export class AetherApp extends LitElement {
             grid-template-columns: minmax(0, 1fr) 300px;
             height: 100dvh;
         }
+        .stage {
+            position: relative;
+            display: grid;
+            min-width: 0;
+            min-height: 0;
+        }
+        aether-transport {
+            position: absolute;
+            left: var(--space-4);
+            bottom: var(--space-4);
+        }
         @media (max-width: 720px) {
             :host {
                 grid-template-columns: 1fr;
                 grid-template-rows: 60dvh auto;
                 height: auto;
+            }
+            aether-transport {
+                left: var(--space-3);
+                bottom: var(--space-3);
             }
             aether-sidebar {
                 border-left: none;
@@ -154,19 +170,23 @@ export class AetherApp extends LitElement {
 
     override render() {
         return html`
-            <aether-viewport></aether-viewport>
+            <div class="stage">
+                <aether-viewport></aether-viewport>
+                <aether-transport
+                    .paused=${this.paused}
+                    .stats=${this.stats}
+                    @toggle-pause=${() => this.#togglePause()}
+                    @step-once=${() => this.#loop.stepOnce()}
+                    @reset=${() => this.#loadDemo(this.demoId)}
+                ></aether-transport>
+            </div>
             <aether-sidebar
                 .demos=${demos}
                 .demoId=${this.demoId}
-                .paused=${this.paused}
                 .hz=${this.hz}
                 .timeScale=${this.timeScale}
-                .stats=${this.stats}
                 .panel=${this.panel}
                 @demo-change=${(e: CustomEvent<string>) => this.#loadDemo(e.detail)}
-                @toggle-pause=${() => this.#togglePause()}
-                @step-once=${() => this.#loop.stepOnce()}
-                @reset=${() => this.#loadDemo(this.demoId)}
                 @hz-change=${(e: CustomEvent<number>) => {
                     this.#loop.hz = e.detail;
                     this.hz = e.detail;

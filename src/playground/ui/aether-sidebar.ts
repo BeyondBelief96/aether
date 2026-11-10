@@ -3,38 +3,27 @@ import type { DemoInfo } from "../demos/types";
 import { panelStyles } from "./shared-styles";
 import "./controls/aether-slider";
 
-export interface LoopStats {
-    fps: number;
-    stepsPerFrame: number;
-    simTime: number;
-    droppedTime: boolean;
-}
-
 /**
  * Controls and readouts. Holds no simulation state of its own: everything
  * comes in as properties, and every user action goes out as a bubbling event
  * for `aether-app` to handle.
  *
- * Events: `demo-change` (detail: id), `toggle-pause`, `step-once`, `reset`,
- * `hz-change` (detail: number), `time-scale-change` (detail: number).
+ * Events: `demo-change` (detail: id), `hz-change` (detail: number),
+ * `time-scale-change` (detail: number).
  */
 export class AetherSidebar extends LitElement {
     static override properties = {
         demos: { attribute: false },
         demoId: { attribute: false },
-        paused: { type: Boolean },
         hz: { type: Number },
         timeScale: { attribute: false },
-        stats: { attribute: false },
         panel: { attribute: false },
     };
 
     declare demos: readonly DemoInfo[];
     declare demoId: string;
-    declare paused: boolean;
     declare hz: number;
     declare timeScale: number;
-    declare stats: LoopStats;
     declare panel: HTMLElement | null;
 
     static override styles = [
@@ -48,6 +37,8 @@ export class AetherSidebar extends LitElement {
                 overflow-y: auto;
                 background: var(--panel);
                 border-left: 1px solid var(--border);
+                scrollbar-width: thin;
+                scrollbar-color: var(--border) transparent;
             }
             header h1 {
                 margin: 0;
@@ -69,6 +60,11 @@ export class AetherSidebar extends LitElement {
                 margin-top: auto;
                 font-size: 12px;
             }
+            @media (hover: none) {
+                footer {
+                    display: none;
+                }
+            }
             kbd {
                 font-family: var(--mono);
                 border: 1px solid var(--border);
@@ -82,15 +78,8 @@ export class AetherSidebar extends LitElement {
         super();
         this.demos = [];
         this.demoId = "";
-        this.paused = false;
         this.hz = 60;
         this.timeScale = 1;
-        this.stats = {
-            fps: 0,
-            stepsPerFrame: 0,
-            simTime: 0,
-            droppedTime: false,
-        };
         this.panel = null;
     }
 
@@ -100,10 +89,6 @@ export class AetherSidebar extends LitElement {
 
     override render() {
         const current = this.demos.find((d) => d.id === this.demoId);
-        const { fps, stepsPerFrame, simTime, droppedTime } = this.stats;
-        // Built here because dd is `white-space: pre`: if Prettier wrapped this inside the
-        // template, the line breaks and indentation would render as text.
-        const steps = stepsPerFrame.toFixed(2);
 
         return html`
             <header>
@@ -139,15 +124,6 @@ export class AetherSidebar extends LitElement {
 
             <section>
                 <h2>Simulation</h2>
-                <div class="buttons">
-                    <button class="primary" @click=${() => this.#emit("toggle-pause")}>
-                        ${this.paused ? "Play" : "Pause"}
-                    </button>
-                    <button ?disabled=${!this.paused} @click=${() => this.#emit("step-once")}>
-                        Step
-                    </button>
-                    <button @click=${() => this.#emit("reset")}>Reset</button>
-                </div>
                 <aether-slider
                     label="Physics rate"
                     min="5"
@@ -169,18 +145,6 @@ export class AetherSidebar extends LitElement {
                     @value-change=${(e: CustomEvent<number>) =>
                         this.#emit("time-scale-change", e.detail)}
                 ></aether-slider>
-            </section>
-
-            <section>
-                <h2>Stats</h2>
-                <dl>
-                    <dt>Frame rate</dt>
-                    <dd>${fps.toFixed(0)} fps</dd>
-                    <dt>Steps / frame</dt>
-                    <dd class=${droppedTime ? "warn" : ""}>${steps}</dd>
-                    <dt>Sim time</dt>
-                    <dd>${simTime.toFixed(2)} s</dd>
-                </dl>
             </section>
 
             <footer><kbd>Space</kbd> pause · <kbd>.</kbd> step · <kbd>R</kbd> reset</footer>

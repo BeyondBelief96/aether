@@ -1,12 +1,12 @@
 /**
- * Viewport colors. The axis colors match the --axis-* tokens in styles.css, so a
- * slider labelled "X" is the same red as the X arrow. Three.js can't read CSS
- * variables cheaply, so keep the two in step by hand.
+ * Viewport colors. The axis colors match the dark --axis-* tokens in styles.css, since the
+ * viewport is always dark, so a slider labelled "X" is the same red as the X arrow. Three.js
+ * can't read CSS variables cheaply, so keep the two in step by hand.
  */
 export const AXIS_COLORS = {
-    x: 0xe5484d,
-    y: 0x46a758,
-    z: 0x3e63dd,
+    x: 0xff6b6f,
+    y: 0x6fd17f,
+    z: 0x7b9bff,
 } as const;
 
 /** Matches the --series-* tokens in styles.css (dark values, since the viewport is always dark). */
