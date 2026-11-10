@@ -1,6 +1,6 @@
 import type { Particle } from "../engine/index.js";
 import { Vec3, type Vec3Like } from "../math/index.js";
-import type { ParticleForceGenerator } from "./particle-force.js";
+import type { ParticleForceGenerator } from "./particle-force-generator.js";
 
 const _force = new Vec3();
 
@@ -19,7 +19,6 @@ export function addGravityForce(particle: Particle, acceleration: Vec3Like, scal
 
 /** Applies a constant gravitational acceleration as a force proportional to mass. Immovable particles are skipped. */
 export class ParticleGravity implements ParticleForceGenerator {
-    /** Acceleration in m/s². */
     private readonly gravitationalAcceleration = new Vec3();
 
     /**
@@ -29,12 +28,6 @@ export class ParticleGravity implements ParticleForceGenerator {
         this.gravitationalAcceleration.copy(gravitationalAcceleration);
     }
 
-    /**
-     * Adds `mass · gravitationalAcceleration` to `particle`.
-     *
-     * @param particle Particle to act on.
-     * @param _dt Unused.
-     */
     updateForce(particle: Particle, _dt: number): void {
         addGravityForce(particle, this.gravitationalAcceleration, 1);
     }

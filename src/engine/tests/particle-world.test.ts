@@ -69,10 +69,6 @@ describe("ParticleWorld", () => {
         expect(() => world.step(0)).toThrow(RangeError);
     });
 
-    it("starts with an empty force registry", () => {
-        expect(new ParticleWorld().forceRegistry.size).toBe(0);
-    });
-
     it("applies gravity scaled by each particle's gravityScale", () => {
         const world = new ParticleWorld();
         world.gravity.set(0, -10, 0);
@@ -147,7 +143,7 @@ describe("ParticleWorld", () => {
         expect(removed.position).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
     });
 
-    it("drops every force acting on a removed particle", () => {
+    it("drops the forces registered on a removed particle", () => {
         const world = new ParticleWorld();
         const a = new Particle();
         const b = new Particle();
@@ -155,21 +151,22 @@ describe("ParticleWorld", () => {
         const calls: string[] = [];
         world.forceRegistry.add(a, { updateForce: () => void calls.push("on a") });
         world.forceRegistry.add(b, { updateForce: () => void calls.push("on b") });
-        world.forceRegistry.add({ apply: () => void calls.push("a–b"), particles: [a, b] });
 
         world.remove(a);
         world.step(1 / 60);
 
-        expect(world.forceRegistry.size).toBe(1);
         expect(calls).toEqual(["on b"]);
     });
 
     it("leaves forces alone when removing a particle it does not contain", () => {
         const world = new ParticleWorld();
         const outsider = new Particle();
-        world.forceRegistry.add(outsider, { updateForce: () => {} });
+        const calls: string[] = [];
+        world.forceRegistry.add(outsider, { updateForce: () => void calls.push("outsider") });
 
         expect(world.remove(outsider)).toBe(false);
-        expect(world.forceRegistry.size).toBe(1);
+        world.step(1 / 60);
+
+        expect(calls).toEqual(["outsider"]);
     });
 });

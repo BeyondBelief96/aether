@@ -411,31 +411,25 @@ Forces come first because they only extend the integrator you already have. Cont
 
 #### Step 1: Force generators and the registry
 
-- [ ] `src/forces/particle-force.ts`: `ParticleForceGenerator` and `ParticleForce`
+- [ ] `src/forces/particle-force-generator.ts`: `ParticleForceGenerator`
 - [ ] `src/forces/particle-force-registry.ts`: `ParticleForceRegistry`
 - [ ] `src/forces/particle-gravity.ts`: `ParticleGravity`
 - [ ] `ParticleWorld.step` runs the registry, then integrates
-- [ ] `ParticleWorld.remove` drops a particle and every force acting on it
+- [ ] `ParticleWorld.remove` drops a particle and every generator registered on it
 
-**Introduces:** two kinds of force. A `ParticleForceGenerator` holds only parameters, so one instance can be shared across many particles. A `ParticleForce` holds its own particles, so a force with two ends, like a spring, is computed once and applies equal and opposite forces. The registry runs both, and removing a particle removes every force whose `particles` include it, so nothing keeps acting on, or holding a reference to, a removed particle.
+**Introduces:** force generators. A `ParticleForceGenerator` adds a force to whichever particle it is given, so one that holds only parameters, like drag, can be shared across many particles. The registry stores each particle's generators together, so a step is two plain loops and removing a particle is one `Map.delete`. Generators run grouped by particle, in a fixed order, so runs repeat exactly.
 
 ```ts
-interface ParticleForceGenerator {          // shared: drag, buoyancy
+interface ParticleForceGenerator {
   updateForce(particle: Particle, dt: number): void
 }
 
-interface ParticleForce {                   // owns its particles: springs
-  apply(dt: number): void
-  readonly particles: readonly Particle[]   // fixed while registered; indexes removal
-}
-
-class ParticleForceRegistry {
-  add(force: ParticleForce): ParticleForce   // no-op if already registered
-  add(particle: Particle, generator: ParticleForceGenerator): ParticleForce   // returns a handle
-  remove(force: ParticleForce): boolean     // a force, or a handle from add
-  removeParticle(particle: Particle): number
+class ParticleForceRegistry {               // Map<Particle, ParticleForceGenerator[]>
+  add(particle: Particle, generator: ParticleForceGenerator): void
+  remove(particle: Particle, generator: ParticleForceGenerator): boolean
+  removeParticle(particle: Particle): boolean
   clear(): void
-  updateForces(dt: number): void            // insertion order, so runs repeat exactly
+  updateForces(dt: number): void            // grouped by particle, fixed order
 }
 
 class ParticleGravity implements ParticleForceGenerator {
@@ -445,12 +439,12 @@ class ParticleGravity implements ParticleForceGenerator {
 class ParticleWorld {
   readonly particles: Particle[] = []
   readonly forces = new ParticleForceRegistry()
-  remove(particle: Particle): boolean       // also removes its forces
+  remove(particle: Particle): boolean       // also removes its generators
   step(dt: number): void
 }
 ```
 
-**Working when:** `ParticleGravity` on a particle with `gravityScale = 0` gives the same trajectory as the world's built-in gravity, a particle with `inverseMass = 0` doesn't move, and removing a particle from the world leaves no force in the registry that involves it.
+**Working when:** `ParticleGravity` on a particle with `gravityScale = 0` gives the same trajectory as the world's built-in gravity, a particle with `inverseMass = 0` doesn't move, and removing a particle from the world leaves no generator registered on it.
 
 #### Step 2: Drag
 
@@ -472,20 +466,20 @@ class ParticleDrag implements ParticleForceGenerator {
 - [ ] Parameter schema in `src/playground/demos/types.ts`, and a generic panel that renders it
 - [ ] Demo: *Stiffness lab*
 
-**Introduces:** Hooke's law with damping, a `ParticleForce` that holds both ends and applies `+F` and `−F` from one calculation, and the `ω·dt < 2` stability limit.
+**Introduces:** Hooke's law with damping, and the `ω·dt < 2` stability limit. A spring pushes only the particle it is registered on, so a spring between two moving particles is registered once on each end, each pointing at the other. Removing one end leaves the spring on the other end in place, so whoever removes a connected particle also removes the springs pointing at it.
 
 ```ts
-class ParticleSpring implements ParticleForce {
-  constructor(a: Particle, b: Particle, stiffness: number, restLength: number, damping?: number)
+class ParticleSpring implements ParticleForceGenerator {
+  constructor(other: Particle, springConstant: number, restLength: number, damping?: number)
 }
 
-class ParticleAnchoredSpring implements ParticleForce {
+class ParticleAnchoredSpring implements ParticleForceGenerator {
   readonly anchor: Vec3                     // mutable: Step 9 drags with it
-  constructor(particle: Particle, anchor: Vec3Like, stiffness: number, restLength: number, damping?: number)
+  constructor(anchor: Vec3Like, springConstant: number, restLength: number, damping?: number)
 }
 
-class ParticleBungee implements ParticleForce {
-  constructor(a: Particle, b: Particle, stiffness: number, restLength: number)   // pulls only
+class ParticleBungee implements ParticleForceGenerator {
+  constructor(other: Particle, springConstant: number, restLength: number)   // pulls only
 }
 
 // Demo side

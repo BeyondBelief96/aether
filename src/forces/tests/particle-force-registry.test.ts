@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Particle } from "../../engine";
-import type { ParticleForce, ParticleForceGenerator } from "../particle-force";
+import type { ParticleForceGenerator } from "../particle-force-generator";
 import { ParticleForceRegistry } from "../particle-force-registry";
-
-/** A force on `particles` that records each call into `log`. */
-function force(particles: Particle[], name: string, log: string[]): ParticleForce {
-    return { particles, apply: () => void log.push(name) };
-}
 
 /** A generator that records each call into `log`. */
 function recorder(name: string, log: string[]): ParticleForceGenerator {
@@ -16,7 +11,6 @@ function recorder(name: string, log: string[]): ParticleForceGenerator {
 describe("ParticleForceRegistry", () => {
     it("starts empty", () => {
         const registry = new ParticleForceRegistry();
-        expect(registry.size).toBe(0);
         expect(() => registry.updateForces(1 / 60)).not.toThrow();
     });
 
@@ -31,31 +25,50 @@ describe("ParticleForceRegistry", () => {
         expect(calls).toEqual([[particle, 0.25]]);
     });
 
-    it("passes dt to forces that hold their own particles", () => {
-        const registry = new ParticleForceRegistry();
-        const calls: number[] = [];
-        registry.add({ particles: [], apply: (dt) => void calls.push(dt) });
-
-        registry.updateForces(0.25);
-
-        expect(calls).toEqual([0.25]);
-    });
-
-    it("runs both kinds of registration in the order they were added", () => {
+    it("runs a particle's generators in the order they were added", () => {
         const registry = new ParticleForceRegistry();
         const log: string[] = [];
-        const a = new Particle();
-        const b = new Particle();
-        registry.add(a, recorder("generator", log));
-        registry.add(force([a, b], "pair", log));
-        registry.add(b, recorder("generator 2", log));
+        const p = new Particle();
+        registry.add(p, recorder("a", log));
+        registry.add(p, recorder("b", log));
+        registry.add(p, recorder("c", log));
 
         registry.updateForces(1 / 60);
 
-        expect(log).toEqual(["generator", "pair", "generator 2"]);
+        expect(log).toEqual(["a", "b", "c"]);
     });
 
-    it("applies a generator pair added twice twice", () => {
+    it("groups generators by particle, in the order particles were first registered", () => {
+        const registry = new ParticleForceRegistry();
+        const log: string[] = [];
+        const p = new Particle();
+        const q = new Particle();
+        registry.add(p, recorder("p1", log));
+        registry.add(q, recorder("q1", log));
+        registry.add(p, recorder("p2", log));
+
+        registry.updateForces(1 / 60);
+
+        expect(log).toEqual(["p1", "p2", "q1"]);
+    });
+
+    it("shares one generator across particles", () => {
+        const registry = new ParticleForceRegistry();
+        const p = new Particle();
+        const q = new Particle();
+        const seen: Particle[] = [];
+        const shared: ParticleForceGenerator = {
+            updateForce: (particle) => void seen.push(particle),
+        };
+        registry.add(p, shared);
+        registry.add(q, shared);
+
+        registry.updateForces(1 / 60);
+
+        expect(seen).toEqual([p, q]);
+    });
+
+    it("applies a pair added twice twice", () => {
         const registry = new ParticleForceRegistry();
         const log: string[] = [];
         const p = new Particle();
@@ -65,159 +78,99 @@ describe("ParticleForceRegistry", () => {
 
         registry.updateForces(1 / 60);
 
-        expect(registry.size).toBe(2);
         expect(log).toEqual(["g", "g"]);
     });
 
-    it("ignores a force added again", () => {
-        const registry = new ParticleForceRegistry();
-        const log: string[] = [];
-        const f = force([new Particle()], "f", log);
-
-        expect(registry.add(f)).toBe(f);
-        expect(registry.add(f)).toBe(f);
-        registry.updateForces(1 / 60);
-
-        expect(registry.size).toBe(1);
-        expect(log).toEqual(["f"]);
-    });
-
-    it("removes a generator registration by its handle", () => {
+    it("removes a registered pair", () => {
         const registry = new ParticleForceRegistry();
         const log: string[] = [];
         const p = new Particle();
         const g = recorder("g", log);
-        const first = registry.add(p, g);
         registry.add(p, g);
 
-        expect(registry.remove(first)).toBe(true);
-        expect(registry.remove(first)).toBe(false);
-        registry.updateForces(1 / 60);
-
-        expect(registry.size).toBe(1);
-        expect(log).toEqual(["g"]);
-    });
-
-    it("removes a force by reference", () => {
-        const registry = new ParticleForceRegistry();
-        const log: string[] = [];
-        const f = force([new Particle(), new Particle()], "pair", log);
-        registry.add(f);
-
-        expect(registry.remove(f)).toBe(true);
-        expect(registry.remove(f)).toBe(false);
+        expect(registry.remove(p, g)).toBe(true);
+        expect(registry.remove(p, g)).toBe(false);
         registry.updateForces(1 / 60);
 
         expect(log).toEqual([]);
     });
 
-    it("leaves everything in place when removing an unregistered force", () => {
+    it("removes only the first of a duplicated pair", () => {
         const registry = new ParticleForceRegistry();
         const log: string[] = [];
-        registry.add(force([], "a", log));
+        const p = new Particle();
+        const g = recorder("g", log);
+        registry.add(p, g);
+        registry.add(p, g);
 
-        expect(registry.remove(force([], "missing", log))).toBe(false);
+        registry.remove(p, g);
         registry.updateForces(1 / 60);
 
-        expect(log).toEqual(["a"]);
+        expect(log).toEqual(["g"]);
+    });
+
+    it("matches on both the particle and the generator", () => {
+        const registry = new ParticleForceRegistry();
+        const log: string[] = [];
+        const a = new Particle();
+        const b = new Particle();
+        const g = recorder("g", log);
+        const h = recorder("h", log);
+        registry.add(a, g);
+        registry.add(b, h);
+
+        expect(registry.remove(a, h)).toBe(false);
+        expect(registry.remove(b, g)).toBe(false);
+        expect(registry.remove(new Particle(), g)).toBe(false);
+        registry.updateForces(1 / 60);
+
+        expect(log).toEqual(["g", "h"]);
     });
 
     it("keeps the remaining order after a removal", () => {
         const registry = new ParticleForceRegistry();
         const log: string[] = [];
         const p = new Particle();
+        const b = recorder("b", log);
         registry.add(p, recorder("a", log));
-        const b = registry.add(p, recorder("b", log));
+        registry.add(p, b);
         registry.add(p, recorder("c", log));
-        registry.add(p, recorder("d", log));
 
-        registry.remove(b);
+        registry.remove(p, b);
         registry.updateForces(1 / 60);
 
-        expect(log).toEqual(["a", "c", "d"]);
+        expect(log).toEqual(["a", "c"]);
     });
 
-    it("removes every force acting on a particle and keeps the rest in order", () => {
+    it("removes every generator registered on a particle", () => {
         const registry = new ParticleForceRegistry();
         const log: string[] = [];
         const a = new Particle();
         const b = new Particle();
-        const c = new Particle();
-        registry.add(a, recorder("on a", log));
-        registry.add(b, recorder("on b", log));
-        registry.add(force([a, c], "a–c", log));
-        registry.add(force([b, c], "b–c", log));
-        registry.add(c, recorder("on c", log));
+        registry.add(a, recorder("a1", log));
+        registry.add(b, recorder("b1", log));
+        registry.add(a, recorder("a2", log));
 
-        expect(registry.removeParticle(a)).toBe(2);
-        expect(registry.removeParticle(a)).toBe(0);
+        expect(registry.removeParticle(a)).toBe(true);
+        expect(registry.removeParticle(a)).toBe(false);
         registry.updateForces(1 / 60);
 
-        expect(registry.size).toBe(3);
-        expect(log).toEqual(["on b", "b–c", "on c"]);
+        expect(log).toEqual(["b1"]);
     });
 
-    it("drops a removed force from the index of its other particles", () => {
-        const registry = new ParticleForceRegistry();
-        const a = new Particle();
-        const b = new Particle();
-        registry.add(force([a, b], "a–b", []));
-
-        registry.removeParticle(a);
-
-        expect(registry.removeParticle(b)).toBe(0);
-    });
-
-    it("removes nothing for a particle with no forces", () => {
-        const registry = new ParticleForceRegistry();
-        registry.add(new Particle(), recorder("a", []));
-        expect(registry.removeParticle(new Particle())).toBe(0);
-        expect(registry.size).toBe(1);
-    });
-
-    it("skips a force removed by an earlier force in the same step", () => {
+    it("finishes the step when a generator removes a later one", () => {
         const registry = new ParticleForceRegistry();
         const log: string[] = [];
         const p = new Particle();
-        let victim: ParticleForce | undefined;
-        registry.add(p, { updateForce: () => void (victim && registry.remove(victim)) });
-        victim = registry.add(p, recorder("victim", log));
+        const victim = recorder("victim", log);
+        registry.add(p, { updateForce: () => void registry.remove(p, victim) });
+        registry.add(p, victim);
         registry.add(p, recorder("after", log));
 
         registry.updateForces(1 / 60);
         registry.updateForces(1 / 60);
 
-        expect(registry.size).toBe(2);
-        expect(log).toEqual(["after", "after"]);
-    });
-
-    it("runs a force added by an earlier force in the same step", () => {
-        const registry = new ParticleForceRegistry();
-        const log: string[] = [];
-        const late = force([], "late", log);
-        registry.add(force([], "early", log)).apply = () => {
-            log.push("early");
-            registry.add(late);
-        };
-
-        registry.updateForces(1 / 60);
-
-        expect(log).toEqual(["early", "late"]);
-    });
-
-    it("keeps order across removals and later additions", () => {
-        const registry = new ParticleForceRegistry();
-        const log: string[] = [];
-        const p = new Particle();
-        const q = new Particle();
-        registry.add(p, recorder("a", log));
-        registry.add(q, recorder("b", log));
-        registry.removeParticle(p);
-        registry.add(p, recorder("c", log));
-
-        registry.updateForces(1 / 60);
-
-        expect(log).toEqual(["b", "c"]);
+        expect(log).toEqual(["victim", "after", "after"]);
     });
 
     it("clears every registration", () => {
@@ -225,13 +178,12 @@ describe("ParticleForceRegistry", () => {
         const log: string[] = [];
         const p = new Particle();
         registry.add(p, recorder("a", log));
-        registry.add(force([p], "b", log));
+        registry.add(new Particle(), recorder("b", log));
 
         registry.clear();
         registry.updateForces(1 / 60);
 
-        expect(registry.size).toBe(0);
-        expect(registry.removeParticle(p)).toBe(0);
+        expect(registry.removeParticle(p)).toBe(false);
         expect(log).toEqual([]);
     });
 });

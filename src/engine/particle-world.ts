@@ -7,17 +7,17 @@ import type { Particle } from "./particle.js";
 export class ParticleWorld {
     /**
      * Particles in this world, integrated in array order. Push to add one; use `remove`
-     * to take one out, so the forces acting on it are dropped too.
+     * to take one out, so the generators registered on it are dropped too.
      */
     readonly particles: Particle[] = [];
-    /** Forces applied to particles at the start of each step. */
+    /** Force generators applied to particles at the start of each step. */
     readonly forceRegistry = new ParticleForceRegistry();
     /** Gravitational acceleration in m/s², scaled by each particle's `gravityScale`. */
     readonly gravity = new Vec3(0, -9.81, 0);
 
     /**
-     * Removes `particle` and every force acting on it, including a spring whose other end
-     * stays in the world.
+     * Removes `particle` and every generator registered on it. Generators on other particles
+     * that refer to it, such as the far end of a spring, must be removed by the caller.
      *
      * @param particle Particle to remove.
      * @returns Whether `particle` was in this world.

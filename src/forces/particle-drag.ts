@@ -1,6 +1,6 @@
 import type { Particle } from "../engine/index.js";
 import { Vec3 } from "../math/index.js";
-import type { ParticleForceGenerator } from "./particle-force.js";
+import type { ParticleForceGenerator } from "./particle-force-generator.js";
 
 const _force = new Vec3();
 

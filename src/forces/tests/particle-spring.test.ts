@@ -10,74 +10,72 @@ function at(x: number, y: number, z: number): Particle {
 }
 
 describe("ParticleSpring", () => {
-    it("pulls stretched ends together with k·(length − rest)", () => {
-        const a = at(0, 0, 0);
-        const b = at(3, 0, 0);
-        new ParticleSpring(a, b, 2, 1).apply(1 / 60);
+    it("pulls a stretched particle toward the other end with k·(length − rest)", () => {
+        const p = at(3, 0, 0);
+        new ParticleSpring(at(0, 0, 0), 2, 1).updateForce(p, 1 / 60);
 
         // stretch = 2, |F| = 4
-        expect(a.forceAccum).toBeCloseToVec3({ x: 4, y: 0, z: 0 });
-        expect(b.forceAccum).toBeCloseToVec3({ x: -4, y: 0, z: 0 });
+        expect(p.forceAccum).toBeCloseToVec3({ x: -4, y: 0, z: 0 });
     });
 
-    it("pushes compressed ends apart", () => {
-        const a = at(0, 0, 0);
-        const b = at(0, 1, 0);
-        new ParticleSpring(a, b, 10, 3).apply(1 / 60);
+    it("pushes a compressed particle away from the other end", () => {
+        const p = at(0, 1, 0);
+        new ParticleSpring(at(0, 0, 0), 10, 3).updateForce(p, 1 / 60);
 
         // compression = 2, |F| = 20
-        expect(a.forceAccum).toBeCloseToVec3({ x: 0, y: -20, z: 0 });
-        expect(b.forceAccum).toBeCloseToVec3({ x: 0, y: 20, z: 0 });
+        expect(p.forceAccum).toBeCloseToVec3({ x: 0, y: 20, z: 0 });
     });
 
     it("applies no force at rest length", () => {
-        const a = at(0, 0, 0);
-        const b = at(3, 4, 0);
-        new ParticleSpring(a, b, 5, 5).apply(1 / 60);
-        expect(a.forceAccum).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
-        expect(b.forceAccum).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
+        const p = at(3, 4, 0);
+        new ParticleSpring(at(0, 0, 0), 5, 5).updateForce(p, 1 / 60);
+        expect(p.forceAccum).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
     });
 
     it("acts along the line between the ends", () => {
-        const a = at(0, 0, 0);
-        const b = at(3, 4, 0);
-        new ParticleSpring(a, b, 1, 0).apply(1 / 60);
+        const p = at(3, 4, 0);
+        new ParticleSpring(at(0, 0, 0), 1, 0).updateForce(p, 1 / 60);
 
-        // stretch = 5, |F| = 5 along (0.6, 0.8, 0)
-        expect(a.forceAccum).toBeCloseToVec3({ x: 3, y: 4, z: 0 });
-        expect(b.forceAccum).toBeCloseToVec3({ x: -3, y: -4, z: 0 });
+        // stretch = 5, |F| = 5 along −(0.6, 0.8, 0)
+        expect(p.forceAccum).toBeCloseToVec3({ x: -3, y: -4, z: 0 });
     });
 
-    it("still pushes the movable end when the other is immovable", () => {
-        const anchor = at(0, 0, 0);
-        anchor.setMass(Infinity);
-        const bob = at(0, -2, 0);
-        new ParticleSpring(anchor, bob, 3, 1).apply(1 / 60);
+    it("gives equal and opposite forces when registered on both ends", () => {
+        const a = at(0, 0, 0);
+        const b = at(1, 2, 2);
+        new ParticleSpring(b, 4, 1).updateForce(a, 1 / 60);
+        new ParticleSpring(a, 4, 1).updateForce(b, 1 / 60);
 
-        expect(anchor.forceAccum).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
-        expect(bob.forceAccum).toBeCloseToVec3({ x: 0, y: 3, z: 0 });
+        expect(a.forceAccum).toBeCloseToVec3({
+            x: -b.forceAccum.x,
+            y: -b.forceAccum.y,
+            z: -b.forceAccum.z,
+        });
+    });
+
+    it("does not push the other end", () => {
+        const other = at(0, 0, 0);
+        new ParticleSpring(other, 1, 0).updateForce(at(1, 0, 0), 1 / 60);
+        expect(other.forceAccum).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
+    });
+
+    it("skips immovable particles", () => {
+        const p = at(2, 0, 0);
+        p.setMass(Infinity);
+        new ParticleSpring(at(0, 0, 0), 1, 0).updateForce(p, 1 / 60);
+        expect(p.forceAccum).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
     });
 
     it("skips coincident ends", () => {
-        const a = at(1, 1, 1);
-        const b = at(1, 1, 1);
-        new ParticleSpring(a, b, 1, 1).apply(1 / 60);
-        expect(a.forceAccum).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
-        expect(b.forceAccum).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
-    });
-
-    it("lists both ends as its particles", () => {
-        const a = at(0, 0, 0);
-        const b = at(1, 0, 0);
-        expect(new ParticleSpring(a, b, 1, 1).particles).toEqual([a, b]);
+        const p = at(1, 1, 1);
+        new ParticleSpring(at(1, 1, 1), 1, 1).updateForce(p, 1 / 60);
+        expect(p.forceAccum).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
     });
 
     it("rejects invalid parameters", () => {
-        const a = new Particle();
-        const b = new Particle();
-        expect(() => new ParticleSpring(a, a, 1, 1)).toThrow(RangeError);
-        expect(() => new ParticleSpring(a, b, -1, 1)).toThrow(RangeError);
-        expect(() => new ParticleSpring(a, b, 1, -1)).toThrow(RangeError);
-        expect(() => new ParticleSpring(a, b, NaN, 1)).toThrow(RangeError);
+        const other = new Particle();
+        expect(() => new ParticleSpring(other, -1, 1)).toThrow(RangeError);
+        expect(() => new ParticleSpring(other, 1, -1)).toThrow(RangeError);
+        expect(() => new ParticleSpring(other, NaN, 1)).toThrow(RangeError);
     });
 });
