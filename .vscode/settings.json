@@ -1,0 +1,8 @@
+{
+    "typescript.preferences.importModuleSpecifierEnding": "js",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+}

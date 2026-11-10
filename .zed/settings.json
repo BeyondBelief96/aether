@@ -1,0 +1,13 @@
+{
+    "tab_size": 4,
+    "hard_tabs": false,
+    "format_on_save": "on",
+    "languages": {
+        "TypeScript": { "tab_size": 4 },
+        "JavaScript": { "tab_size": 4 },
+        "JSON": { "tab_size": 4 },
+        "YAML": { "tab_size": 4 },
+        "HTML": { "tab_size": 4 },
+        "CSS": { "tab_size": 4 }
+    }
+}
