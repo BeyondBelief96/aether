@@ -104,11 +104,9 @@ const params = {
 export const rotationDemo = defineDemo({
     id: "rotation",
     title: "Rotation",
-    category: "foundations",
-    summary:
-        "A body turned by one quaternion, set from an axis and angle or from Euler angles. " +
-        "Drag the grey tip to aim the axis.",
-    hint: "Choose Gimbal lock, then move X and Z: both turn the body about the same axis.",
+    category: "rigid-bodies",
+    summary: "One quaternion, two ways to set it.",
+    hint: "Pick Gimbal lock, then move X and Z. Same spin.",
     params,
     presets: [
         {
@@ -125,7 +123,7 @@ export const rotationDemo = defineDemo({
         { label: "Gimbal lock", note: "Y at 90°", values: { mode: "euler", x: 30, y: 90, z: 45 } },
     ],
     camera: { position: { x: 4.5, y: 4, z: 6 }, target: { x: 0, y: 1.2, z: 0 } },
-    source: "apps/editor/src/demos/foundations/rotation.ts",
+    source: "apps/editor/src/demos/rigid-bodies/rotation.ts",
     create({ root, view, palette, values, set }) {
         let current = values;
         const q = new Quaternion();

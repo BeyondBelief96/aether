@@ -3,11 +3,18 @@ import type { Vec3Like } from "aether-physics";
 import type { ParamSchema, ParamValues } from "./params";
 import type { ScenePalette } from "../stage/palette";
 
-/** Demo categories, in the order the app lists them. */
+/**
+ * Demo categories, grouped by what the demo simulates, in the order the app lists them. The list
+ * covers the whole roadmap; a category appears in the app once a demo uses it. Each category's
+ * demos live in `demos/<id>/`.
+ */
 export const CATEGORIES = [
-    { id: "foundations", label: "Foundations" },
     { id: "particles", label: "Particles" },
-    { id: "forces", label: "Forces" },
+    { id: "soft-bodies", label: "Soft bodies" },
+    { id: "fluids", label: "Fluids" },
+    { id: "rigid-bodies", label: "Rigid bodies" },
+    { id: "collisions", label: "Collisions" },
+    { id: "joints", label: "Joints" },
 ] as const;
 
 export type CategoryId = (typeof CATEGORIES)[number]["id"];

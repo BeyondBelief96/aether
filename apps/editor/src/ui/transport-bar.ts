@@ -1,8 +1,7 @@
 import { css, html, LitElement, type PropertyDeclarations } from "lit";
-import type { LoopStats } from "../core/session";
+import { PHYSICS_RATES as RATES, type LoopStats } from "../core/session";
 import { baseStyles, icons } from "./shared";
 
-const RATES = [10, 15, 30, 60, 120, 240] as const;
 const SCALES = [0.1, 0.25, 0.5, 1, 2] as const;
 
 /**
@@ -15,12 +14,14 @@ export class TransportBar extends LitElement {
         paused: { type: Boolean },
         hz: { type: Number },
         timeScale: { type: Number },
+        interpolate: { type: Boolean },
         stats: { attribute: false },
     };
 
     declare paused: boolean;
     declare hz: number;
     declare timeScale: number;
+    declare interpolate: boolean;
     declare stats: LoopStats;
 
     static override styles = [
@@ -64,6 +65,35 @@ export class TransportBar extends LitElement {
                 background: var(--paper);
                 color: var(--ink);
             }
+            .check {
+                gap: 8px;
+                min-height: 36px;
+                font: 600 var(--text-small) / 1 var(--sans);
+                cursor: pointer;
+            }
+            .check input {
+                appearance: none;
+                display: grid;
+                place-content: center;
+                width: 18px;
+                height: 18px;
+                margin: 0;
+                border: 1px solid var(--rule-strong);
+                border-radius: var(--radius);
+                cursor: pointer;
+            }
+            .check input:checked {
+                background: var(--ink);
+            }
+            .check input:checked::after {
+                content: "";
+                width: 9px;
+                height: 5px;
+                margin-top: -2px;
+                border: solid var(--paper);
+                border-width: 0 0 2px 2px;
+                transform: rotate(-45deg);
+            }
             .stats {
                 margin-left: auto;
                 display: flex;
@@ -97,6 +127,7 @@ export class TransportBar extends LitElement {
         this.paused = false;
         this.hz = 60;
         this.timeScale = 1;
+        this.interpolate = true;
         this.stats = { fps: 0, stepsPerFrame: 0, simTime: 0, droppedTime: false };
     }
 
@@ -155,6 +186,17 @@ export class TransportBar extends LitElement {
                     >
                         ${SCALES.map((k) => html`<option value=${k} ?selected=${k === this.timeScale}>${k}×</option>`)}
                     </select>
+                </label>
+                <label
+                    class="check"
+                    title="Draw between physics steps. Off, motion jumps from step to step at low rates."
+                >
+                    <input
+                        type="checkbox"
+                        .checked=${this.interpolate}
+                        @change=${(e: Event) => this.#emit("interpolate-change", (e.target as HTMLInputElement).checked)}
+                    />
+                    <span>Smooth</span>
                 </label>
             </div>
             <div class="stats" aria-live="off">

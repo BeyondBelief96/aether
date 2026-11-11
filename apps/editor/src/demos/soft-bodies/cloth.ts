@@ -15,6 +15,7 @@ import { defineDemo } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { choice, number } from "../../core/params";
 import { DragHandle } from "../helpers/drag-handle";
+import { substepsFor } from "../helpers/substeps";
 import { ClothSim, type PinMode } from "./cloth-sim";
 
 /**
@@ -27,7 +28,7 @@ const SIZE = 18;
 const SPACING = 0.28; // m
 const MASS = 0.05; // kg per particle
 const TOP = 6.5; // m
-const SUBSTEPS = 4;
+const MAX_SUBSTEP = 1 / 240; // s; keeps the stiffest links stable at any physics rate
 const PIN_SIZE = 0.22; // m
 
 const _hit = new Vector3();
@@ -58,11 +59,9 @@ const params = {
 export const clothDemo = defineDemo({
     id: "cloth",
     title: "Cloth",
-    category: "forces",
-    summary:
-        "324 particles and 2,380 springs, blown by a wind written as a custom force generator. " +
-        "Drag a pin to move the cloth.",
-    hint: "Choose One pin, then drag it across the stage.",
+    category: "soft-bodies",
+    summary: "A sheet of 324 particles and 2,380 springs, out in the wind.",
+    hint: "Choose One pin, then drag it around.",
     params,
     presets: [
         {
@@ -79,7 +78,7 @@ export const clothDemo = defineDemo({
         { label: "Loose", note: "Soft, one pin", values: { wind: 3, pins: "one", stiffness: 150 } },
     ],
     camera: { position: { x: 5.5, y: 5, z: 11 }, target: { x: 0, y: 3.6, z: 1 } },
-    source: "apps/editor/src/demos/forces/cloth.ts",
+    source: "apps/editor/src/demos/soft-bodies/cloth.ts",
     create({ root, view, palette, values }) {
         let current = values;
         let dt = 1 / 60;
@@ -164,7 +163,7 @@ export const clothDemo = defineDemo({
             step(stepDt) {
                 dt = stepDt;
                 remember();
-                cloth.step(stepDt, SUBSTEPS);
+                cloth.step(stepDt, substepsFor(stepDt, MAX_SUBSTEP));
             },
             sync(alpha) {
                 cloth.particles.forEach((p, i) => {
@@ -193,11 +192,15 @@ export const clothDemo = defineDemo({
                 {
                     title: "Stepping",
                     rows: [
-                        { label: "Substeps per step", value: String(SUBSTEPS) },
+                        {
+                            label: "Substeps per step",
+                            value: String(substepsFor(dt, MAX_SUBSTEP)),
+                        },
                         {
                             label: "Link ω·h",
                             value: formatNumber(
-                                (Math.sqrt(current.stiffness / MASS) * dt) / SUBSTEPS,
+                                (Math.sqrt(current.stiffness / MASS) * dt) /
+                                    substepsFor(dt, MAX_SUBSTEP),
                                 3,
                             ),
                         },

@@ -66,10 +66,8 @@ export const fireworksDemo = defineDemo({
     id: "fireworks",
     title: "Fireworks",
     category: "particles",
-    summary:
-        "Rockets launch, slow, and burst into sparks. Every point is a particle; the sparks " +
-        "share one drag generator.",
-    hint: "Choose Willow, then push Drag to 2: the sparks hang and fall straight down.",
+    summary: "Every spark is a particle, and they all share one drag force.",
+    hint: "Pick Willow, then turn the drag all the way up.",
     params,
     presets: [
         {

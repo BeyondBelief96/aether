@@ -1,23 +1,29 @@
 import type { DemoDefinition } from "../core/demo";
-import { buoyancyDemo } from "./forces/buoyancy";
-import { clothDemo } from "./forces/cloth";
-import { springsDemo } from "./forces/springs";
-import { fixedTimestepDemo } from "./foundations/fixed-timestep";
-import { integratorsDemo } from "./foundations/integrators";
-import { rotationDemo } from "./foundations/rotation";
+import { buoyancyDemo } from "./fluids/buoyancy";
+import { densityColumnDemo } from "./fluids/density-column";
+import { raftDemo } from "./fluids/raft";
 import { ballisticsDemo } from "./particles/ballistics";
 import { fireworksDemo } from "./particles/fireworks";
+import { orbitsDemo } from "./particles/orbits";
+import { rotationDemo } from "./rigid-bodies/rotation";
+import { clothDemo } from "./soft-bodies/cloth";
+import { drumheadDemo } from "./soft-bodies/drumhead";
+import { elasticPendulumDemo } from "./soft-bodies/elastic-pendulum";
+import { springsDemo } from "./soft-bodies/springs";
 
-/** Every demo, in the order its category lists it. */
+/** Every demo, in the order its category lists it. Categories are ordered by `CATEGORIES`. */
 export const demos: readonly DemoDefinition[] = [
-    fixedTimestepDemo,
-    rotationDemo,
-    integratorsDemo,
-    ballisticsDemo,
+    orbitsDemo,
     fireworksDemo,
+    ballisticsDemo,
     clothDemo,
+    drumheadDemo,
+    elasticPendulumDemo,
     springsDemo,
+    raftDemo,
+    densityColumnDemo,
     buoyancyDemo,
+    rotationDemo,
 ] as readonly DemoDefinition[];
 
 /** The demo the app opens with. */

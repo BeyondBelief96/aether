@@ -9,7 +9,7 @@ import {
     type NumberParam,
     type ParamValue,
 } from "../core/params";
-import { formatHash, parseHash, type Route } from "../core/route";
+import { formatHash, isRouteHash, parseHash, type Route } from "../core/route";
 import { DemoSession, type LoopStats, type SessionHost } from "../core/session";
 import { ENGINE_VERSION, REPOSITORY_URL } from "../core/site";
 import { demos, featuredDemo, findDemo } from "../demos/registry";
@@ -67,9 +67,11 @@ export class AetherEditor extends LitElement {
         paused: { state: true },
         hz: { state: true },
         timeScale: { state: true },
+        interpolate: { state: true },
         stats: { state: true },
         readouts: { state: true },
         tab: { state: true },
+        embedded: { type: Boolean, reflect: true },
     };
 
     declare route: Route;
@@ -78,9 +80,12 @@ export class AetherEditor extends LitElement {
     declare paused: boolean;
     declare hz: number;
     declare timeScale: number;
+    declare interpolate: boolean;
     declare stats: LoopStats;
     declare readouts: readonly ReadoutGroup[];
     declare tab: DataTab;
+    /** Inside the website: the site supplies the wordmark, outbound links and footer. */
+    declare embedded: boolean;
 
     static override styles = [
         baseStyles,
@@ -99,6 +104,10 @@ export class AetherEditor extends LitElement {
             }
             demo-stage {
                 height: clamp(340px, calc(100dvh - 390px), 860px);
+            }
+            :host([embedded]) demo-stage {
+                /* The site's own nav sits above the editor. */
+                height: clamp(340px, calc(100dvh - 400px), 860px);
             }
             instance-bar {
                 margin-top: calc(var(--u) * -0.5);
@@ -158,9 +167,11 @@ export class AetherEditor extends LitElement {
         this.paused = false;
         this.hz = 60;
         this.timeScale = 1;
+        this.interpolate = true;
         this.stats = { fps: 0, stepsPerFrame: 0, simTime: 0, droppedTime: false };
         this.readouts = [];
         this.tab = readTab();
+        this.embedded = false;
     }
 
     get #stage(): DemoStage | null {
@@ -174,6 +185,9 @@ export class AetherEditor extends LitElement {
         this.#scheme.addEventListener("change", this.#onSchemeChange);
         this.#palette = this.#scheme.matches ? DARK : LIGHT;
         applyPalette(document.documentElement, this.#palette);
+        // Moved in the DOM: disconnecting closed the session. The stage rebuilds its renderer
+        // in its own connectedCallback, which runs after this one.
+        if (this.hasUpdated && !this.#session) void Promise.resolve().then(() => this.#start());
     }
 
     override disconnectedCallback(): void {
@@ -182,12 +196,19 @@ export class AetherEditor extends LitElement {
         window.removeEventListener("keydown", this.#onKey);
         this.#scheme.removeEventListener("change", this.#onSchemeChange);
         cancelAnimationFrame(this.#frame);
+        clearTimeout(this.#urlTimer);
         this.#closeSession();
     }
 
     protected override async firstUpdated(): Promise<void> {
         // The stage creates its renderer in its own first update, after this one.
         await this.#stage?.updateComplete;
+        this.#start();
+    }
+
+    #start(): void {
+        if (!this.isConnected) return;
+        cancelAnimationFrame(this.#frame);
         this.#stage?.stage?.setPalette(this.#palette);
         this.#openRoute(this.route);
         this.#frame = requestAnimationFrame(this.#tick);
@@ -205,6 +226,7 @@ export class AetherEditor extends LitElement {
             palette: this.#palette,
             attach: (root: Group) => scene?.add(root),
             detach: (root: Group) => scene?.remove(root),
+            prepare: (root: Group) => stage?.prepare(root),
         };
     }
 
@@ -229,6 +251,7 @@ export class AetherEditor extends LitElement {
         const session = new DemoSession(demo, decodeValues(demo.params, query), this.#host);
         session.loop.paused = this.paused;
         session.loop.timeScale = this.timeScale;
+        session.interpolate = this.interpolate;
         this.#session = session;
         this.values = session.values;
         this.hz = session.loop.hz;
@@ -286,6 +309,8 @@ export class AetherEditor extends LitElement {
     }
 
     #onHashChange = (): void => {
+        // In-page anchors, like the site's skip link, are not routes.
+        if (!isRouteHash(location.hash)) return;
         const next = parseHash(location.hash);
         if (formatHash(next) === formatHash(this.route)) return;
         if (
@@ -397,7 +422,12 @@ export class AetherEditor extends LitElement {
         const index = this.route.view === "index";
         const charts = this.#session ? [...this.#session.charts.values()] : [];
         return html`
-            <site-header .demos=${demos} current=${this.demo.id} ?index=${index}></site-header>
+            <site-header
+                .demos=${demos}
+                current=${this.demo.id}
+                ?index=${index}
+                ?embedded=${this.embedded}
+            ></site-header>
             <main>
                 <section class="demo" ?hidden=${index} aria-label=${this.demo.title}>
                     <demo-stage
@@ -420,11 +450,16 @@ export class AetherEditor extends LitElement {
                         ?paused=${this.paused}
                         .hz=${this.hz}
                         .timeScale=${this.timeScale}
+                        .interpolate=${this.interpolate}
                         .stats=${this.stats}
                         @toggle-pause=${() => this.#togglePause()}
                         @step-once=${() => this.#session?.loop.stepOnce()}
                         @reset=${() => this.#reset()}
                         @hz-change=${(e: CustomEvent<number>) => this.#setHz(e.detail)}
+                        @interpolate-change=${(e: CustomEvent<boolean>) => {
+                            this.interpolate = e.detail;
+                            if (this.#session) this.#session.interpolate = e.detail;
+                        }}
                         @time-scale-change=${(e: CustomEvent<number>) => {
                             this.timeScale = e.detail;
                             if (this.#session) this.#session.loop.timeScale = e.detail;
@@ -450,7 +485,7 @@ export class AetherEditor extends LitElement {
                     heading=${index ? "All demos" : "More demos"}
                 ></demo-index>
             </main>
-            <footer>
+            <footer ?hidden=${this.embedded}>
                 <span
                     >Every demo uses only the public API of
                     <a href=${REPOSITORY_URL} target="_blank" rel="noopener">aether-physics</a>

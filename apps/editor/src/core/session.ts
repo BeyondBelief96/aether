@@ -16,6 +16,9 @@ import { disposeObject } from "../demos/helpers/three";
 const STATS_INTERVAL_MS = 250;
 
 /** The samples of one chart, one ring buffer per series. */
+/** Physics rates the transport offers, in Hz. Every demo must stay stable at each of them. */
+export const PHYSICS_RATES = [10, 15, 30, 60, 120, 240] as const;
+
 export class ChartData {
     readonly spec: ChartSpec;
     readonly buffers: readonly RingBuffer[];
@@ -51,6 +54,8 @@ export interface SessionHost {
     /** Adds the demo's root to the scene. */
     attach(root: Group): void;
     detach(root: Group): void;
+    /** Called once the demo has built its scene, e.g. to set up shadows. */
+    prepare?(root: Group): void;
 }
 
 /**
@@ -61,6 +66,8 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
     readonly definition: DemoDefinition<S>;
     readonly loop: FixedStepLoop;
     readonly charts: ReadonlyMap<string, ChartData>;
+    /** Draw between the last two steps. Off, each frame shows the latest step as it is. */
+    interpolate = true;
 
     #host: SessionHost;
     #values: ParamValues<S>;
@@ -127,6 +134,15 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
         return true;
     }
 
+    /** Runs `seconds` of simulation at once, e.g. so a scene opens mid-motion. */
+    warmup(seconds: number): void {
+        const instance = this.#instance;
+        if (!instance) return;
+        const dt = this.loop.dt;
+        for (let t = 0; t < seconds; t += dt) instance.step(dt);
+        instance.sync(1);
+    }
+
     action(id: string): void {
         this.#instance?.action?.(id);
     }
@@ -143,7 +159,7 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
     frame(now: number): void {
         const instance = this.#instance;
         const result = this.loop.advance(now, (dt) => instance?.step(dt));
-        instance?.sync(result.alpha);
+        instance?.sync(this.interpolate ? result.alpha : 1);
 
         const w = this.#window;
         if (w.start === 0) w.start = now;
@@ -195,6 +211,7 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
                 for (const chart of this.charts.values()) chart.clear();
             },
         });
+        this.#host.prepare?.(root);
         this.#instance.sync(1);
     }
 

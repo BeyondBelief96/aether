@@ -84,10 +84,8 @@ export const ballisticsDemo = defineDemo({
     id: "ballistics",
     title: "Ballistics",
     category: "particles",
-    summary:
-        "Shots on a range, each a particle with its own speed, gravity scale and damping. " +
-        "The dashed line is the same shot with no damping.",
-    hint: "Drag Damping down to 0.8 and watch the trail fall short of the dashed line.",
+    summary: "Shots down a range. The dashed line is the same shot without drag.",
+    hint: "Lower the damping and watch them fall short.",
     params,
     presets: [
         {

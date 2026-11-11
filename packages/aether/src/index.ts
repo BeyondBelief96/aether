@@ -3,6 +3,7 @@ export type { FrameResult } from "./engine/index.js";
 
 export {
     ParticleAnchoredSpring,
+    ParticleAttraction,
     ParticleBungee,
     ParticleBuoyancy,
     ParticleDrag,

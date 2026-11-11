@@ -105,4 +105,4 @@ Verlet and RK4 evaluate forces more than once per step, which a force accumulato
 
 Tests live in `tests/`.
 
-See [PLAN.md, Phase 2](../../docs/PLAN.md#phase-2-particles-and-integration).
+See [PLAN.md, Phase 2](../../../../docs/PLAN.md#phase-2-particles-and-integration).

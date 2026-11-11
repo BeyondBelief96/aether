@@ -115,11 +115,9 @@ class Body {
 export const springsDemo = defineDemo({
     id: "springs",
     title: "Springs",
-    category: "forces",
-    summary:
-        "An anchored spring you can drag, a floating pair joined by a spring on each end, " +
-        "and a bungee that only pulls. Arrows show each spring's force.",
-    hint: "Drag the left anchor block around, then choose Stiff.",
+    category: "soft-bodies",
+    summary: "Three ways to hang a weight: on an anchor, in a pair, on a bungee.",
+    hint: "Grab the left block and swing it.",
     params,
     presets: [
         { label: "Soft", note: "8 N/m", values: { stiffness: 8, restLength: 2, damping: 0.9 } },
@@ -140,7 +138,7 @@ export const springsDemo = defineDemo({
         },
     ],
     camera: { position: { x: -4.6, y: 5.6, z: 14 }, target: { x: -4.6, y: 4.6, z: 0 } },
-    source: "apps/editor/src/demos/forces/springs.ts",
+    source: "apps/editor/src/demos/soft-bodies/springs.ts",
     create({ root, view, palette, values }) {
         let current = values;
         let dt = 1 / 60;

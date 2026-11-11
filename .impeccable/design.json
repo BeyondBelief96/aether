@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-11T01:08:50+00:00",
+  "generatedAt": "2026-11-11T02:11:35+00:00",
   "title": "Design System: Aether",
   "extensions": {
     "colorMeta": {
@@ -574,12 +574,130 @@
           "oklch(84% 0.110 268.0)",
           "oklch(95% 0.063 268.0)"
         ]
+      },
+      "scene-muted": {
+        "role": "scene",
+        "displayName": "Scene Muted",
+        "canonical": "#8e8d87",
+        "oklch": "oklch(64.2% 0.009 99.0)",
+        "tonalRamp": [
+          "oklch(15% 0.004 99.0)",
+          "oklch(26% 0.005 99.0)",
+          "oklch(38% 0.009 99.0)",
+          "oklch(49% 0.009 99.0)",
+          "oklch(61% 0.009 99.0)",
+          "oklch(72% 0.009 99.0)",
+          "oklch(84% 0.005 99.0)",
+          "oklch(95% 0.004 99.0)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts (WebGL only, not a CSS property)"
+      },
+      "scene-muted-dark": {
+        "role": "scene",
+        "displayName": "Scene Muted (reversed)",
+        "canonical": "#77766f",
+        "oklch": "oklch(56.5% 0.011 100.1)",
+        "tonalRamp": [
+          "oklch(15% 0.004 100.1)",
+          "oklch(26% 0.006 100.1)",
+          "oklch(38% 0.011 100.1)",
+          "oklch(49% 0.011 100.1)",
+          "oklch(61% 0.011 100.1)",
+          "oklch(72% 0.011 100.1)",
+          "oklch(84% 0.006 100.1)",
+          "oklch(95% 0.004 100.1)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts (WebGL only, not a CSS property)"
+      },
+      "grid-major": {
+        "role": "scene",
+        "displayName": "Grid Major",
+        "canonical": "#b9b8b1",
+        "oklch": "oklch(78.1% 0.010 100.0)",
+        "tonalRamp": [
+          "oklch(15% 0.004 100.0)",
+          "oklch(26% 0.006 100.0)",
+          "oklch(38% 0.010 100.0)",
+          "oklch(49% 0.010 100.0)",
+          "oklch(61% 0.010 100.0)",
+          "oklch(72% 0.010 100.0)",
+          "oklch(84% 0.006 100.0)",
+          "oklch(95% 0.004 100.0)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts (WebGL only, not a CSS property)"
+      },
+      "grid-minor": {
+        "role": "scene",
+        "displayName": "Grid Minor",
+        "canonical": "#d9d8d2",
+        "oklch": "oklch(88.1% 0.008 98.9)",
+        "tonalRamp": [
+          "oklch(15% 0.003 98.9)",
+          "oklch(26% 0.005 98.9)",
+          "oklch(38% 0.008 98.9)",
+          "oklch(49% 0.008 98.9)",
+          "oklch(61% 0.008 98.9)",
+          "oklch(72% 0.008 98.9)",
+          "oklch(84% 0.005 98.9)",
+          "oklch(95% 0.003 98.9)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts (WebGL only, not a CSS property)"
+      },
+      "grid-major-dark": {
+        "role": "scene",
+        "displayName": "Grid Major (reversed)",
+        "canonical": "#45443f",
+        "oklch": "oklch(38.6% 0.008 97.5)",
+        "tonalRamp": [
+          "oklch(15% 0.003 97.5)",
+          "oklch(26% 0.005 97.5)",
+          "oklch(38% 0.008 97.5)",
+          "oklch(49% 0.008 97.5)",
+          "oklch(61% 0.008 97.5)",
+          "oklch(72% 0.008 97.5)",
+          "oklch(84% 0.005 97.5)",
+          "oklch(95% 0.003 97.5)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts (WebGL only, not a CSS property)"
+      },
+      "grid-minor-dark": {
+        "role": "scene",
+        "displayName": "Grid Minor (reversed)",
+        "canonical": "#2a2a27",
+        "oklch": "oklch(28.4% 0.005 106.7)",
+        "tonalRamp": [
+          "oklch(15% 0.002 106.7)",
+          "oklch(26% 0.003 106.7)",
+          "oklch(38% 0.005 106.7)",
+          "oklch(49% 0.005 106.7)",
+          "oklch(61% 0.005 106.7)",
+          "oklch(72% 0.005 106.7)",
+          "oklch(84% 0.003 106.7)",
+          "oklch(95% 0.002 106.7)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts (WebGL only, not a CSS property)"
       }
     },
     "typographyMeta": {
+      "hero": {
+        "displayName": "Hero",
+        "purpose": "Landing headline over the hero stage; the 404 headline uses the same cut at clamp(48px, 7vw, 96px)."
+      },
+      "closing": {
+        "displayName": "Closing",
+        "purpose": "Landing closing headline; the largest type in the system."
+      },
       "display": {
         "displayName": "Display",
         "purpose": "Demo title at the stage's top left."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "Website section heads."
+      },
+      "page-title": {
+        "displayName": "Page Title",
+        "purpose": "Docs page heading."
       },
       "headline": {
         "displayName": "Headline",
@@ -587,15 +705,19 @@
       },
       "title": {
         "displayName": "Title",
-        "purpose": "Demo names in the index grid."
+        "purpose": "Demo names in the index grid; landing Runs today names at 28px."
+      },
+      "subhead": {
+        "displayName": "Subhead",
+        "purpose": "Roadmap phase titles and docs prose h2."
       },
       "wordmark": {
         "displayName": "Wordmark",
-        "purpose": "\"Aether\" in the header only."
+        "purpose": "\"Aether\" in the demo header and site nav; 18px in the site footer."
       },
       "lead": {
         "displayName": "Lead",
-        "purpose": "One-line demo summary, max 46ch."
+        "purpose": "Demo summary (46ch), hero line (42ch), section intros, docs prose (1.6)."
       },
       "body": {
         "displayName": "Body",
@@ -615,15 +737,21 @@
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Uppercase mono control captions; also range ends, key hints, callouts, meta (not uppercase)."
+        "purpose": "Uppercase mono control captions and docs sidebar group heads (roadmap status at 0.06em); also range ends, key hints, callouts, scene tags, stub markers, meta (not uppercase)."
       },
       "code": {
         "displayName": "Code",
-        "purpose": "Code view."
+        "purpose": "Code view and docs code blocks; landing code sample and install line at 14px."
       }
     },
-    "shadows": [],
-    "elevationNote": "Flat: no box-shadow in the UI. Depth is paper to paper-sunk, rules, and ink inversion.",
+    "shadows": [
+      {
+        "name": "status-ring",
+        "value": "inset 0 0 0 1.5px var(--accent)",
+        "purpose": "Draws the ring of the half-filled in-progress roadmap dot. Not elevation."
+      }
+    ],
+    "elevationNote": "Flat interface: no elevation shadows. Depth is paper to paper-sunk, rules, and ink inversion. Translucent washes only under text over a live scene: callouts 86% paper, scene tags 88% paper, stage summary and Try line 82% paper-sunk, install line 80% paper. The 3D scene is lit and casts shadows (see scene).",
     "motion": [
       {
         "name": "ease-out",
@@ -651,6 +779,11 @@
         "purpose": "Index arrow 4px slide and colour on hover."
       },
       {
+        "name": "copy-reset",
+        "value": "1800ms",
+        "purpose": "Install line state returns from Copied to Copy."
+      },
+      {
         "name": "reduced-motion",
         "value": "transition: none",
         "purpose": "All UI transitions removed under prefers-reduced-motion; the simulation keeps running."
@@ -658,14 +791,29 @@
     ],
     "breakpoints": [
       {
+        "name": "landing-ledger",
+        "value": "1000px",
+        "purpose": "Roadmap rows fold to number, title, status with the rest beneath; code section stacks."
+      },
+      {
         "name": "compact-header",
         "value": "900px",
         "purpose": "Hide wordmark subtitle and package version."
       },
       {
+        "name": "docs",
+        "value": "860px",
+        "purpose": "Docs sidebar stacks above the article and stops sticking."
+      },
+      {
+        "name": "landing-stack",
+        "value": "760px",
+        "purpose": "Hero stacks (copy, 56svh scene min 320px with no radius, legend without hint); two ghost tags dropped; camera reframed; Runs today one column."
+      },
+      {
         "name": "phone",
         "value": "720px",
-        "purpose": "Gutter 40px to 16px; nav wraps to its own row; stage 56svh; summary and orbit hint hidden; stats wrap."
+        "purpose": "Gutter 40px to 16px; nav wraps to its own row; stage 56svh; summary and orbit hint hidden; stats wrap; site nav hides version and GitHub label."
       }
     ],
     "focus": {
@@ -676,18 +824,34 @@
       {
         "family": "Schibsted Grotesk Variable",
         "package": "@fontsource-variable/schibsted-grotesk",
-        "role": "words"
+        "role": "words",
+        "note": "Imported once via apps/editor/src/styles/fonts.ts, shared with the site as @aether/editor/fonts."
       },
       {
         "family": "JetBrains Mono Variable",
         "package": "@fontsource-variable/jetbrains-mono",
-        "role": "numbers, labels, key hints, code"
+        "role": "numbers, labels, key hints, code",
+        "note": "Imported once via apps/editor/src/styles/fonts.ts, shared with the site as @aether/editor/fonts."
       }
     ],
     "icons": {
       "grid": "16px",
       "stroke": "1.6, round caps and joins, currentColor, no fill",
-      "source": "apps/editor/src/ui/shared.ts (pause, play, step, reset, arrow, external, grid)"
+      "source": "apps/editor/src/ui/shared.ts (pause, play, step, reset, arrow, external, grid); the site inlines the same arrow and external paths."
+    },
+    "scene": {
+      "source": "apps/editor/src/stage/stage.ts (shared by <aether-editor> and <aether-scene>)",
+      "background": "palette.ground (#ecebe6 light / #1a1a18 dark, equal to paper-sunk)",
+      "sun": "DirectionalLight white at (8, 16, 10), 2.4 light / 2.1 dark",
+      "hemisphere": "white over #c9c6bc (1.3) light / #26251f (1.1) dark",
+      "environment": "RoomEnvironment via PMREM, sigma 0.04, intensity 0.35",
+      "shadows": "PCFSoftShadowMap, 2048 map, radius 6, bias -0.0004, normalBias 0.02, 24 m half-extent; opaque depth-tested meshes cast and receive",
+      "ground": "ShadowMaterial black, opacity 0.12 light / 0.45 dark, 240 m plane",
+      "grid": "GridHelper 120 m, 120 divisions, grid-major / grid-minor, 2 mm above ground",
+      "toneMapping": "ACESFilmicToneMapping, exposure 1.05, sRGB output",
+      "fog": "Fog in the ground colour, near 1.2x / far 3.2x camera-to-target distance, refitted on orbit and zoom",
+      "camera": "Perspective 42 deg; below aspect 1.25 backs off along its line by (1.25 / aspect)^0.75; maxPolarAngle 0.495 pi",
+      "roadmapOutlines": "LineDashedMaterial in palette.muted (scene-muted), dashSize 0.14, gapSize 0.09, EdgesGeometry of box bodies"
     }
   },
   "components": [
@@ -750,8 +914,8 @@
       "name": "Category Navigation",
       "kind": "nav",
       "refersTo": "tab",
-      "description": "Header tabs: muted grotesk, ink when current with a 2px orange bar; closed by an ink rule.",
-      "html": "<nav class=\"ds-nav\"><b class=\"ds-mark\">Aether</b><a href=\"#\">Foundations</a><a href=\"#\">Particles</a><a href=\"#\" aria-current=\"true\">Forces</a><span class=\"ds-version\">aether-physics 0.2.0</span></nav>",
+      "description": "Header tabs (demo categories, or Demos / Docs / Roadmap in the site nav): muted grotesk, ink when current with a 2px orange bar; closed by an ink rule.",
+      "html": "<nav class=\"ds-nav\"><b class=\"ds-mark\">Aether</b><a href=\"#\">Forces</a><a href=\"#\" aria-current=\"true\">Particles</a><a href=\"#\">Math</a><span class=\"ds-version\">aether-physics 0.2.0</span></nav>",
       "css": ".ds-nav { display: flex; align-items: center; gap: 24px; min-height: 60px; border-bottom: 1px solid var(--rule-strong); color: var(--ink); } .ds-mark { font: 800 22px / 1 var(--sans); letter-spacing: -0.03em; margin-right: 8px; } .ds-nav a { position: relative; display: inline-flex; align-items: center; min-height: 44px; color: var(--muted); font: 600 var(--text-body) / 1 var(--sans); text-decoration: none; transition: color 160ms var(--ease-out); } .ds-nav a:hover, .ds-nav a[aria-current] { color: var(--ink); } .ds-nav a[aria-current]::after { content: \"\"; position: absolute; left: 0; right: 0; bottom: 4px; height: 2px; background: var(--accent); } .ds-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-version { margin-left: auto; font: 400 var(--text-label) / 1 var(--mono); color: var(--muted); }"
     },
     {
@@ -761,22 +925,72 @@
       "description": "Mono tag tracking a body in the 3D view; series colour on its left rule.",
       "html": "<div class=\"ds-stage\"><span class=\"ds-callout\">stretch 28%</span><span class=\"ds-callout\" style=\"color:var(--series-2, #2747d6)\">v 12.40 m/s</span></div>",
       "css": ".ds-stage { display: flex; gap: 16px; padding: 24px; background: var(--paper-sunk); border-radius: var(--radius); } .ds-callout { padding: 3px 6px; font: 500 var(--text-label) / 1.2 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); background: color-mix(in srgb, var(--paper) 86%, transparent); border-left: 1px solid currentColor; }"
+    },
+    {
+      "name": "Website Buttons",
+      "kind": "button",
+      "refersTo": "button-site-primary",
+      "description": "Link-sized buttons on the website: one primary with an arrow, outlined secondaries.",
+      "html": "<span style=\"display:flex;gap:12px\"><a class=\"ds-btn ds-btn-primary\" href=\"#\">Open the demos <svg class=\"ds-icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M3 8h10M9 4l4 4-4 4\" /></svg></a><a class=\"ds-btn\" href=\"#\">Read the docs</a></span>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: var(--u); min-height: 44px; padding: 0 18px; border: 1px solid var(--rule-strong); border-radius: var(--radius); color: var(--ink); background: none; font: 600 var(--text-small) / 1 var(--sans); text-decoration: none; cursor: pointer; transition: background-color 160ms var(--ease-out); } .ds-btn:hover { background: var(--paper-sunk); } .ds-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); } .ds-btn-primary:hover { background: color-mix(in srgb, var(--accent) 86%, var(--ink)); } .ds-icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }"
+    },
+    {
+      "name": "Install Line",
+      "kind": "button",
+      "refersTo": "install-line",
+      "description": "Copy-to-clipboard shell command; state word reads Copy, Copied or Select and copy.",
+      "html": "<button class=\"ds-install\" type=\"button\"><span class=\"ds-prompt\" aria-hidden=\"true\">$</span><span>npm install aether-physics</span><span class=\"ds-state\">Copy</span></button>",
+      "css": ".ds-install { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 14px; border: 1px solid var(--rule-strong); border-radius: var(--radius); background: color-mix(in srgb, var(--paper) 80%, transparent); color: var(--ink); font: 500 14px / 1 var(--mono); cursor: pointer; user-select: all; transition: background-color 160ms var(--ease-out); } .ds-install:hover { background: var(--paper); } .ds-install:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-prompt { color: var(--muted); } .ds-state { padding-left: 12px; border-left: 1px solid var(--rule); font: 600 var(--text-small) / 1 var(--sans); color: var(--muted); }"
+    },
+    {
+      "name": "Checkbox",
+      "kind": "input",
+      "refersTo": "checkbox",
+      "description": "Transport Smooth toggle; checked inverts to ink.",
+      "html": "<label class=\"ds-check\"><input type=\"checkbox\" checked><span>Smooth</span></label>",
+      "css": ".ds-check { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; color: var(--ink); font: 600 var(--text-small) / 1 var(--sans); cursor: pointer; } .ds-check input { appearance: none; display: grid; place-content: center; width: 18px; height: 18px; margin: 0; border: 1px solid var(--rule-strong); border-radius: var(--radius); cursor: pointer; } .ds-check input:checked { background: var(--ink); } .ds-check input:checked::after { content: \"\"; width: 9px; height: 5px; margin-top: -2px; border: solid var(--paper); border-width: 0 0 2px 2px; transform: rotate(-45deg); } .ds-check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Scene Tags and Legend",
+      "kind": "custom",
+      "refersTo": "scene-tag",
+      "description": "Solid tag and legend swatch for what runs today; dashed muted for what is on the roadmap.",
+      "html": "<div class=\"ds-scene\"><span class=\"ds-tag\">cloth · runs today</span><span class=\"ds-tag ds-ghost\">stacking · phase 6</span><ul class=\"ds-legend\"><li><span class=\"ds-sw\"></span>Shipped</li><li><span class=\"ds-sw ds-dash\"></span>On the roadmap</li></ul></div>",
+      "css": ".ds-scene { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 24px; background: var(--paper-sunk); border-radius: var(--radius); } .ds-tag { padding: 3px 7px; font: 500 var(--text-label) / 1.2 var(--mono); white-space: nowrap; color: var(--ink); background: color-mix(in srgb, var(--paper) 88%, transparent); border-left: 1px solid var(--ink); } .ds-ghost { color: var(--ink-2); border-left: 1px dashed var(--muted); } .ds-legend { display: flex; gap: 24px; margin: 0; padding: 0; list-style: none; font: 400 var(--text-small) / 1 var(--sans); color: var(--ink-2); } .ds-legend li { display: flex; align-items: center; gap: 8px; } .ds-sw { width: 14px; height: 14px; background: var(--accent); } .ds-dash { background: none; border: 1.5px dashed var(--muted); }"
+    },
+    {
+      "name": "Roadmap Ledger",
+      "kind": "custom",
+      "refersTo": "status-dot",
+      "description": "Phase rows: solid rule and orange dot when shipped, half dot in progress, dashed rule and muted status when planned.",
+      "html": "<ol class=\"ds-phases\"><li class=\"ds-phase ds-shipped\"><span class=\"ds-num\">02</span><span class=\"ds-title\">Particles</span><span class=\"ds-status\">shipped</span></li><li class=\"ds-phase ds-now\"><span class=\"ds-num\">03</span><span class=\"ds-title\">Forces and springs</span><span class=\"ds-status\">in progress</span></li><li class=\"ds-phase ds-later\"><span class=\"ds-num\">04</span><span class=\"ds-title\">Rigid bodies</span><span class=\"ds-status\">next</span></li></ol>",
+      "css": ".ds-phases { width: 520px; margin: 0; padding: 0; list-style: none; border-top: 2px solid var(--rule-strong); color: var(--ink); } .ds-phase { display: grid; grid-template-columns: 56px 1fr 120px; gap: 24px; align-items: baseline; padding: 18px 0; border-bottom: 1px solid var(--rule); } .ds-num { font: 500 var(--text-small) / 1 var(--mono); color: var(--muted); } .ds-title { font: 700 22px / 1.15 var(--sans); letter-spacing: -0.02em; } .ds-status { justify-self: end; font: 500 var(--text-label) / 1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; } .ds-shipped .ds-status::before, .ds-now .ds-status::before { content: \"\"; display: inline-block; width: 8px; height: 8px; margin-right: 8px; background: var(--accent); border-radius: 50%; } .ds-now .ds-status::before { background: linear-gradient(90deg, var(--accent) 50%, transparent 50%); box-shadow: inset 0 0 0 1.5px var(--accent); } .ds-later { border-bottom-style: dashed; } .ds-later .ds-title { color: var(--ink-2); } .ds-later .ds-status { color: var(--muted); }"
+    },
+    {
+      "name": "Docs Sidebar",
+      "kind": "nav",
+      "refersTo": "docs-link-active",
+      "description": "Grouped doc links; current page in ink 650 with a 2px orange underline; stub marker in mono.",
+      "html": "<nav class=\"ds-side\"><h2>Engine</h2><a href=\"#\">The loop</a><a href=\"#\" aria-current=\"page\"><span>Particles</span></a><a href=\"#\"><span>Rigid bodies</span><span class=\"ds-stub\">stub</span></a></nav>",
+      "css": ".ds-side { width: 220px; } .ds-side h2 { margin: 0 0 8px; font: 500 var(--text-label) / 1.2 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); } .ds-side a { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; color: var(--ink-2); font: 500 var(--text-small) / 1.3 var(--sans); text-decoration: none; } .ds-side a:hover { color: var(--ink); } .ds-side a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-side a[aria-current] { color: var(--ink); font-weight: 650; } .ds-side a[aria-current] span { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 6px; } .ds-stub { font: 400 var(--text-label) / 1 var(--mono); color: var(--muted); }"
     }
   ],
   "narrative": {
     "northStar": "The Live Specimen",
-    "overview": "The page is a sheet of off-white paper printed in near-black ink, and the physics scene is the specimen pinned to it. One large running subject owns the viewport; everything else is a printed instrument around it: a header rule, a row of axis sliders with their ranges and live values, a row of instances, a transport strip. Each parameter is drawn as an axis, so dragging it reads as remapping the specimen rather than editing a form. The system deliberately rejects the three-pane game-engine editor (scene tree, viewport, property grid).\n\nThe material is print. Hairline ink rules divide the sheet; there are no shadows, no floating panels and no cards. Controls are square-cornered outlined boxes (2px at most), selection is shown by inverting a box to solid ink, and the only round forms are slider thumbs. A single signal orange marks the one thing to press, where you are, and what has focus. Dark mode is not a second theme: it is the same sheet printed in reverse, with the accent lifted slightly so it keeps its punch on black.\n\nType is a two-voice specimen. A heavy, tightly tracked grotesk sets words, from the 64px demo title down to 13px control names; a monospace sets every number, unit, range end, key hint, axis letter and version string, always with tabular figures, so values hold still while they change.",
+    "overview": "The page is a sheet of off-white paper printed in near-black ink, and the physics scene is the specimen pinned to it. One large running subject owns the viewport; everything else is a printed instrument around it: a header rule, a row of axis sliders with their ranges and live values, a row of instances, a transport strip. Each parameter is drawn as an axis, so dragging it reads as remapping the specimen rather than editing a form. The system deliberately rejects the three-pane game-engine editor (scene tree, viewport, property grid).\n\nThe material is print. Hairline ink rules divide the sheet; the interface has no shadows, no floating panels and no cards. Controls are square-cornered outlined boxes (2px at most), selection is shown by inverting a box to solid ink, and the only round forms are slider thumbs and status dots. A single signal orange marks the one thing to press, where you are, what has focus, and what already exists. Dark mode is not a second theme: it is the same sheet printed in reverse, with the accent lifted slightly so it keeps its punch on black.\n\nThe specimen itself is the one place with physical light. Every 3D scene, in the demo app and on the website alike, shares one look: soft sun shadows caught by an invisible ground, low environment light, filmic tone mapping, and a floor that fades into the sunk-paper ground. The sheet is flat; the thing pinned to it is solid. What is not built yet is drawn as a dashed outline in the muted colour, so solid means shipped and dashed means on the way, in the scene, the legend, the tags and the roadmap.\n\nType is a two-voice specimen. A heavy, tightly tracked grotesk sets words, from the 96px closing headline down to 13px control names; a monospace sets every number, unit, range end, key hint, axis letter, phase number, install command and version string, always with tabular figures, so values hold still while they change.",
     "keyCharacteristics": [
       "Paper ground and ink, one signal-orange accent, dark mode as the reversed print.",
       "Grotesk for words, monospace for every number, unit, axis label and key hint.",
-      "Hairline rules instead of containers; no shadows, no cards, radius 2px at most.",
-      "Selected state is ink inversion; orange is reserved for action, location and focus.",
+      "Hairline rules instead of containers; no UI shadows, no cards, radius 2px at most.",
+      "Solid is shipped, dashed muted is on the roadmap: one convention across scene outlines, tags, legend and roadmap rows.",
+      "One shared scene look: soft shadows on a shadow-only ground, environment light, ACES tone mapping, fog in the ground colour.",
+      "Selected state is ink inversion; orange is reserved for action, location, focus and the shipped mark.",
       "Data colours (four series, three fixed axes) come from one runtime palette shared by scene, charts and readouts."
     ],
     "rules": [
       {
         "name": "The One Signal Rule",
-        "body": "Orange means press this, you are here, or focus is here. Selection is never orange; it is ink inversion.",
+        "body": "Orange means press this, you are here, focus is here, or this exists (shipped). Selection is never orange; it is ink inversion.",
         "section": "colors"
       },
       {
@@ -790,13 +1004,18 @@
         "section": "colors"
       },
       {
+        "name": "The Dashed Future Rule",
+        "body": "Anything not built yet is drawn dashed in the muted colour: dashed outlines in the scene (scene-muted), a dashed left rule on its tag, a 1.5px dashed legend swatch, a dashed row rule on the roadmap. Shipped things are solid, and the shipped mark is orange.",
+        "section": "colors"
+      },
+      {
         "name": "The Mono Numbers Rule",
-        "body": "Every number, unit, range end, key hint, axis letter and version string is JetBrains Mono with tabular figures. Words are never mono; numbers are never grotesk.",
+        "body": "Every number, unit, range end, key hint, axis letter, phase number, scene tag, shell command and version string is JetBrains Mono with tabular figures. Words are never mono; numbers are never grotesk.",
         "section": "typography"
       },
       {
         "name": "The Heavy Title Rule",
-        "body": "Titles run at 750 with negative tracking (-0.03 to -0.035em); body copy stays at 400 and control text at 500-600, so weight alone separates a title from an instrument.",
+        "body": "Titles run at 750 with negative tracking (-0.03 to -0.035em), and the loudest headlines (wordmark, landing hero, 404) at 800 down to -0.04em; subheads at 700; body copy stays at 400 and control text at 500-600, so weight alone separates a title from an instrument.",
         "section": "typography"
       },
       {
@@ -806,25 +1025,29 @@
       },
       {
         "name": "The Flat Sheet Rule",
-        "body": "Nothing floats. If an element needs separation, it gets a rule or the sunk tone, never a shadow.",
+        "body": "Nothing on the sheet floats. If an interface element needs separation, it gets a rule or the sunk tone, never a shadow. Shadows belong to the scene's bodies, cast by the shared sun onto the shared ground.",
         "section": "elevation"
       },
       {
         "name": "The Square Control, Round Thumb Rule",
-        "body": "Controls are boxes with at most 2px corners; only the thing you drag is round.",
+        "body": "Controls are boxes with at most 2px corners; only the thing you drag, and the status dot, is round.",
         "section": "shapes"
       }
     ],
     "dos": [
-      "**Do** keep Signal Orange to the primary action, the current-location bar, focus and the dragged thumb.",
+      "**Do** keep Signal Orange to the primary action, the current-location bar or underline, focus, the dragged thumb, link underlines and the shipped mark.",
       "**Do** show selection by inverting to ink with paper text.",
       "**Do** set every number, unit, range end and key hint in JetBrains Mono with tabular figures.",
-      "**Do** separate regions with a 1px ink rule or hairline, and use sunk paper as the only tonal step.",
+      "**Do** separate regions with a 1px ink rule or hairline (2px ink to open a website section), and use sunk paper as the only tonal step.",
+      "**Do** draw anything not yet built as a dashed outline in the muted colour, and anything shipped solid.",
+      "**Do** build every 3D view on the shared stage so light, shadow, tone mapping and fog match everywhere.",
+      "**Do** put a translucent paper or sunk-paper wash (80-88%) behind text that sits over a live scene.",
       "**Do** read data colours from `--series-N` and `--axis-x/y/z` so scene, chart and readout match, and pair axis colour with its X/Y/Z letter.",
       "**Do** honour `prefers-reduced-motion` by dropping UI transitions; the simulation keeps running."
     ],
     "donts": [
-      "**Don't** add shadows, cards, floating panels or radii above 2px (slider thumbs excepted).",
+      "**Don't** add interface shadows, cards, floating panels or radii above 2px (slider thumbs and status dots excepted). Cast shadows belong to scene bodies only.",
+      "**Don't** light, fog or tone-map a scene by hand; the shared stage owns the look.",
       "**Don't** introduce a second accent or use series and axis hues for UI state or decoration.",
       "**Don't** build a three-pane editor layout (scene tree, viewport, property grid); controls live under the stage.",
       "**Don't** design a separate dark palette; reverse the print."

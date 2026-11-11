@@ -1,4 +1,4 @@
-name: Deploy demo app
+name: Deploy site
 
 on:
     push:
@@ -18,6 +18,8 @@ concurrency:
 jobs:
     build:
         runs-on: ubuntu-latest
+        env:
+            ASTRO_TELEMETRY_DISABLED: 1
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-node@v4
@@ -26,14 +28,17 @@ jobs:
                   cache: npm
             - run: npm ci
             - run: npm run test:run
-            - run: npm run typecheck -w aether-physics
-            # Pages serves the site from /<repo>/, so the asset URLs need that prefix.
-            - run: npm run build -w @aether/editor -- --base=/${{ github.event.repository.name }}/
-            # Unit tests can't see a blank page, so load the built site before it goes live.
-            - run: npm run test:smoke -w @aether/editor -- /${{ github.event.repository.name }}/
+            - run: npm run typecheck
+            # Unit tests can't see a blank page, so load the built demo app before the site goes live.
+            - run: npm run build -w @aether/editor
+            - run: npm run test:smoke -w @aether/editor
+            # Pages serves the site from /<repo>/, so links and assets need that prefix.
+            - run: npm run build -w @aether/site
+              env:
+                  SITE_BASE: /${{ github.event.repository.name }}/
             - uses: actions/upload-pages-artifact@v3
               with:
-                  path: apps/editor/dist
+                  path: apps/site/dist
 
     deploy:
         needs: build

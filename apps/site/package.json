@@ -1,0 +1,24 @@
+{
+    "name": "@aether/site",
+    "private": true,
+    "version": "0.0.0",
+    "description": "The Aether website: landing page, demos and documentation.",
+    "type": "module",
+    "scripts": {
+        "dev": "astro dev",
+        "build": "astro check && astro build",
+        "preview": "astro preview",
+        "start": "astro preview --host 0.0.0.0 --port ${PORT:-4321}",
+        "typecheck": "astro check"
+    },
+    "dependencies": {
+        "@aether/editor": "*",
+        "aether-physics": "*",
+        "astro": "7.4.2",
+        "three": "^0.186.1"
+    },
+    "devDependencies": {
+        "@astrojs/check": "^0.9.12",
+        "@types/three": "^0.186.0"
+    }
+}

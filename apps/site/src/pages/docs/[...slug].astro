@@ -1,0 +1,165 @@
+---
+import { getCollection, render } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import { href } from "../../site";
+
+export async function getStaticPaths() {
+    const docs = await getCollection("docs");
+    return docs.map((entry) => ({
+        params: { slug: entry.id === "index" ? undefined : entry.id },
+        props: { entry },
+    }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const docs = (await getCollection("docs")).sort((a, b) => a.data.order - b.data.order);
+const groups = ["Start", "Engine", "Reference"] as const;
+const url = (id: string) => href(id === "index" ? "/docs/" : `/docs/${id}/`);
+---
+
+<Base title={`${entry.data.title} · Aether docs`} description={entry.data.description} section="docs">
+    <div class="docs">
+        <nav class="sidebar" aria-label="Documentation">
+            {
+                groups.map((group) => (
+                    <section>
+                        <h2 class="label">{group}</h2>
+                        <ul>
+                            {docs
+                                .filter((d) => d.data.group === group)
+                                .map((d) => (
+                                    <li>
+                                        <a href={url(d.id)} aria-current={d.id === entry.id ? "page" : undefined}>
+                                            <span class="title">{d.data.title}</span>
+                                            {d.data.stub && <span class="stub">stub</span>}
+                                        </a>
+                                    </li>
+                                ))}
+                        </ul>
+                    </section>
+                ))
+            }
+        </nav>
+        <article>
+            <h1>{entry.data.title}</h1>
+            {
+                entry.data.stub && (
+                    <p class="notice">
+                        This page is an outline. It fills in once this part of the API settles; until
+                        then, the demos' source is the best reference.
+                    </p>
+                )
+            }
+            <div class="prose"><Content /></div>
+        </article>
+    </div>
+</Base>
+
+<style>
+    .docs {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        gap: calc(var(--u) * 8);
+        padding-top: calc(var(--u) * 5);
+    }
+    .sidebar {
+        position: sticky;
+        top: calc(var(--u) * 3);
+        align-self: start;
+    }
+    .sidebar section + section {
+        margin-top: calc(var(--u) * 3);
+    }
+    .sidebar h2 {
+        margin: 0 0 var(--u);
+    }
+    .sidebar ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .sidebar a {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 6px 0;
+        color: var(--ink-2);
+        font: 500 var(--text-small) / 1.3 var(--sans);
+        text-decoration: none;
+    }
+    .sidebar a:hover {
+        color: var(--ink);
+    }
+    .sidebar a[aria-current] {
+        color: var(--ink);
+        font-weight: 650;
+    }
+    .sidebar a[aria-current] .title {
+        text-decoration: underline;
+        text-decoration-color: var(--accent);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 6px;
+    }
+    .stub {
+        font: 400 var(--text-label) / 1 var(--mono);
+        color: var(--muted);
+    }
+    article {
+        max-width: 68ch;
+    }
+    h1 {
+        margin: 0;
+        font: 750 clamp(36px, 4vw, 56px) / 1 var(--sans);
+        letter-spacing: -0.035em;
+    }
+    .notice {
+        margin: calc(var(--u) * 3) 0 0;
+        padding: 12px 16px;
+        border: 1px solid var(--rule-strong);
+        border-radius: var(--radius);
+        font-size: var(--text-small);
+        color: var(--ink-2);
+    }
+    .prose {
+        margin-top: calc(var(--u) * 3);
+        font-size: var(--text-lead);
+        line-height: 1.6;
+        color: var(--ink-2);
+    }
+    .prose :global(h2) {
+        margin: calc(var(--u) * 5) 0 calc(var(--u) * 1.5);
+        font: 700 22px / 1.2 var(--sans);
+        letter-spacing: -0.02em;
+        color: var(--ink);
+    }
+    .prose :global(a) {
+        color: var(--ink);
+        text-underline-offset: 3px;
+        text-decoration-color: var(--accent);
+    }
+    .prose :global(code) {
+        font: 400 0.88em / 1 var(--mono);
+    }
+    .prose :global(pre) {
+        margin: calc(var(--u) * 2) 0;
+        padding: calc(var(--u) * 2);
+        overflow-x: auto;
+        background: var(--paper-sunk) !important;
+        border-radius: var(--radius);
+        font-size: var(--text-small);
+        line-height: 1.6;
+    }
+    .prose :global(pre code) {
+        color: var(--ink);
+    }
+    @media (max-width: 860px) {
+        .docs {
+            grid-template-columns: minmax(0, 1fr);
+            gap: calc(var(--u) * 3);
+        }
+        .sidebar {
+            position: static;
+        }
+    }
+</style>

@@ -6,3 +6,4 @@ export { ParticleAnchoredSpring } from "./particle-anchored-spring.js";
 export { ParticleBungee } from "./particle-bungee.js";
 export { ParticleSpring } from "./particle-spring.js";
 export { ParticleBuoyancy } from "./particle-buoyancy.js";
+export { ParticleAttraction } from "./particle-attraction.js";

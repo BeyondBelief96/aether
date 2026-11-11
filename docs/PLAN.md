@@ -9,6 +9,8 @@ Each phase ends with something you can **see** (a demo) and something you can **
 
 The class sketches below are starting points, not specifications. Signatures will change as you learn; record the decisions you make in the module READMEs and your phase notes.
 
+**Keep this plan current.** It is the record of where the engine stands. Update it in the same change as the work: tick items as they land, add generators and demos that weren't planned, and note where the build departs from a sketch. The README's progress table and the landing page's roadmap (`apps/site/src/data/roadmap.ts`) follow it, so update them together.
+
 ---
 
 ## Ground rules
@@ -34,7 +36,7 @@ packages/aether/src/
   index.ts      public package entry point (engine + math only)
   math/         Vec3, Mat3, Mat4, Quat, scalar helpers       (Phase 1)
   engine/       loop, Particle, RigidBody, World, islands     (Phases 0, 2, 4, 7)
-  forces/       gravity, drag, springs, buoyancy, aero        (Phases 3, 4)
+  forces/       gravity, drag, springs, buoyancy, attraction, aero   (Phases 3, 4)
   collision/    shapes, AABB, broadphase, narrowphase, GJK    (Phase 5)
   constraints/  contacts, solver, joints                      (Phases 3, 6, 7)
 apps/editor/src/
@@ -108,7 +110,7 @@ Each phase still builds Millington's version first. Where Box3D does something m
 
 **Tests:** `loop.test.ts` covers step counting, leftover alpha, the frame clamp, dropped time, pause, single-step and time scale.
 
-**Demo:** *Fixed timestep*. Two orbiting balls, one interpolated and one not. At 10 Hz physics you can see why interpolation matters.
+**Demo:** *Fixed timestep*. Two orbiting balls, one interpolated and one not. At 10 Hz physics you can see why interpolation matters. Since retired: every demo now has a Smooth switch that turns interpolation off, which shows the same thing in any scene.
 
 **Web skills:** Vite project setup; Lit `static properties` with `declare` fields; Shadow DOM styling; custom events up, properties down; `ResizeObserver`; CSS grid app layout.
 
@@ -252,7 +254,7 @@ class Quat implements QuatLike {
 
 Register the custom matchers in a Vitest setup file (`test.setupFiles` in `vite.config.ts`). Add a `declare module 'vitest'` augmentation so TypeScript knows about them.
 
-**Demo:** *Rotation gizmo*. Sliders for axis and angle drive a quaternion; show the rotated basis vectors, the matching Euler angles, and gimbal lock when using Euler input. Built: `src/playground/demos/phase1-rotation-gizmo.ts`. What's on screen and why: [DEMOS.md §10](./DEMOS.md#10-worked-example-the-phase-1-rotation-gizmo).
+**Demo:** *Rotation gizmo*. Sliders for axis and angle drive a quaternion; show the rotated basis vectors, the matching Euler angles, and gimbal lock when using Euler input. Built: `apps/editor/src/demos/rigid-bodies/rotation.ts`. What's on screen and why: [DEMOS.md, Rotation](./DEMOS.md#rotation).
 
 **Web skills:** a reusable `<aether-slider>` component; a `<aether-vec3-input>` that emits a vector; formatting numbers in monospace for the UI.
 
@@ -297,7 +299,7 @@ More: [RESOURCES.md, Phase 1](./RESOURCES.md#phase-1-math-library)
 ### Build
 
 - [x] `src/engine/particle.ts`: `Particle`
-- [x] `src/playground/demos/helpers/integrators.ts`: four integrators behind one function type, for the shoot-out demo only, so they are not part of the package
+- [x] `src/playground/demos/helpers/integrators.ts`: four integrators behind one function type, for the shoot-out demo only, so they are not part of the package (removed along with the shoot-out demo)
 - [x] `src/engine/particle-world.ts`: `ParticleWorld`
 - [x] Export from `src/engine/index.ts` and `src/index.ts`
 - [x] Record the API decisions in `src/engine/README.md`
@@ -357,7 +359,7 @@ class ParticleWorld {
 - *Ballistics* (Millington ch. 4): pistol, artillery, fireball and laser presets.
 - *Integrator shoot-out*: four mass-spring oscillators side by side, one per integrator, with a live energy graph.
 
-Built: `src/playground/demos/phase2-ballistics.ts` and `src/playground/demos/phase2-integrator-shootout.ts`. What's on screen and why: [DEMOS.md §11](./DEMOS.md#11-worked-examples-the-phase-2-demos).
+Built: `apps/editor/src/demos/particles/ballistics.ts`. The shoot-out has since been removed. What's on screen and why: [DEMOS.md, Ballistics](./DEMOS.md#ballistics).
 
 **Web skills:** a hand-written `<canvas>` line chart component (no chart library): ring buffer, resizing, `devicePixelRatio`. A segmented control for choosing the integrator. Built: `<aether-line-chart>`, `RingBuffer` and `<aether-segmented>`.
 
@@ -472,6 +474,7 @@ class ParticleDrag implements ParticleForceGenerator {
 - [x] `src/forces/particle-anchored-spring.ts`: `ParticleAnchoredSpring`
 - [x] `src/forces/particle-bungee.ts`: `ParticleBungee`
 - [x] Demo: *Springs*
+- [x] Demos: *Cloth* (without tearing; see Step 9), *Drumhead*, *Elastic pendulum*
 
 **Introduces:** Hooke's law. A spring pushes only the particle it is registered on, so a spring between two moving particles is registered once on each end, each pointing at the other. Removing one end leaves the spring on the other end in place, so whoever removes a connected particle also removes the springs pointing at it.
 
@@ -494,20 +497,31 @@ class ParticleBungee implements ParticleForceGenerator {
 
 #### Step 4: Buoyancy
 
-- [ ] `src/forces/particle-buoyancy.ts`: `ParticleBuoyancy`
+- [x] `src/forces/particle-buoyancy.ts`: `ParticleBuoyancy`
+- [x] Demos: *Buoyancy*, *Density column*, *Raft*
 
 **Introduces:** a force that depends on position, with three regimes: out of the water, partly submerged and fully submerged.
 
 ```ts
 class ParticleBuoyancy implements ParticleForceGenerator {
-  constructor(options: {
-    maxDepth: number; volume: number; surfaceHeight: number
-    density?: number; gravity?: number
-  })
+  constructor(maxDepth: number, volume: number, waterHeight: number,
+              liquidDensity = 1000, gravity = 9.81)
 }
 ```
 
+Where the build goes beyond the sketch: the constructor takes positional arguments and throws a `RangeError` on a non-positive `maxDepth`, a non-finite `waterHeight` or any negative value. Layered liquids need nothing new: register one generator per surface, with the top layer's density at the top surface and the density difference at each surface below (the *Density column* demo).
+
 **Working when:** the force is zero above the surface, `ρ · volume · g` at full submersion, and linear in between.
+
+#### Also built in this phase
+
+- [x] `src/forces/particle-attraction.ts`: `ParticleAttraction`, a softened inverse-square pull toward a source particle, `m · strength · r / (|r|² + ε²)^(3/2)` with `r` pointing at the source. Not in the original plan; it came out of the *Orbits* demo.
+
+```ts
+class ParticleAttraction implements ParticleForceGenerator {
+  constructor(source: Particle, strength: number, softening = 0)
+}
+```
 
 #### Step 5: A single contact
 

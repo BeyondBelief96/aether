@@ -12,15 +12,18 @@ export class DragHandle {
     readonly #view: DemoView;
     readonly #target: Object3D;
     readonly #onDrag: (ray: Ray) => void;
+    readonly #onEnd: (() => void) | undefined;
 
     #raycaster = new Raycaster();
     #pointer = new Vector2(); // normalized device coordinates, -1 to 1
     #dragging: number | null = null; // id of the pointer doing the dragging
 
-    constructor(view: DemoView, target: Object3D, onDrag: (ray: Ray) => void) {
+    /** `onEnd` runs when the user lets go. */
+    constructor(view: DemoView, target: Object3D, onDrag: (ray: Ray) => void, onEnd?: () => void) {
         this.#view = view;
         this.#target = target;
         this.#onDrag = onDrag;
+        this.#onEnd = onEnd;
 
         const el = view.element;
         // Capture phase: runs before OrbitControls' listener on the canvas inside.
@@ -88,5 +91,6 @@ export class DragHandle {
         this.#dragging = null;
         this.#view.setOrbitEnabled(true);
         el.style.cursor = "";
+        this.#onEnd?.();
     }
 }

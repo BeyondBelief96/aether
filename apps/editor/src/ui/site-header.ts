@@ -12,6 +12,7 @@ export class SiteHeader extends LitElement {
         demos: { attribute: false },
         current: { type: String },
         index: { type: Boolean },
+        embedded: { type: Boolean },
     };
 
     declare demos: readonly DemoDefinition[];
@@ -19,6 +20,8 @@ export class SiteHeader extends LitElement {
     declare current: string;
     /** Whether the index of all demos is showing. */
     declare index: boolean;
+    /** Inside the website, which supplies the wordmark and outbound links. */
+    declare embedded: boolean;
 
     static override styles = [
         baseStyles,
@@ -120,6 +123,11 @@ export class SiteHeader extends LitElement {
                 overflow-x: auto;
                 scrollbar-width: none;
             }
+            .top .demos {
+                min-height: 0;
+                padding-left: calc(var(--u) * 3);
+                border-left: 1px solid var(--rule);
+            }
             .demos a {
                 font-size: var(--text-small);
                 min-height: 40px;
@@ -158,6 +166,21 @@ export class SiteHeader extends LitElement {
         this.demos = [];
         this.current = "";
         this.index = false;
+        this.embedded = false;
+    }
+
+    #demos(siblings: readonly DemoDefinition[]) {
+        if (siblings.length === 0) return nothing;
+        return html`<nav class="demos" aria-label="Demos in this category">
+            ${siblings.map(
+                (d) =>
+                    html`<a
+                        href=${demoHref(d.id)}
+                        aria-current=${d.id === this.current ? "page" : nothing}
+                        >${d.title}</a
+                    >`,
+            )}
+        </nav>`;
     }
 
     protected override render() {
@@ -166,9 +189,13 @@ export class SiteHeader extends LitElement {
         const siblings = this.demos.filter((d) => d.category === category);
         return html`
             <div class="top">
-                <a class="mark" href=${demoHref("")}
-                    ><b>Aether</b><span>Physics engine demos</span></a
-                >
+                ${
+                    this.embedded
+                        ? nothing
+                        : html`<a class="mark" href=${demoHref("")}
+                              ><b>Aether</b><span>Physics engine demos</span></a
+                          >`
+                }
                 <nav aria-label="Categories">
                     ${CATEGORIES.map(({ id, label }) => {
                         const first = this.demos.find((d) => d.category === id);
@@ -180,34 +207,26 @@ export class SiteHeader extends LitElement {
                         >`;
                     })}
                 </nav>
+                ${this.embedded ? this.#demos(siblings) : nothing}
                 <div class="end">
                     <a href="#/demos" aria-current=${this.index ? "page" : nothing}
                         >${icons.grid} All demos</a
                     >
-                    <a
-                        href=${REPOSITORY_URL}
-                        target="_blank"
-                        rel="noopener"
-                        aria-label="Aether on GitHub"
-                        ><span class="github-label">GitHub</span> ${icons.external}</a
-                    >
-                    <span class="version">aether-physics ${ENGINE_VERSION}</span>
+                    ${
+                        this.embedded
+                            ? nothing
+                            : html`<a
+                                      href=${REPOSITORY_URL}
+                                      target="_blank"
+                                      rel="noopener"
+                                      aria-label="Aether on GitHub"
+                                      ><span class="github-label">GitHub</span> ${icons.external}</a
+                                  >
+                                  <span class="version">aether-physics ${ENGINE_VERSION}</span>`
+                    }
                 </div>
             </div>
-            ${
-                siblings.length > 0
-                    ? html`<nav class="demos" aria-label="Demos in this category">
-                          ${siblings.map(
-                              (d) =>
-                                  html`<a
-                                      href=${demoHref(d.id)}
-                                      aria-current=${d.id === this.current ? "page" : nothing}
-                                      >${d.title}</a
-                                  >`,
-                          )}
-                      </nav>`
-                    : nothing
-            }
+            ${this.embedded ? nothing : this.#demos(siblings)}
         `;
     }
 }

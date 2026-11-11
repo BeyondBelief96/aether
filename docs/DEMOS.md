@@ -7,13 +7,14 @@ A demo is one file. It describes its parameters as data and returns a running in
 Contents:
 
 1. [How a demo fits in](#1-how-a-demo-fits-in)
+   - [Where a demo goes](#where-a-demo-goes)
 2. [Checklist for a new demo](#2-checklist-for-a-new-demo)
 3. [Demo file template](#3-demo-file-template)
 4. [Parameters, presets and actions](#4-parameters-presets-and-actions)
 5. [Readouts, charts and callouts](#5-readouts-charts-and-callouts)
 6. [Using the engine from a demo](#6-using-the-engine-from-a-demo)
 7. [Drawing helpers](#7-drawing-helpers)
-8. [Colour and look](#8-colour-and-look)
+8. [Scene and colour](#8-scene-and-colour)
 9. [Notes on the current demos](#9-notes-on-the-current-demos)
 
 ---
@@ -53,26 +54,42 @@ The rules that keep this working:
 - **The session owns cleanup.** Everything added to `ctx.root` is removed and its GPU resources freed after the instance is discarded. `dispose` is only for things outside `root`, such as `DragHandle` listeners.
 - **Reset recreates the instance** from the current parameter values. A demo doesn't need its own restart logic.
 
+### Where a demo goes
+
+Demos are grouped by what they simulate, not by which engine module or build phase they use. The categories are fixed in `CATEGORIES` in `core/demo.ts` and cover the whole roadmap; the app only shows a category once it has a demo, so adding the first demo to `collisions/` makes the Collisions tab appear. Each category's demos live in `demos/<category id>/`.
+
+| Category | Folder | What belongs there | Built | Planned (from `docs/PLAN.md`) |
+|---|---|---|---|---|
+| Particles | `particles/` | Point masses moving under forces: projectiles, swarms, fields | Orbits, Fireworks, Ballistics | |
+| Soft bodies | `soft-bodies/` | Particles joined by springs or constraints | Cloth, Drumhead, Elastic pendulum, Springs | Bridge, Rope and cloth tearing |
+| Fluids | `fluids/` | Buoyancy, drag through a medium, lift | Raft, Density column, Buoyancy | Sailing, Flight sim |
+| Rigid bodies | `rigid-bodies/` | Orientation, inertia, torque, a single body's motion | Rotation | Spinning bodies |
+| Collisions | `collisions/` | Detection, contacts, restitution, friction, stacking | | Collision inspector, Broadphase heatmap, Restitution and friction lab, Solver comparison |
+| Joints | `joints/` | Bodies held together by joints; islands and sleeping | | Newton's cradle, Chain bridge, Car, Ragdoll, Sleep visualizer |
+
+When a demo could fit two categories, put it where its most interesting thing happens: a sailing boat is about the water, so it goes in Fluids even though the boat is a rigid body. Add a category only when a new kind of simulation arrives that none of these describe; insert it in `CATEGORIES` where it falls in the roadmap.
+
 ## 2. Checklist for a new demo
 
-1. Create `apps/editor/src/demos/<category>/<name>.ts` from the [template](#3-demo-file-template). Categories are listed in `CATEGORIES` in `core/demo.ts`.
+1. Create `apps/editor/src/demos/<category>/<name>.ts` from the [template](#3-demo-file-template). [Where a demo goes](#where-a-demo-goes) says which category.
 2. Add it to the array in `demos/registry.ts`, in the order its category should list it.
 3. Declare the parameters that matter, with units and ranges that stay stable. Add up to four presets that show the demo's range, and a `hint` that names one thing to try.
 4. Build the scene under `ctx.root`; simulate in `step`; draw in `sync`.
 5. Add readouts for the numbers that prove the physics is right, and callouts for the few that belong next to a body.
-6. If the simulation is non-trivial, move it into a Three.js-free module beside the demo and test it (see `forces/cloth-sim.ts`).
-7. Add the demo's id to `DEMOS` in `apps/editor/scripts/smoke-test.mjs`.
-8. Check it by hand:
+6. If the simulation is non-trivial, move it into a Three.js-free module beside the demo and test it (see `soft-bodies/cloth-sim.ts`).
+7. Add the demo's id to `DEMOS` in `apps/editor/scripts/smoke-test.mjs`. `demos/tests/stability.test.ts` picks up every registered demo on its own and fails if any preset goes non-finite at any physics rate; if yours does, substep with `substepsFor`.
+8. Tick it off in `docs/PLAN.md`, and add it to its phase in `apps/site/src/data/roadmap.ts` so the landing page links to it.
+9. Check it by hand:
    - Every preset, then Reset (R): it restarts cleanly with the current values.
    - Pause (Space) and step (`.`).
-   - Physics rate 10 Hz: motion stays smooth, which shows interpolation works.
+   - Physics rate 10 Hz: motion stays smooth with Smooth on, and steps visibly with it off.
    - Copy the URL after changing parameters and open it in a new tab: the same state loads.
    - Light and dark mode, and a phone-width window.
 
 ## 3. Demo file template
 
 ```ts
-// apps/editor/src/demos/forces/name.ts
+// apps/editor/src/demos/soft-bodies/name.ts
 import { Mesh, MeshStandardMaterial, SphereGeometry } from "three";
 import { Particle, ParticleWorld, Vec3 } from "aether-physics";
 import { defineDemo } from "../../core/demo";
@@ -92,13 +109,13 @@ const params = {
 export const nameDemo = defineDemo({
     id: "name", // used in URLs; keep it stable
     title: "Name",
-    category: "forces",
+    category: "soft-bodies",
     summary: "One or two sentences: what is on screen.",
     hint: "One thing to try.",
     params,
     presets: [{ label: "Moon", note: "1.62 m/s²", values: { gravity: 1.62 } }],
     camera: { position: { x: 6, y: 5, z: 8 }, target: { x: 0, y: 1, z: 0 } },
-    source: "apps/editor/src/demos/forces/name.ts",
+    source: "apps/editor/src/demos/soft-bodies/name.ts",
     create({ root, palette, values }) {
         const world = new ParticleWorld();
         world.gravity.set(0, -values.gravity, 0);
@@ -202,11 +219,18 @@ In `apps/editor/src/demos/helpers/`:
 | `VectorArrow` | An arrow whose length is a vector's magnitude, drawn over meshes |
 | `Polyline` | A line rewritten in place without allocating, for trails |
 | `SpringCoil` | A helix between two points with a fixed number of turns |
-| `DragHandle` | Lets the user drag an object. Your callback receives the pointer's world-space ray; turns orbiting off during the drag. Call `dispose()` in `dispose` |
+| `DragHandle` | Lets the user drag an object. Your callback receives the pointer's world-space ray; an optional second callback runs on release. Turns orbiting off during the drag. Call `dispose()` in `dispose` |
+| `substepsFor` | How many substeps keep each one under a maximum length. Stiff demos substep by it so every physics rate the transport offers stays stable |
+| `TapHandle` | Calls back with the hit when the user presses on an object, without also turning the camera. For strikes and placing things. Call `dispose()` in `dispose` |
 | `disposeObject` | Frees the GPU resources under an object. The session already calls it on `root` |
-| `integrators` | Four one-dimensional integrators, used by the shoot-out only, so they are not part of the package |
 
-## 8. Colour and look
+## 8. Scene and colour
+
+The stage gives every demo the same scenery: a key light with soft shadows, a ground that catches them, an environment map for materials, and fog in the ground colour so the floor fades out instead of ending. Solid, opaque meshes under `root` cast and receive shadows automatically once `create` returns; transparent ones (liquids, ghosts) don't.
+
+Demos don't choose a renderer, lights or camera rig. They choose a camera `position` and `target` in their definition, and nothing else about the view.
+
+### Colour and look
 
 Demos take every colour from `ctx.palette` (`stage/palette.ts`): `ink` for main bodies, `muted` for fixtures, `accent` for the one thing to watch, `series[0..3]` for things being compared, and `axis.x/y/z`. The palette changes with the system theme, and the app recreates the instance when it does, so never hard-code a hex value in a demo.
 
@@ -234,18 +258,9 @@ Each shot is one `Particle` in a shared `ParticleWorld`, ending at the ground, p
 - **Change the physics rate.** Range barely changes between 30 Hz and 240 Hz, because damping is per second, not per step.
 - There is no mass parameter: no force other than gravity acts on a shot, and gravity is applied as an acceleration, so mass would not change the motion.
 
-### Integrator shoot-out
+### Orbits
 
-All four rows start from the same state with the same 1 kg mass and spring. The translucent ball on each row is the exact solution `A·cos(ωt)`. The chart plots `E / E₀`, where a flat line at 1 is perfect.
-
-| Do this | You should see |
-|---|---|
-| Watch at the defaults | Explicit Euler climbs off the chart. The others hold |
-| Range ±10% | Semi-implicit Euler swings in a steady band of about ±3% and never drifts |
-| Range ±0.1% | Verlet's much smaller band appears. RK4 sits on the line |
-| Coarse steps, then raise the stiffness | `ω·dt` crosses 2 and semi-implicit Euler and Verlet blow up. RK4 survives longer |
-
-Changing the stiffness or damping model restarts the run, because `E₀` changes meaning.
+Two stars on a circular binary orbit and a disk of dust around them. Each star is the source of one engine `ParticleAttraction` (softened inverse-square), shared by the other star and every grain; grains pull nothing, so the cost is two registrations per grain and two generators in total. Generators keep their parameters fixed, so a change of star mass re-registers new ones. The world is stepped twice per physics step. Changing the star mass mid-run leaves the dust on orbits sized for the old mass, which is why the disk breathes and spirals after a preset.
 
 ### Fireworks
 
@@ -253,4 +268,21 @@ Rockets climb until their upward speed falls to 3 m/s, then burst. Sparks share 
 
 ### Cloth
 
-An 18 × 18 grid of particles with structural and shear links, each link a `ParticleSpring` on both ends. `WindForce` in `forces/cloth-sim.ts` is a user-written `ParticleForceGenerator`, registered alongside the springs like any built-in generator. The world is stepped four times per physics step; at 1000 N/m and 0.05 kg per particle that keeps `ω·h` well under the stability limit. `cloth-sim.test.ts` checks the cloth stays bounded across the stiffness range.
+An 18 × 18 grid of particles with structural and shear links, each link a `ParticleSpring` on both ends. `WindForce` in `soft-bodies/cloth-sim.ts` is a user-written `ParticleForceGenerator`, registered alongside the springs like any built-in generator. The world is substepped so no substep is longer than 1/240 s, whatever the physics rate; at 1000 N/m and 0.05 kg per particle that keeps `ω·h` well under the stability limit. `cloth-sim.test.ts` checks the cloth stays bounded across the stiffness range.
+
+### Drumhead
+
+About 1,200 particles on a square grid inside a 5 m circle, each joined to its four neighbours by a `ParticleSpring` on both ends. Grid points missing a neighbour form the rim and are immovable. The springs' rest length is `spacing · (1 − tension)`, so the skin starts stretched and every spring pulls with `k · spacing · tension`; that pull, not the stiffness, sets the wave speed `√(T / spacing · spacing² / m)`. Gravity is off, and the world is substepped to 1/60 s so low physics rates stay stable. A strike adds downward velocity with a cos² falloff across the mallet. The drawn skin is a separate ring mesh whose heights are sampled bilinearly from the grid, so its edge meets the round hoop instead of following the grid's staircase.
+
+### Elastic pendulum
+
+One particle on a `ParticleAnchoredSpring` under gravity. The spring's frequency is `√(k/m)` and the swing's is `√(g/L)` with `L` the length the spring hangs at; when the first is twice the second the two motions trade energy. With `m = 1 kg` and a 3 m rest length that happens at `k = 3mg / L₀ ≈ 9.8 N/m`, the default. The chart splits the energy along the spring (bounce) from the energy across it (swing), both measured about the resting point. A small sideways start speed takes the path out of a single plane.
+
+### Density column
+
+Three liquid layers and four upright prisms. Pressure from stacked liquids adds, so each object has three `ParticleBuoyancy` generators: one at the top surface with the top layer's density, and one at each lower surface with the difference between that layer and the one above it. An object inside the middle layer then gets the top density plus the difference, which is the middle density. The density sliders' ranges don't overlap, so no difference is negative. Prisms keep the generator's linear submerged fraction exact.
+
+### Raft
+
+Five logs as a two-layer truss: 35 log nodes and 35 deck nodes, joined along, across and diagonally within each layer and between them, so the raft resists bending without any rigid body. Only log nodes float. A crate is one particle on four springs to the corners of the deck cell under it, registered on both ends, so removing a crate removes the springs on the deck nodes too. The truss and crate springs are stiff for the lightest deck nodes, so the world is substepped to 1/600 s; that holds 20 crates of 1,500 kg on balsa at every physics rate.
+

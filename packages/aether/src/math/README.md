@@ -9,7 +9,7 @@ Write a test for every operation before using it.
 - Tests live in `tests/`. `tests/matchers.ts` is a Vitest setup file that registers `expect(v).toBeCloseToVec3(expected, digits?)` and `expect(q).toBeCloseToQuat(expected, digits?)`. The quaternion matcher treats `q` and `−q` as the same rotation.
 - `tests/properties.test.ts` uses `fast-check` for invariants over random inputs: length preservation, composition order, `M · M⁻¹ = I`, and transform round trips.
 
-See [PLAN.md, Phase 1](../../docs/PLAN.md#phase-1-math-library).
+See [PLAN.md, Phase 1](../../../../docs/PLAN.md#phase-1-math-library).
 
 ## Public API conventions
 

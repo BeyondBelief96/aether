@@ -1,6 +1,6 @@
 # Aether: monorepo plan
 
-How the repo is split into the npm package, the demo app, and (next) the website. The package and demo app split is done: `packages/aether` and `apps/editor`. The website, `apps/site`, is still to come.
+How the repo is split into the npm package, the demo app, and (next) the website. The package and demo app split is done: `packages/aether` and `apps/editor`. The website is `apps/site` (Astro): the landing page at `/`, the demo app mounted at `/demos`, and documentation at `/docs`.
 
 ---
 
@@ -17,7 +17,7 @@ aether/
 │       └── src/            math/, engine/, collision/, forces/, constraints/, index.ts
 └── apps/
     ├── editor/             the demo app (Lit + Three.js): core/, stage/, demos/, ui/
-    └── site/               planned: marketing page, docs and the hosted demos, on Railway
+    └── site/               the website (Astro): landing, /demos (mounts apps/editor), /docs
 ```
 
 The apps depend on `"aether-physics": "*"`, which the workspace links to the local package. The package's `exports` carry an `aether-source` condition pointing at its TypeScript source; the apps resolve with that condition (Vite `resolve.conditions`, tsconfig `customConditions`), so they need no build step for the engine and import it the same way users will.
@@ -48,3 +48,20 @@ Package `package.json` essentials: `"type": "module"`, `"exports"`, `"types"`, `
 4. Move the library build (`vite.lib.config.ts`, `tsconfig.build.json`) and `exports` into `packages/aether/`. Verify with `npm pack --dry-run` that only `dist/` ships.
 5. Scaffold `apps/docs/` and wire TypeDoc output into it.
 6. Run `npm install` at the root, then confirm tests, typecheck and both apps' dev servers work.
+
+## The website
+
+`apps/site` is an Astro static site. It imports the demo app as a workspace package:
+
+| Import | What it is |
+|---|---|
+| `@aether/editor/element` | `<aether-editor>`, the full demo app. The site mounts it at `/demos` with the `embedded` attribute, which drops the app's own wordmark, outbound links and footer |
+| `@aether/editor/scene` | `<aether-scene demo="cloth" values="wind=10">`, one demo running bare, for pages that show the engine at work. It stops drawing while off screen and never captures scroll |
+| `@aether/editor/tokens.css`, `@aether/editor/fonts`, `@aether/editor/palette` | The visual system, so the site and the app are one design |
+
+The demo app keeps hash routing (`/demos/#/cloth?wind=10`), so it works under any base path and needs no server rewrites. Docs are Markdown in `apps/site/src/content/docs`; pages marked `stub: true` show an outline notice until the API settles. When the API stabilises, generate the API reference with TypeDoc into the same collection, or move the docs to Starlight, which reads the same Markdown.
+
+### Deploying
+
+- **GitHub Pages** (now): `.github/workflows/deploy-site.yml` builds the site with `SITE_BASE=/<repo>/` and publishes `apps/site/dist`.
+- **Railway** (planned): build with `npm ci && npm run build`, start with `npm start` (`astro preview` on `$PORT`), no `SITE_BASE`. A static host in front of `apps/site/dist` works too; the site has no server code.

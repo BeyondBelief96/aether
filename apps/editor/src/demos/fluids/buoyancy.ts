@@ -59,11 +59,9 @@ const params = {
 export const buoyancyDemo = defineDemo({
     id: "buoyancy",
     title: "Buoyancy",
-    category: "forces",
-    summary:
-        "Cubes of cork, pine, ice and brick dropped into a tank. Each floats with its density " +
-        "ratio under the surface, or sinks.",
-    hint: "Choose Oil: ice is denser than oil and goes to the bottom.",
+    category: "fluids",
+    summary: "Cork, pine, ice and brick, dropped in a tank.",
+    hint: "Switch to Oil. The ice won't float.",
     params,
     presets: [
         { label: "Oil", note: "910 kg/m³", values: { density: 910 } },
@@ -72,7 +70,7 @@ export const buoyancyDemo = defineDemo({
         { label: "Dense brine", note: "2200 kg/m³", values: { density: 2200 } },
     ],
     camera: { position: { x: 0, y: 6, z: 16 }, target: { x: 0, y: 3, z: 0 } },
-    source: "apps/editor/src/demos/forces/buoyancy.ts",
+    source: "apps/editor/src/demos/fluids/buoyancy.ts",
     create({ root, palette, values }) {
         let current = values;
         const world = new ParticleWorld();

@@ -77,6 +77,14 @@ export class DemoStage extends LitElement {
                 color: var(--ink-2);
                 pointer-events: none;
             }
+            .summary span,
+            .hint {
+                background: color-mix(in srgb, var(--paper-sunk) 82%, transparent);
+                box-decoration-break: clone;
+                -webkit-box-decoration-break: clone;
+                padding: 1px 4px;
+                margin-left: -4px;
+            }
             .hint b {
                 font-weight: 650;
                 color: var(--ink);
@@ -147,6 +155,8 @@ export class DemoStage extends LitElement {
     override connectedCallback(): void {
         super.connectedCallback();
         this.#resizeObserver.observe(this);
+        // Moved in the DOM: disconnecting disposed the renderer, so make a new one.
+        if (this.hasUpdated && !this.stage) this.#build();
     }
 
     override disconnectedCallback(): void {
@@ -157,6 +167,10 @@ export class DemoStage extends LitElement {
     }
 
     protected override firstUpdated(): void {
+        this.#build();
+    }
+
+    #build(): void {
         const canvas = this.renderRoot.querySelector("canvas") as HTMLCanvasElement;
         try {
             this.stage = new Stage(canvas, this);
@@ -206,7 +220,7 @@ export class DemoStage extends LitElement {
                 )}
             <div class="title">
                 <h1>${this.heading}</h1>
-                <p class="summary">${this.summary}</p>
+                <p class="summary"><span>${this.summary}</span></p>
             </div>
             ${this.hint ? html`<p class="hint"><b>Try:</b> ${this.hint}</p>` : nothing}
             <p class="orbit" aria-hidden="true">drag to orbit · scroll to zoom</p>

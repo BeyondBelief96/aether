@@ -10,6 +10,10 @@ export default defineConfig({
         // Use the engine's TypeScript source, as the tsconfig does.
         conditions: ["aether-source"],
     },
+    // Vitest resolves through the SSR environment, which doesn't inherit `resolve.conditions`.
+    ssr: {
+        resolve: { conditions: ["aether-source"] },
+    },
     define: {
         __AETHER_VERSION__: JSON.stringify(engine.version),
     },

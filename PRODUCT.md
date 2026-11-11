@@ -16,7 +16,7 @@ Usage is desktop-first. Phones must work, but do not need full parity with deskt
 
 ## Product Purpose
 
-Aether is a 3D rigid-body physics engine written from scratch in TypeScript and published on npm as `aether-physics`.
+Aether is a web-first 3D rigid-body physics engine written from scratch for TypeScript and published on npm as `aether-physics`. It is built in phases (`docs/PLAN.md`): math, particles and forces ship today; rigid bodies, collision detection, contact solving with friction and stacking, joints with ragdolls and vehicles, sleeping, and running in a Web Worker are the roadmap.
 
 The demo app (called "the editor" in planning) is the browser app that runs the engine in a gallery of showcase demos. Its job is to show off the engine: creative, interesting scenes that make its capabilities and possibilities obvious, with the engine's parameters exposed so people can tweak them live.
 
@@ -26,7 +26,7 @@ The demo app succeeds when a visitor:
 - can change the parameters that matter and see the scene respond immediately;
 - can find the demo's code and see that it is ordinary use of the public API.
 
-The end goal is a website for the engine, hosted on Railway, that carries the engine's marketing page, documentation and the demo app. Until then the demo app deploys to GitHub Pages.
+The website (`apps/site`, Astro) carries the landing page at `/`, the demo app at `/demos`, and documentation at `/docs`. It will be hosted on Railway; until then it deploys to GitHub Pages. The landing page presents Aether as the rigid-body engine it is becoming, shows what runs today, and shows the roadmap, with every unbuilt capability labelled as unbuilt.
 
 ## Positioning
 
@@ -37,14 +37,16 @@ The end goal is a website for the engine, hosted on Railway, that carries the en
 
 ## Operating Context
 
-- Repository: npm workspaces monorepo. `packages/aether` is the npm package, `apps/editor` is the demo app; `apps/site` (marketing and docs, hosted on Railway) is planned.
+- Repository: npm workspaces monorepo. `packages/aether` is the npm package, `apps/editor` is the demo app (also runnable on its own), `apps/site` is the website that mounts the demo app.
 - The demo app is built with Lit web components and Three.js and runs with Vite. It is deployed to GitHub Pages on every push to `main`.
 - Keyboard: Space pauses, `.` steps once while paused, R resets the demo.
 
 ## Capabilities and Constraints
 
 - Current package scope (0.x): the math library (Vec3, Mat3, Mat4, Quaternion), a fixed-timestep loop, particles, a particle world, and force generators (gravity, drag, springs, anchored springs, bungees, buoyancy). Rigid bodies, collisions, contacts and joints come later. The API can change in any 0.x release.
-- Demos are grouped by engine capability (for example Foundations, Particles, Forces, Springs; later Rigid bodies, Collisions, Joints). The build phase a demo came from is an internal detail and is not shown to visitors.
+- Demos are grouped by what they simulate: Particles, Soft bodies, Fluids and Rigid bodies today; Collisions and Joints as those phases ship. A category appears once it has a demo. Planned demos are not shown in the demo app. The build phase a demo came from is not shown in the demo app; the landing page's roadmap may name phases.
+- Demos exist to show the engine off. A demo that only teaches a concept and does not exercise the engine is cut (the fixed-timestep and integrator demos were; interpolation is a setting instead).
+- Documentation pages are stubs until the API settles.
 - Demos are authored in code. A user-facing scene builder is not in scope.
 - Terminology: "demo", "category", "parameter" (a tweakable value), "readout" (a computed value), "physics rate" (Hz), "time scale".
 - Axis colours are fixed: X is red, Y is green, Z is blue, everywhere in the UI and the 3D view.
@@ -54,11 +56,12 @@ The end goal is a website for the engine, hosted on Railway, that carries the en
 
 - Name: **Aether**. Package name: `aether-physics`.
 - License: MIT.
-- Public framing is a serious engine to adopt, not a learning project. Public surfaces do not mention phases, study plans or textbooks.
+- Public framing is a serious engine to adopt, not a learning project. Public surfaces do not mention study plans or textbooks.
+- Voice: minimal, with a little warmth. Short lines that say what is on screen or what to try; no hype and no textbook tone.
 
 ## Evidence on Hand
 
-- The existing demos: Timestep, Rotation gizmo, Ballistics, Integrator shoot-out, Springs, Buoyancy.
+- The demos: Cloth, Springs, Buoyancy, Orbits, Fireworks, Ballistics, Rotation.
 - Unit tests for the engine and the demo app's helpers (Vitest), plus a browser smoke test that loads every demo.
 - API guides in the engine and math READMEs.
 - None yet: users, testimonials, benchmarks, performance comparisons with other engines, or download figures. Future work must not invent them.

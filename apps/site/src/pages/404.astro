@@ -1,0 +1,33 @@
+---
+import Base from "../layouts/Base.astro";
+import { href } from "../site";
+---
+
+<Base title="Not found · Aether" description="This page doesn't exist.">
+    <div class="missing">
+        <h1>Nothing here.</h1>
+        <p>This page doesn't exist, or it moved.</p>
+        <p><a class="btn primary" href={href("/demos/")}>Open the demos</a> <a class="btn" href={href("/")}>Home</a></p>
+    </div>
+</Base>
+
+<style>
+    .missing {
+        padding: calc(var(--u) * 12) 0 calc(var(--u) * 6);
+    }
+    h1 {
+        margin: 0;
+        font: 800 clamp(48px, 7vw, 96px) / 0.95 var(--sans);
+        letter-spacing: -0.04em;
+    }
+    p {
+        margin: calc(var(--u) * 2) 0 0;
+        font-size: var(--text-lead);
+        color: var(--ink-2);
+    }
+    p:last-child {
+        display: flex;
+        gap: var(--u);
+        margin-top: calc(var(--u) * 4);
+    }
+</style>

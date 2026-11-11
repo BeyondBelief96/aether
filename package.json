@@ -8,16 +8,19 @@
         "apps/*"
     ],
     "scripts": {
-        "dev": "npm run dev -w @aether/editor",
-        "build": "npm run build -w @aether/editor",
+        "dev": "npm run dev -w @aether/site",
+        "build": "npm run build -w @aether/site",
         "build:lib": "npm run build -w aether-physics",
-        "preview": "npm run preview -w @aether/editor",
+        "preview": "npm run preview -w @aether/site",
         "typecheck": "npm run typecheck --workspaces",
         "test": "vitest",
         "test:run": "vitest run",
         "test:smoke": "npm run test:smoke -w @aether/editor --",
         "format": "prettier --write .",
-        "format:check": "prettier --check ."
+        "format:check": "prettier --check .",
+        "dev:editor": "npm run dev -w @aether/editor",
+        "build:editor": "npm run build -w @aether/editor",
+        "start": "npm run start -w @aether/site"
     },
     "devEngines": {},
     "devDependencies": {

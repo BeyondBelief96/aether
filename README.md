@@ -41,20 +41,22 @@ It's early: so far the package has the math library, a fixed-timestep loop and p
 
 ## Running it
 
-The repository is an npm workspaces monorepo: the engine package in `packages/aether` and the demo app in `apps/editor`.
+The repository is an npm workspaces monorepo: the engine package in `packages/aether`, the demo app in `apps/editor`, and the website (landing page, demos at `/demos`, docs at `/docs`) in `apps/site`.
 
 ```sh
 npm install
-npm run dev        # demo app at http://localhost:5173
+npm run dev        # the website at http://localhost:4321 (landing, /demos, /docs)
+npm run dev:editor # the demo app on its own at http://localhost:5173
 npm test           # Vitest in watch mode, every workspace
 npm run test:run   # Vitest once
 npm run typecheck  # tsc in every workspace
-npm run build      # typecheck, then production build of the demo app to apps/editor/dist/
-npm run test:smoke # load the built demo app in Chrome (run npm run build first)
+npm run build      # typecheck, then production build of the website to apps/site/dist/
+npm run build:editor # production build of the demo app alone to apps/editor/dist/
+npm run test:smoke # load the built demo app in Chrome (run npm run build:editor first)
 npm run build:lib  # build the npm package to packages/aether/dist/
 ```
 
-In the demo app: **Space** pauses, **.** steps once while paused, **R** resets, **1–9** pick a demo's presets. Every parameter change is written to the URL, so a link reproduces what you see.
+In the demo app: **Space** pauses, **.** steps once while paused, **R** resets, **1–9** pick a demo's presets. **Smooth** in the transport turns interpolation between physics steps on and off. Every parameter change is written to the URL, so a link reproduces what you see.
 
 ## Layout
 
@@ -73,7 +75,9 @@ apps/
       core/           demo contract, parameter schema, URL routes, session (no UI)
       stage/          Three.js renderer, camera and theme palette
       demos/          one file per demo, by category (the only engine + Three.js code)
-      ui/             Lit components
+      ui/             Lit components (aether-editor is the app; aether-scene runs one demo bare)
+  site/               the website (Astro): landing page, the demo app at /demos, docs at /docs
+    src/content/docs/ documentation pages, in Markdown
 docs/                 build plan, demo guide, notes
 ```
 

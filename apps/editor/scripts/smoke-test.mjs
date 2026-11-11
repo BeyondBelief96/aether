@@ -10,14 +10,17 @@ import { preview } from "vite";
 const base = process.argv[2] ?? "/";
 const TIMEOUT_MS = 20_000;
 const DEMOS = [
-    "fixed-timestep",
-    "rotation",
-    "integrators",
-    "ballistics",
+    "orbits",
     "fireworks",
+    "ballistics",
     "cloth",
+    "drumhead",
+    "elastic-pendulum",
     "springs",
+    "raft",
+    "density-column",
     "buoyancy",
+    "rotation",
 ];
 
 const server = await preview({ base, logLevel: "error", preview: { port: 4179 } });
@@ -123,8 +126,8 @@ try {
         await page.locator("data-tabs dd", { hasText: " s" }).first().waitFor();
     });
 
-    await check("the shoot-out chart draws lines", async () => {
-        await open("#/integrators");
+    await check("the orbits chart draws lines", async () => {
+        await open("#/orbits");
         await page.locator("data-tabs [role=tab]", { hasText: "Charts" }).click();
         await page.waitForTimeout(1000);
         const painted = await page.locator("line-chart canvas").evaluate((canvas) => {
@@ -139,7 +142,9 @@ try {
     await check("the code tab shows the demo's source", async () => {
         await open("#/springs");
         await page.locator("data-tabs [role=tab]", { hasText: "Code" }).click();
-        await page.locator("code-view pre:not(.imports)", { hasText: "new ParticleAnchoredSpring" }).waitFor();
+        await page
+            .locator("code-view pre:not(.imports)", { hasText: "new ParticleAnchoredSpring" })
+            .waitFor();
     });
 
     await check("the index lists every demo", async () => {
