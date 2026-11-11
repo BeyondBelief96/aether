@@ -2,9 +2,9 @@
 
 A 3D rigid-body physics engine written from scratch in TypeScript, with a browser demo app built on Lit and Three.js.
 
-This is a learning project. The engine is built in phases, from vectors to stacking boxes to ragdolls, following Ian Millington's *Game Physics Engine Development*, Erin Catto's solver talks, and the resources collected at [brm.io/game-physics-for-beginners](https://brm.io/game-physics-for-beginners/).
+This is a learning project. The engine is built in phases, following Ian Millington's *Game Physics Engine Development*, Erin Catto's solver talks, and the resources collected at [brm.io/game-physics-for-beginners](https://brm.io/game-physics-for-beginners/).
 
-- **[docs/PLAN.md](docs/PLAN.md):** the phased build plan, with goals, checklists, tests and demos for each phase
+- **[docs/PLAN.md](docs/PLAN.md):** the build plan, with goals, checklists, tests and demos for each phase
 - **[docs/RESOURCES.md](docs/RESOURCES.md):** books, articles, talks and reference engines for each phase
 - **[docs/DEMOS.md](docs/DEMOS.md):** how to build a demo: the demo contract, parameters, readouts and charts, and using the engine from Three.js
 
@@ -37,7 +37,7 @@ world.particles.push(ball);
 for (let i = 0; i < 60; i++) world.step(1 / 60); // one simulated second
 ```
 
-It's early: so far the package has the math library, a fixed-timestep loop and particles. Rigid bodies and collisions arrive with the later phases below, and the API can change in any 0.x release. See the [engine API guide](packages/aether/src/engine/README.md) and the [math API guide](packages/aether/src/math/README.md).
+The package has the math library, a fixed-timestep loop, particles and force generators. The API can change in any 0.x release. See the [engine API guide](packages/aether/src/engine/README.md) and the [math API guide](packages/aether/src/math/README.md).
 
 ## Running it
 
@@ -67,8 +67,6 @@ packages/
       math/           Vec3, Mat3, Mat4, Quat
       engine/         game loop, Particle, ParticleWorld
       forces/         force generators
-      collision/      shapes, broadphase, narrowphase (planned)
-      constraints/    contact solver, joints (planned)
 apps/
   editor/             the demo app, which uses the engine only through "aether-physics"
     src/
@@ -88,20 +86,6 @@ docs/                 build plan, demo guide, notes
 - A demo describes its parameters as data and never builds UI. See [docs/DEMOS.md](docs/DEMOS.md).
 - TypeScript runs with `erasableSyntaxOnly`: no `enum`, `namespace` or parameter properties.
 - Lit components use `static properties` with `declare` fields and `customElements.define`, never decorators.
-
-## Progress
-
-| Phase | Topic | Status |
-|---|---|---|
-| 0 | Scaffold and game loop | ✅ |
-| 1 | Math library | ✅ |
-| 2 | Particles and integration | ✅ |
-| 3 | Forces, springs and mass aggregates | |
-| 4 | Rigid bodies | |
-| 5 | Collision detection | |
-| 6 | Collision response and friction | |
-| 7 | Joints, sleeping and stability | |
-| 8 | Stretch goals | |
 
 ## License
 

@@ -1,7 +1,7 @@
 {
     "name": "aether-physics",
     "version": "0.2.0",
-    "description": "A 3D rigid-body physics engine written from scratch in TypeScript.",
+    "description": "A 3D physics engine written from scratch in TypeScript.",
     "license": "MIT",
     "author": "Brandon Berisford",
     "keywords": [

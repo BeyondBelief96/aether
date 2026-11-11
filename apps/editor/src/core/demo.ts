@@ -4,17 +4,14 @@ import type { ParamSchema, ParamValues } from "./params";
 import type { ScenePalette } from "../stage/palette";
 
 /**
- * Demo categories, grouped by what the demo simulates, in the order the app lists them. The list
- * covers the whole roadmap; a category appears in the app once a demo uses it. Each category's
- * demos live in `demos/<id>/`.
+ * Demo categories, grouped by what the demo simulates, in the order the app lists them. Each
+ * category's demos live in `demos/<id>/`.
  */
 export const CATEGORIES = [
     { id: "particles", label: "Particles" },
     { id: "soft-bodies", label: "Soft bodies" },
     { id: "fluids", label: "Fluids" },
     { id: "rigid-bodies", label: "Rigid bodies" },
-    { id: "collisions", label: "Collisions" },
-    { id: "joints", label: "Joints" },
 ] as const;
 
 export type CategoryId = (typeof CATEGORIES)[number]["id"];

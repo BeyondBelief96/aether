@@ -1,15 +1,26 @@
 # Aether: build plan
 
-A 3D rigid-body physics engine written from scratch in TypeScript, plus a browser playground for poking at it. The project has two goals:
+Two products from one repository, both written from scratch in TypeScript:
+
+- **Aether** (`aether-physics`): a 3D rigid-body physics engine for games and interactive scenes. Stable and fast at a fixed timestep. Built first.
+- **Aether Lab** (working name): a simulation and visualization library for the systems in a physics course. Students and teachers declare a system, whether a double pendulum, a charged particle in a magnetic bottle or a dipole antenna, and get an accurate, instrumented 3D view of it in a few lines. Built on the engine's math once the engine is done.
+
+They share the math library and the Three.js layer, and nothing else. They have different users, different promises (plausible at 60 Hz versus correct to a stated tolerance) and different APIs, so each gets its own package, docs and front page.
+
+The project has four goals:
 
 1. **Learn how physics engines work** by writing the math, integrators, collision detection and solvers by hand.
-2. **Learn modern web UI** (TypeScript, Lit web components, CSS layout, Canvas and WebGL, Web Workers) by building the playground around the engine.
+2. **Ship the engine**, `aether-physics`, as a library people can adopt.
+3. **Ship the Lab**: an accurate simulation core with error control, generalized coordinates and fields, each tested against analytic solutions, with a Three.js layer so setting up a simulation never means writing a renderer.
+4. **Learn modern web UI** (TypeScript, Lit web components, CSS layout, Canvas, WebGL and WebGPU, Web Workers) by building the demo app, the libraries and the site.
+
+The work is split into three [tracks](#tracks): Track G builds the engine (Phases 0–8); Tracks S (S1–S6) and V (V1–V5) build the Lab.
 
 Each phase ends with something you can **see** (a demo) and something you can **trust** (tests). Every phase lists what to build in order, how to approach it, and what to read. The full reading list is in [RESOURCES.md](./RESOURCES.md). How to build a demo (templates, using the library from Three.js, per-demo controls and UI style) is in [DEMOS.md](./DEMOS.md).
 
 The class sketches below are starting points, not specifications. Signatures will change as you learn; record the decisions you make in the module READMEs and your phase notes.
 
-**Keep this plan current.** It is the record of where the engine stands. Update it in the same change as the work: tick items as they land, add generators and demos that weren't planned, and note where the build departs from a sketch. The README's progress table and the landing page's roadmap (`apps/site/src/data/roadmap.ts`) follow it, so update them together.
+**Keep this plan current.** It is the only record of where the engine stands and what comes next. Update it in the same change as the work: tick items as they land, add generators and demos that weren't planned, and note where the build departs from a sketch. The README, website and demo app have no roadmap: they show only what exists, so a feature reaches them when it ships.
 
 ---
 
@@ -20,7 +31,7 @@ These hold for every phase. Breaking them early is how hobby engines turn into u
 | Rule | Why |
 |---|---|
 | **The engine never imports `three` or touches the DOM.** `packages/aether` is plain TypeScript, type-checked without DOM types. | You can unit-test the engine in Node, move it into a Web Worker later, and swap renderers. |
-| **Demos are the bridge.** Only `apps/editor/src/demos/*` imports both the engine and Three.js. | Rendering concerns stay in one place. |
+| **Demos are the bridge.** Only `apps/editor/src/demos/*` imports both the engine and Three.js. Once Track V starts, `packages/aether-viz` is the second bridge, and demos move onto it. | Rendering concerns stay in one place. |
 | **Fixed timestep, always.** Physics steps in equal `dt` slices; the renderer interpolates. | Stable, reproducible simulation. Variable `dt` makes springs explode and stacks jitter. |
 | **TypeScript `erasableSyntaxOnly`.** No `enum`, `namespace`, parameter properties or `import x = require()`. Use `as const` objects and union types instead of enums. | The code stays "JavaScript with types", runs in Node's type stripping, and matches where TS is heading. |
 | **Lit without decorators.** Use `static properties` with `declare` fields and `customElements.define`. | Closer to the web-components platform; no decorator transform needed. |
@@ -28,6 +39,10 @@ These hold for every phase. Breaking them early is how hobby engines turn into u
 | **Draw what you compute.** Every new concept gets a debug visualization: contact points, normals, AABBs, velocity arrows. | Most physics bugs are obvious once you can see them. |
 | **Don't retrofit earlier phases.** Add new modules; leave old demos working. | The repo doubles as a record of how you learned it. |
 | **The engine is a publishable library.** `packages/aether/src/index.ts` is the package entry point. Public methods accept `Vec3Like` / `QuatLike` and return engine types. Source comments are terse API docs; explanations go in `docs/`. | Users can pass `THREE.Vector3` directly, and the code reads like a library, not a tutorial. |
+| **Accuracy is explicit (Track S).** Every simulation names its integrator and either a step size or an error tolerance. | A user should always know how far to trust what they see. |
+| **No hidden fudges in the Lab.** No default damping, velocity clamps or softening in `aether-lab`; energy is conserved when the physics conserves it. | Game-grade tricks that keep stacks stable would quietly falsify a mechanics problem. |
+| **Test against the answer (Track S).** Every Track S feature is tested against an analytic solution, and every integrator against its convergence order. | "Looks right" is the game-track standard. A teaching tool has to be right. |
+| **CPU first, GPU second.** Every GPU kernel has a CPU version in `packages/aether-lab` that its tests compare against. | GPU code is hard to debug, and float32 needs a float64 reference. |
 
 ### Folder layout
 
@@ -39,6 +54,14 @@ packages/aether/src/
   forces/       gravity, drag, springs, buoyancy, attraction, aero   (Phases 3, 4)
   collision/    shapes, AABB, broadphase, narrowphase, GJK    (Phase 5)
   constraints/  contacts, solver, joints                      (Phases 3, 6, 7)
+packages/aether-lab/src/        Aether Lab's simulation core (planned); depends on aether-physics for math
+  math/         Dual, HyperDual, small dense linear algebra   (S1, S2)
+  ode/          OdeSystem, integrators, adaptive stepping, events (S1)
+  mechanics/    exact N-body and rigid bodies, Lagrangian and Hamiltonian systems (S2)
+  fields/       Field, charges and currents, Boris pusher, field lines, grid solvers, FDTD (S3–S5)
+  analysis/     energy and momentum monitors, phase space, Poincaré sections, FFT (S2–S5)
+packages/aether-gpu/   WebGPU kernels for the Lab's grid solvers and N-body (S6)
+packages/aether-viz/   the Three.js layer shared by the demo app and the Lab: stage, helpers, createLab (V1–V5)
 apps/editor/src/
   core/         demo contract, parameter schema, routes, session
   stage/        Three.js renderer and theme palette
@@ -92,6 +115,51 @@ Erin Catto's [Box3D](https://github.com/erincatto/box3d) (MIT, C17, released 202
 Each phase still builds Millington's version first. Where Box3D does something meaningfully different, the phase says so in its Guidance, and the **Read** table ends with the Box3D files to compare against. Read Box3D *after* your version works.
 
 ---
+
+## Tracks
+
+| Track | Product | Phases | What it builds | Standard |
+|---|---|---|---|---|
+| **G: game-grade dynamics** | Aether (`aether-physics`) | 0–8 | Particles, rigid bodies, collision, contacts, joints. Fixed timestep, stable at 60 Hz, approximate. | Stable, fast, plausible |
+| **S: simulation core** | Aether Lab (`aether-lab`) | S1–S6 | ODE integrators with error control, exact mechanics in generalized coordinates, electromagnetic fields and waves. | Matches analytic solutions; convergence order tested |
+| **V: visualization library** | Shared (`aether-viz`), then the Lab | V1–V5 | A Three.js layer: first the demo app's stage and helpers, then `createLab`, which binds any Lab simulation to meshes, trails, plots, field visualizers and a timeline. | Short setup: a double pendulum in about ten lines |
+
+**Why two products.** A game engine and a scientific simulator disagree on who owns time and accuracy, and they serve different people.
+
+| | Aether (Track G) | Aether Lab (Track S) |
+|---|---|---|
+| User | A developer building a game or interactive scene | A student or teacher working through a mechanics or E&M problem |
+| Proof | Demos that look good and hold up when you play with them | Matching the analytic answer |
+| State | Objects (`Particle`, `RigidBody`) that integrate themselves | One flat state vector `y` with `dy/dt = f(t, y)` |
+| Integrator | Fixed: semi-implicit Euler, or substepped soft impulses | Pluggable: RK4, adaptive RK45, Verlet, Yoshida-4, Boris, implicit midpoint |
+| Step size | Fixed `dt` tied to the render loop | Chosen by an error tolerance, independent of the render loop |
+| Fudges | Damping, velocity clamps, soft contacts | None by default |
+| Rendering | Interpolate between the last two steps | Sample dense output at the frame's time, or play back a recorded trajectory |
+
+The Lab doesn't make you choose between accuracy and real time. The tolerance sets the accuracy. Real time only asks whether the solver keeps up with the playback clock, and when it can't, the Lab slows playback or precomputes the trajectory and plays it back with a scrub bar. The engine stays the right tool for contact-rich scenes (billiards, toppling, stacking, games), and the Lab's events can call into it later for collisions.
+
+**What's shared.** The Lab depends on `aether-physics` for `Vec3`, `Mat3` and `Quaternion`, and Phase 4's inertia tensors. The package is side-effect free, so the Lab doesn't pull in the engine's worlds or solvers. If that ever stops being true, the math moves into its own package. `aether-viz` is shared from V1: the demo app moves onto it, and the Lab builds `createLab` on top of it.
+
+**Order.** The engine comes first: Phases 3–7 as planned. Then S1 → V1 → S2 → S3 → V2 and V3 → S4 and S5 → V4 and V5 → S6. Phase 8's stretch goals stay optional and can be done between Lab phases. Nothing in Track G changes scope. Where an engine phase builds something the Lab reuses, the phase says so.
+
+**Public surfaces.** The website and the demo app present Aether, the engine. Neither shows a roadmap or anything unbuilt. The Lab gets its own front page, at `/lab`, once S1 and V1 have shipped and there is something running to show; until then public surfaces don't mention it.
+
+**Architecture.**
+
+```
+packages/aether/        aether-physics, the engine: no DOM, no three       Track G
+packages/aether-lab/    aether-lab, the Lab's simulation core: no DOM, no three   Track S
+packages/aether-gpu/    WebGPU kernels for the Lab; CPU references live in aether-lab
+packages/aether-viz/    Three.js layer; depends on both, neither depends on it    Track V
+apps/editor/            the engine's demo app, moving onto aether-viz
+apps/site/              the engine's website; the Lab's page and gallery at /lab (V4)
+```
+
+---
+
+## Track G: game-grade dynamics
+
+Phases 0–8 build Aether, the engine (`packages/aether`, published as `aether-physics`), along Millington and Box3D. Fixed timestep, stable and fast, approximate where it has to be. The Lab reuses its math library and Phase 4's inertia tensors.
 
 ## Phase 0: Scaffold and game loop ✅
 
@@ -954,6 +1022,7 @@ function polyhedronMassProperties(vertices: Vec3Like[], faces: number[][], densi
 
 ### Guidance
 
+- **Shared with the Lab.** S2's `ExactRigidBody`, in `aether-lab`, reuses this phase's inertia tensors and quaternion helpers, so keep them as free functions in `math/` rather than private methods on `RigidBody`.
 - **Derived data.** `calculateDerivedData` normalizes the orientation, builds `transform` from position and orientation, and computes `I⁻¹_world = R · I⁻¹_body · Rᵀ`. Call it after every integration and after anyone sets position or orientation directly.
 - **Why the inverse tensor.** Every use is `Δω = I⁻¹ · τ` or `I⁻¹ · (r × impulse)`. Inverting once at setup is cheaper than solving each time, and static bodies get a zero matrix just like `inverseMass = 0`.
 - **Force at a point:** add `F` to the force accumulator and `(p − position) × F` to the torque accumulator. A force through the center of mass produces no torque.
@@ -2097,6 +2166,577 @@ Pick whatever interests you most.
 | Other physics | Millington ch. 18 | §18.1–18.2 (pp. 423–429) | Simultaneous resolution and reduced coordinates, as directions to explore. |
 
 More: [RESOURCES.md, Phase 8](./RESOURCES.md#phase-8-stretch-goals)
+
+---
+
+## Track S: simulation core
+
+Track S builds Aether Lab's simulation core in a new package, `packages/aether-lab` (working name `aether-lab`), once the engine's Phase 7 is done. Paths in this track are relative to that package. It depends on `aether-physics` for the math library; nothing in the engine changes. Every phase follows the [ground rules](#ground-rules) for Track S: name the integrator and tolerance, no hidden fudges, test against the answer.
+
+## S1: Integrators and the ODE core
+
+**Goal:** a simulation core where the integrator, step size and error tolerance are choices, not hard-coded, and where rendering is decoupled from stepping.
+
+**Concepts:** first-order systems `dy/dt = f(t, y)` and reducing second-order equations to them; order of accuracy and convergence; local and global error; embedded Runge–Kutta pairs and step-size control; dense output; symplectic integrators and why their energy error stays bounded; event location; stiffness.
+
+### Build
+
+| Step | Adds | Afterward you can |
+|---|---|---|
+| 1 | `OdeSystem`, `rk4` | Integrate any system at a fixed step |
+| 2 | `SecondOrderSystem`, `verlet`, `yoshida4` | Integrate conservative systems with bounded energy error |
+| 3 | `rk45`: Dormand–Prince with step control | Hit a requested tolerance without choosing `h` |
+| 4 | Dense output and `Simulation` | Render at any frame time without stepping to it |
+| 5 | Events | Find bounce, apex and crossing times to the tolerance |
+| 6 | `Trajectory` | Record a run, scrub it and compare two runs |
+| 7 | `implicitMidpoint` | Integrate stiff and non-separable systems |
+
+#### Step 1: Systems and RK4
+
+- [ ] `src/ode/ode-system.ts`: `OdeSystem`
+- [ ] `src/ode/rk4.ts`: `rk4`, fixed step, preallocated stage buffers
+- [ ] `src/ode/integrator.ts`: the `Integrator` type every method implements
+- [ ] `explicitEuler` and `semiImplicitEuler` for comparison only
+
+```ts
+interface OdeSystem {
+  readonly size: number;
+  /** Writes dy/dt at (t, y) into `out`. Must not modify `y`. */
+  derivative(t: number, y: Float64Array, out: Float64Array): void;
+}
+
+interface StepResult { h: number; hNext: number; accepted: boolean; error: number }
+
+interface Integrator {
+  readonly order: number;
+  step(system: OdeSystem, t: number, y: Float64Array, h: number, out: Float64Array): StepResult;
+}
+```
+
+**Working when:** the harmonic oscillator's global error at `t = 10` drops by 16× when `h` halves.
+
+#### Step 2: Second-order systems and symplectic methods
+
+- [ ] `src/ode/second-order-system.ts`: `SecondOrderSystem`, positions and velocities as separate arrays, with an adapter to `OdeSystem`
+- [ ] `src/ode/verlet.ts`: velocity Verlet (order 2)
+- [ ] `src/ode/yoshida.ts`: Yoshida's fourth-order composition of Verlet
+
+```ts
+interface SecondOrderSystem {
+  readonly dof: number;
+  /** Writes d²x/dt² into `out`. `v` is given for velocity-dependent forces. */
+  acceleration(t: number, x: Float64Array, v: Float64Array, out: Float64Array): void;
+}
+```
+
+**Working when:** over 10⁴ Kepler periods, Verlet's energy error stays bounded while RK4's drifts steadily.
+
+#### Step 3: Adaptive RK45
+
+- [ ] `src/ode/rk45.ts`: Dormand–Prince 5(4) with FSAL, mixed absolute and relative tolerance, PI step-size controller, min and max step
+- [ ] Rejected steps are retried with a smaller `h` and counted
+
+**Working when:** for tolerances from 1e-4 to 1e-10 the Kepler orbit's error after one period stays within a small factor of the tolerance, and the step count grows as expected.
+
+#### Step 4: Dense output and `Simulation`
+
+- [ ] Dormand–Prince continuous extension: `y(t)` anywhere inside the last accepted step
+- [ ] Linear-in-time fallback for fixed-step methods; cubic Hermite for second-order systems
+- [ ] `src/ode/simulation.ts`: `Simulation`
+
+```ts
+class Simulation {
+  constructor(system: OdeSystem, y0: ArrayLike<number>, options: {
+    method: Integrator; tolerance?: number; h?: number; t0?: number;
+  });
+  readonly t: number;
+  readonly y: Float64Array;
+  /** Steps until the solution reaches `t`; never steps past it more than one step. */
+  advanceTo(t: number): void;
+  /** Writes the solution at `t` into `out`. `t` must lie within the last step. */
+  sample(t: number, out: Float64Array): void;
+  readonly stats: { steps: number; rejected: number; evaluations: number };
+}
+```
+
+**Working when:** sampling halfway through a step matches the exact solution to the same order as the step.
+
+#### Step 5: Events
+
+- [ ] `src/ode/events.ts`: an event is a function `g(t, y)` whose sign change marks the event, a direction filter, and an action (`stop`, `record`, or a callback that edits `y`, e.g. a bounce)
+- [ ] Locate the root on the dense output with the Illinois method, to the time tolerance
+- [ ] Restart the integrator after a callback edits the state
+
+**Working when:** a ball dropped from 10 m lands at `√(2h/g)` to 1e-10 s, and a bouncing ball's apexes follow `e²ⁿ·h` exactly.
+
+#### Step 6: Trajectories
+
+- [ ] `src/ode/trajectory.ts`: `Trajectory`, a recorded run stored as accepted steps plus their dense-output coefficients
+- [ ] `sample(t)` anywhere in the recorded interval, by binary search over steps
+- [ ] A cap on memory: keep every step, or decimate to a fixed sample rate
+
+**Working when:** sampling a recorded run at any time matches a fresh run's `sample` at that time.
+
+#### Step 7: Implicit midpoint
+
+- [ ] `src/ode/implicit-midpoint.ts`: Newton iteration with a finite-difference Jacobian (a `Dual`-based Jacobian follows in S2)
+- [ ] A small dense LU solve in `src/math/linalg.ts`
+
+**Working when:** a stiff linear system with eigenvalues −1 and −10⁴ stays stable at `h = 0.1`, where RK4 blows up.
+
+### Guidance
+
+- **State is a `Float64Array`.** Systems pack and unpack their own state. Typed arrays keep the inner loop allocation-free, and the same layout moves into a Worker or onto the GPU unchanged.
+- **Separate time from the frame.** `Simulation.advanceTo(frameTime)` takes as many internal steps as it needs, and the renderer calls `sample(frameTime)`. Track G's `FixedStepLoop` still drives the playback clock; only what happens inside a frame changes.
+- **Pick integrators by the physics.** Conservative mechanics: Verlet or Yoshida-4 at a fixed step. Anything dissipative, driven, or where you want an error bar: RK45. Stiff: implicit midpoint. Charged particles in magnetic fields: Boris (S3).
+- **Adaptive steps break symplecticity.** Variable `h` destroys the bounded-energy property, so don't adapt Verlet's step. Document this on the method, not in a comment.
+- **Events need dense output.** Bisecting on full re-integration works, but it's slow and less accurate.
+
+### Tests
+
+- Convergence order for every method: run the harmonic oscillator at `h, h/2, h/4` and check the error ratio is `2^order`, within 10%.
+- Kepler orbit: energy, angular momentum and period against the analytic values.
+- RK45: rejected steps happen near pericenter of an eccentric orbit and not at apocenter.
+- Events: exact fall time, bounce apex sequence, and a crossing that happens within one step in both directions.
+- `Trajectory`: recorded and fresh samples agree; memory cap respected.
+
+**Demo:** *Integrators*. The same eccentric Kepler orbit run by explicit Euler, semi-implicit Euler, Verlet, RK4 and RK45, with an energy-error chart on a log scale and a step-count readout. This brings back the integrator shoot-out removed in Phase 2, now built on the engine.
+
+### Study
+
+**Focus on**
+- Why the error of an order-`p` method scales as `hᵖ`, and how to measure it in a test.
+- How an embedded pair estimates its own error, and how the controller turns that into the next `h`.
+- What "symplectic" buys you: a nearby Hamiltonian that the method conserves exactly, so energy error oscillates instead of drifting.
+- What makes a system stiff, and why explicit methods need tiny steps on it.
+
+**Read, in this order**
+
+| Resource | Sections | What to take from it |
+|---|---|---|
+| Witkin & Baraff, *Physically Based Modeling*, "Differential Equation Basics" | All | Recap of the first-order form and the explicit methods. |
+| Press et al., *Numerical Recipes* (3rd ed.) | Ch. 17: Runge–Kutta, adaptive step-size control, dense output, stiff sets | Dormand–Prince coefficients, the PI controller, and practical tolerances. |
+| Hairer, Nørsett & Wanner, *Solving Ordinary Differential Equations I* | Embedded methods, step-size control, dense output | The reference behind everything in Steps 3–5. |
+| Hairer, Lubich & Wanner, *Geometric Numerical Integration* | Ch. I (examples) and the symplectic integration chapter | Kepler and the outer solar system as test problems; why Verlet conserves a modified energy. |
+| H. Yoshida, "Construction of higher order symplectic integrators" (*Phys. Lett. A* 150, 1990) | The fourth-order composition | The three Verlet substeps and their weights. |
+
+More: [RESOURCES.md, Track S](./RESOURCES.md#track-s-simulation-core)
+
+---
+
+## S2: Exact mechanics
+
+**Goal:** the systems of a classical mechanics course, simulated in the coordinates they are posed in.
+
+**Concepts:** generalized coordinates; the Euler–Lagrange equations; the generalized mass matrix; Hamilton's equations; forward-mode automatic differentiation with dual and hyper-dual numbers; conserved quantities and Noether's theorem; Kepler invariants; rigid-body rotation from angular momentum; phase space, Poincaré sections and sensitivity to initial conditions.
+
+### Build
+
+| Step | Adds | Afterward you can |
+|---|---|---|
+| 1 | `Dual`, `HyperDual` | Get exact first and second derivatives of any function |
+| 2 | `LagrangianSystem` | Simulate a system from `L(q, q̇, t)` alone |
+| 3 | `HamiltonianSystem` | Simulate from `H(q, p, t)`, symplectically when separable |
+| 4 | `NBody` | Exact gravity with invariants |
+| 5 | `ExactRigidBody` | Torque-free and driven rotation, tested against theory |
+| 6 | `analysis/` monitors | Chart conserved quantities, phase portraits and Poincaré sections |
+
+#### Step 1: Automatic differentiation
+
+- [ ] `src/math/dual.ts`: `Dual` (value and one derivative), with `add`, `mul`, `div`, `sin`, `cos`, `exp`, `log`, `sqrt`, `pow`
+- [ ] `src/math/hyper-dual.ts`: `HyperDual`, for exact second derivatives
+- [ ] A small `Num` interface so user functions are written once and run with `number`, `Dual` or `HyperDual`
+
+**Working when:** derivatives of a dozen test functions match analytic ones to machine precision.
+
+#### Step 2: Lagrangian systems
+
+- [ ] `src/mechanics/lagrangian-system.ts`: `LagrangianSystem implements OdeSystem`
+- [ ] Builds `M = ∂²L/∂q̇²`, `C = ∂²L/∂q̇∂q`, `∂L/∂q` and `∂²L/∂q̇∂t` with `HyperDual`, then solves `M q̈ = ∂L/∂q − C q̇ − ∂²L/∂q̇∂t + Q`
+- [ ] Generalized forces `Q(q, q̇, t)` for damping and driving
+- [ ] Named coordinates and parameters, so users write `q.θ` and `p.g`
+- [ ] Cholesky solve in `src/math/linalg.ts`; a singular `M` throws with the coordinate names
+
+```ts
+const pendulum = new LagrangianSystem({
+  coordinates: ["θ"],
+  parameters: { m: 1, l: 1, g: 9.81 },
+  lagrangian: (q, qd, t, p, n) => {
+    const T = n.mul(0.5 * p.m * p.l * p.l, n.mul(qd.θ, qd.θ));
+    const V = n.mul(-p.m * p.g * p.l, n.cos(q.θ));
+    return n.sub(T, V);
+  },
+});
+```
+
+**Working when:** the double pendulum's derived equations match the hand-derived ones at random states, and energy is conserved to the tolerance.
+
+#### Step 3: Hamiltonian systems
+
+- [ ] `src/mechanics/hamiltonian-system.ts`: `HamiltonianSystem`, `q̇ = ∂H/∂p`, `ṗ = −∂H/∂q` via `Dual`
+- [ ] Separable `H = T(p) + V(q)` exposes a `SecondOrderSystem` view so Verlet and Yoshida apply
+
+#### Step 4: N-body gravity
+
+- [ ] `src/mechanics/n-body.ts`: `NBody implements SecondOrderSystem`, `G` configurable, no softening by default
+- [ ] Invariants: total energy, momentum, angular momentum, and the Laplace–Runge–Lenz vector for two bodies
+
+**Working when:** a two-body orbit's period, eccentricity and LRL vector match Kepler's values; the figure-eight three-body orbit closes after one period.
+
+#### Step 5: Exact rigid bodies
+
+- [ ] `src/mechanics/exact-rigid-body.ts`: state `(x, q, P, L)`, with `ω = R I⁻¹ Rᵀ L`; quaternion renormalized after each accepted step
+- [ ] Reuses Phase 4's inertia tensors and quaternion helpers
+- [ ] External torque function `τ(t, state)` for tops under gravity
+
+**Working when:** a torque-free symmetric body precesses at `(I₃ − I₁)/I₁ · ω₃` in the body frame, the asymmetric body flips about its intermediate axis, and energy and `|L|` hold to the tolerance.
+
+#### Step 6: Analysis
+
+- [ ] `src/analysis/monitors.ts`: functions of state sampled into ring buffers, with drift relative to the initial value
+- [ ] `src/analysis/poincare.ts`: section points from an S1 event on a plane or a phase of the drive
+- [ ] `src/analysis/lyapunov.ts`: the largest Lyapunov exponent from two nearby runs with renormalization
+
+### Guidance
+
+- **Second derivatives are the cost.** An `n`-coordinate system needs `O(n²)` `HyperDual` evaluations of `L` per derivative call. That's fine for the systems in a textbook (n ≤ 6). Don't build a symbolic algebra system.
+- **Constraints belong in the coordinates.** A bead on a hoop has one coordinate, not three plus a constraint. Systems that can't be written that way belong in Track G's joints.
+- **Time-dependent Lagrangians are normal.** A rotating hoop or a driven pivot gives `∂L/∂t ≠ 0`. Energy then isn't conserved, and the monitors should say what is (the Jacobi integral, when it exists).
+
+### Tests
+
+- `Dual` and `HyperDual` against analytic derivatives.
+- Simple pendulum period against `4√(l/g)·K(sin(θ₀/2))` with `K` from the arithmetic–geometric mean, for amplitudes up to 170°.
+- Small-oscillation normal modes of two coupled pendulums against the eigenvalue solution.
+- Kepler invariants; figure-eight closure.
+- Rigid-body precession rate; energy and angular momentum conservation; the intermediate-axis flip period against the elliptic-function solution.
+- Driven damped pendulum: a known period-doubling parameter gives a two-point Poincaré section.
+
+**Demos:** *Double pendulum* (with a second, perturbed copy to show divergence), *Bead on a rotating hoop* (the bifurcation as ω passes `√(g/R)`), *Kepler orbits* (with the LRL vector drawn), *Driven pendulum* (phase portrait and Poincaré section), *Coupled oscillators* (normal modes), *Spinning top* (precession and nutation).
+
+### Study
+
+**Focus on**
+- Deriving the general form `M(q) q̈ = …` from the Euler–Lagrange equations, so the code is just that formula.
+- How dual numbers carry a derivative through ordinary arithmetic.
+- What each conserved quantity tells you, and which symmetry it comes from.
+
+**Read, in this order**
+
+| Resource | Sections | What to take from it |
+|---|---|---|
+| J. R. Taylor, *Classical Mechanics* | Ch. 7 (Lagrange's equations), Ch. 8 (central forces), Ch. 10 (rigid bodies), Ch. 11 (coupled oscillators), Ch. 12 (chaos), Ch. 13 (Hamiltonian mechanics) | The test problems for this phase and their analytic answers. |
+| Baydin, Pearlmutter, Radul & Siskind, "Automatic Differentiation in Machine Learning: a Survey" (*JMLR* 18, 2018) | Forward mode and dual numbers | How forward-mode AD works and what it costs. |
+| J. A. Fike & J. J. Alonso, "The Development of Hyper-Dual Numbers for Exact Second-Derivative Calculations" (AIAA 2011) | The number system and its arithmetic | Exact Hessian entries without truncation error. |
+| Hairer, Lubich & Wanner, *Geometric Numerical Integration* | Rigid-body and Hamiltonian examples | Integrators that respect conserved quantities. |
+
+More: [RESOURCES.md, Track S](./RESOURCES.md#track-s-simulation-core)
+
+---
+
+## S3: Electrostatics, magnetostatics and charged particles
+
+**Goal:** fields you can see, and particles that move through them.
+
+**Concepts:** superposition; Coulomb's law and the potential; dipoles; the Biot–Savart law; the Lorentz force; cyclotron motion, E×B drift and magnetic mirrors; field lines as streamlines; equipotentials as level sets.
+
+### Build
+
+| Step | Adds | Afterward you can |
+|---|---|---|
+| 1 | `Field`, `ScalarField`, `FieldSum` | Combine any sources by superposition |
+| 2 | Sources | Place charges, line charges, dipoles, wires and loops |
+| 3 | `boris` | Move charged particles accurately through E and B |
+| 4 | `traceFieldLines` | Draw field lines as polylines |
+| 5 | Contours and isosurfaces | Draw equipotentials in a plane or in 3D |
+
+#### Step 1: Fields
+
+- [ ] `src/fields/field.ts`
+
+```ts
+interface Field { sample(p: Vec3Like, t: number, out: Vec3): Vec3 }
+interface ScalarField { sample(p: Vec3Like, t: number): number }
+class FieldSum implements Field { readonly terms: Field[] }
+```
+
+#### Step 2: Sources
+
+- [ ] `PointCharge` (E and V), `LineCharge` (finite segment, closed form), `Dipole`
+- [ ] `CurrentSegment` (closed-form Biot–Savart for a straight segment), `CurrentLoop` (quadrature over segments), `Solenoid` and `HelmholtzPair` built from loops
+- [ ] `UniformField`
+- [ ] Units: SI by default, with `ε₀` and `μ₀` overridable for natural units
+
+**Working when:** the dipole's far field matches `(1/4πε₀)(3(p·r̂)r̂ − p)/r³`, and a loop's on-axis B matches `μ₀IR²/2(R² + z²)^{3/2}`.
+
+#### Step 3: Charged particles
+
+- [ ] `src/fields/boris.ts`: the Boris push as an S1 `Integrator` for systems with E and B fields
+- [ ] `ChargedParticles`: test charges in external fields, with optional Coulomb interaction through S2's `NBody` pattern
+
+**Working when:** a charge in uniform B circles at `ω = qB/m` with no radius drift over 10⁴ orbits, and E×B drift speed is `E/B`.
+
+#### Step 4: Field lines
+
+- [ ] `src/fields/field-lines.ts`: `traceFieldLines(field, seeds, options)` integrates `dr/ds = E/|E|` with S1's RK45; stops at sinks, bounds, a maximum length or a closed loop
+- [ ] Seeding around each charge proportional to `|q|`, so line density shows field strength
+- [ ] Evenly spaced seeding in a plane, for 2D views
+- [ ] Output: `Float32Array` polylines, ready for any renderer
+
+#### Step 5: Equipotentials
+
+- [ ] `src/fields/contour.ts`: marching squares on a sampled plane
+- [ ] `src/fields/isosurface.ts`: marching cubes on a sampled box
+- [ ] Output: vertex and index arrays
+
+### Guidance
+
+- **The engine produces geometry, not meshes.** Field lines, contours and isosurfaces come out as typed arrays. `aether-viz` (V3) turns them into Three.js objects.
+- **Use Boris for magnetic fields.** RK4 makes cyclotron orbits spiral in or out over time. Boris conserves phase-space volume and keeps the radius exact for uniform B.
+- **Field lines near point charges are singular.** Start seeds a small radius away from each charge, and stop lines that enter that radius around another charge.
+
+### Tests
+
+- Each source's field against its closed form; `E = −∇V` numerically for each source with a potential.
+- Superposition: the field of two charges equals the sum of each.
+- Boris: cyclotron frequency and radius, E×B drift, magnetic-mirror reflection where the pitch angle predicts.
+- Field lines start on positive charges and end on negative ones; the number ending on a charge is proportional to its magnitude.
+
+**Demos:** *Charges* (drag charges, see lines and equipotentials update), *Dipole*, *Cyclotron*, *E×B drift*, *Magnetic bottle*, *Helmholtz coils*.
+
+### Study
+
+| Resource | Sections | What to take from it |
+|---|---|---|
+| D. J. Griffiths, *Introduction to Electrodynamics* | Ch. 2 (electrostatics), Ch. 3 (multipole expansion), Ch. 5 (magnetostatics) | Every source in Step 2 and the answers to test against. |
+| Qin et al., "Why is Boris algorithm so good?" (*Phys. Plasmas* 20, 2013) | All | Why Boris conserves phase-space volume. |
+| B. Jobard & W. Lefer, "Creating Evenly-Spaced Streamlines of Arbitrary Density" (1997) | All | Seeding field lines in a plane without clutter. |
+| W. Lorensen & H. Cline, "Marching Cubes" (SIGGRAPH 1987); Paul Bourke, "Polygonising a scalar field" | All | The isosurface algorithm and its lookup tables. |
+
+More: [RESOURCES.md, Track S](./RESOURCES.md#track-s-simulation-core)
+
+---
+
+## S4: Boundary-value problems
+
+**Goal:** fields around conductors, where no closed form exists.
+
+**Concepts:** Laplace's and Poisson's equations; Dirichlet and Neumann boundaries; uniqueness; relaxation methods (Jacobi, Gauss–Seidel, SOR); multigrid; induced surface charge; the method of images as a check.
+
+### Build
+
+- [ ] `src/fields/grid.ts`: `ScalarGrid` and `VectorGrid` in 2D and 3D, `Float64Array` storage, bilinear and trilinear sampling; both implement `Field` or `ScalarField`
+- [ ] `src/fields/laplace.ts`: conductors as cell masks with fixed potential; Jacobi, then red–black Gauss–Seidel with SOR
+- [ ] `src/fields/multigrid.ts`: a V-cycle with restriction and prolongation
+- [ ] `E = −∇V` by central differences; surface charge `σ = ε₀ E·n̂`
+- [ ] Poisson sources from a charge-density grid
+
+**Working when:** a point charge above a grounded plane matches the image-charge solution away from the charge, and multigrid converges in a number of V-cycles independent of grid size.
+
+### Tests
+
+- Parallel plates: uniform field between them.
+- A rectangular box with one side at `V₀`: the separation-of-variables series.
+- Grounded sphere in a uniform field: the analytic induced dipole.
+- Residual reduction per iteration for each method; SOR's optimal `ω` beats Gauss–Seidel.
+
+**Demos:** *Conductors* (draw and drag conductors in a plane, see V, E and σ), *Image charge* (numerical and image solutions side by side).
+
+### Study
+
+| Resource | Sections | What to take from it |
+|---|---|---|
+| Griffiths | Ch. 3 (Laplace's equation, images, separation of variables) | The analytic cases to test against. |
+| Briggs, Henson & McCormick, *A Multigrid Tutorial* (2nd ed.) | Ch. 1–4 | Relaxation, smoothing, and the V-cycle. |
+| *Numerical Recipes* | Ch. 20: relaxation methods and multigrid for boundary-value problems | SOR and a working multigrid. |
+
+---
+
+## S5: Waves and radiation
+
+**Goal:** electromagnetic waves you can watch propagate, reflect, refract and radiate.
+
+**Concepts:** the wave equation; the CFL condition; the Yee grid and leapfrog in time; sources; perfect conductors; absorbing boundaries (Mur, then PML); material parameters; retarded potentials; the Liénard–Wiechert fields and the radiation from an accelerating charge.
+
+### Build
+
+| Step | Adds | Afterward you can |
+|---|---|---|
+| 1 | `WaveString` | Show standing and travelling waves on a string |
+| 2 | 1D FDTD | Send a pulse into a dielectric slab |
+| 3 | 2D FDTD (TM and TE) | Show interference, diffraction and waveguides |
+| 4 | Absorbing boundaries | Simulate open space |
+| 5 | `RetardedField` | Show the field of a moving, accelerating charge |
+
+- [ ] `src/fields/wave-string.ts`: the 1D wave equation with leapfrog, fixed and free ends
+- [ ] `src/fields/fdtd-1d.ts`, `src/fields/fdtd-2d.ts`: Yee grids, Courant number exposed, per-cell `ε`, `μ`, `σ`
+- [ ] Sources: hard and soft, Gaussian pulse, sinusoid, a dipole antenna as a driven current
+- [ ] Boundaries: PEC, first-order Mur, then a convolutional PML
+- [ ] `src/fields/retarded-field.ts`: stores a charge's trajectory history, solves for the retarded time by root-finding, and returns the Liénard–Wiechert E and B; implements `Field`
+
+**Working when:** a pulse crosses the grid at `c` within the dispersion predicted for the Courant number, and a charge that stops suddenly shows a spherical shell of transverse field moving outward at `c`.
+
+### Guidance
+
+- **Normalize inside, SI outside.** FDTD runs in normalized units with `c = 1` and Courant number `S`; the public API takes SI and converts.
+- **3D FDTD waits for the GPU.** A 3D grid big enough to be interesting is too slow on the CPU. Do 1D and 2D here; 3D comes in S6.
+- **Retarded fields are a lookup, not a solver.** The history buffer is the expensive part. Cap it at the light-crossing time of the view.
+
+### Tests
+
+- Numerical wave speed and dispersion against the Yee dispersion relation.
+- Reflection and transmission at a dielectric interface against the Fresnel coefficients.
+- Total reflection at a PEC wall; reflection from a PML below a set threshold.
+- Resonant frequencies of a 2D cavity against `(c/2)√((m/a)² + (n/b)²)`.
+- `RetardedField` for a uniformly moving charge matches the boosted Coulomb field.
+
+**Demos:** *String*, *Pulse and slab*, *Double slit*, *Waveguide*, *Dipole antenna*, *Stopping charge*.
+
+### Study
+
+| Resource | Sections | What to take from it |
+|---|---|---|
+| Griffiths | Ch. 9 (EM waves), Ch. 10 (retarded potentials, Liénard–Wiechert), Ch. 11 (radiation) | The physics, and the answers to test against. |
+| A. Taflove & S. Hagness, *Computational Electrodynamics: The FDTD Method* | The Yee algorithm, numerical dispersion, and PML chapters | The method in full. |
+| J. B. Schneider, *Understanding the FDTD Method* (free online) | The 1D, 2D and PML chapters | A gentler, code-first walk through FDTD. |
+| E. M. Purcell & D. J. Morin, *Electricity and Magnetism* (3rd ed.) | The appendix on radiation from an accelerated charge | The kinked-field-line picture that the *Stopping charge* demo draws. |
+
+---
+
+## S6: The GPU
+
+**Goal:** grid solvers and N-body systems large enough to look real, on WebGPU.
+
+**Concepts:** compute shaders and WGSL; buffers, bind groups and dispatch; ping-pong buffers; workgroup memory and tiling; float32 error; sharing GPU buffers with the renderer.
+
+### Build
+
+- [ ] `packages/aether-gpu`: a new workspace package that depends on `aether-lab`; the caller passes in a `GPUDevice`
+- [ ] 2D FDTD kernel, checked against S5's CPU solver within float32 tolerance
+- [ ] 3D FDTD kernel with PML
+- [ ] Jacobi and red–black Gauss–Seidel kernels for S4
+- [ ] Tiled `O(N²)` N-body kernel
+- [ ] Buffers exposed so `aether-viz` can draw from them without reading back to the CPU
+
+**Working when:** each kernel matches its CPU reference on a small grid, and a 3D dipole antenna runs at interactive rates on a 128³ grid.
+
+### Guidance
+
+- **The CPU version is the specification.** Write a kernel only after its CPU counterpart is tested, then test the kernel against it.
+- **float32 changes the tolerances.** Compare against the float64 reference with tolerances set from the step count, and say so in the tests.
+
+### Study
+
+| Resource | Sections | What to take from it |
+|---|---|---|
+| [WebGPU Fundamentals](https://webgpufundamentals.org/) | Compute shader basics, storage buffers | The API, from the ground up. |
+| NVIDIA, *GPU Gems 3*, "Fast N-Body Simulation with CUDA" | All | Tiling with shared memory; the same idea maps onto WGSL workgroup memory. |
+
+More: [RESOURCES.md, Track S](./RESOURCES.md#track-s-simulation-core)
+
+---
+
+## Track V: visualization library
+
+Track V builds `packages/aether-viz`, the Three.js layer. V1 is shared: it moves the demo app's stage and helpers into the package, so the engine's demos use it too. V2–V5 are the Lab's: `createLab`, field views, the gallery and scenes. `aether-viz` depends on `aether-physics`, `aether-lab` and Three.js; neither library depends on it. **Design the API from the examples:** each phase starts by writing the Lab examples it should make possible, then builds what they need.
+
+## V1: Extract `aether-viz`
+
+**Goal:** the rendering pieces the demo app already has, moved into a package with no behavior change.
+
+### Build
+
+- [ ] `packages/aether-viz`: new workspace package; `three` as a peer dependency
+- [ ] Move the stage (renderer, camera, controls, theme palette) from `apps/editor/src/stage`
+- [ ] Move drawing helpers (`Polyline` and the rest) from `apps/editor/src/demos/helpers`
+- [ ] Move the parameter schema (`core/params.ts`), ring buffer, and the chart, readout and callout specs from `core/demo.ts`
+- [ ] `apps/editor` imports them from `aether-viz`
+
+**Working when:** every demo runs unchanged, and the unit and smoke tests pass.
+
+## V2: `createLab` and playback
+
+**Goal:** a simulation set up and running in about ten lines, with a timeline.
+
+### Build
+
+- [ ] `createLab(container)`: renderer, camera, lights, controls, clock and a parameter panel
+- [ ] Bindings from state to scene: `lab.body(shape, () => position, () => orientation?)`, `lab.trail`, `lab.arrow`, `lab.spring`, `lab.label`
+- [ ] Plots: `lab.plot({ x, y })`, time series and phase plots
+- [ ] Controls: `lab.slider`, `lab.toggle`, `lab.button`, from the V1 parameter schema
+- [ ] Clock adapters: Track G worlds through `FixedStepLoop` with interpolation; Track S `Simulation`s through dense output
+- [ ] Playback modes: real time, slow motion, and precompute-then-play; a scrubber over a recorded `Trajectory`; a ghost of a second run for comparison
+- [ ] Shortcuts: `lab.lagrangian(...)`, `lab.nbody(...)` wrap the S2 systems with sensible bindings
+
+```ts
+const lab = createLab(document.querySelector("#app")!);
+const pendulum = lab.lagrangian({
+  coordinates: { θ1: 1.2, θ2: 0 },
+  parameters: { g: 9.81 },
+  lagrangian: doublePendulum,
+  method: "rk45", tolerance: 1e-9,
+});
+lab.rod([0, 0, 0], () => pendulum.point("bob1"));
+lab.rod(() => pendulum.point("bob1"), () => pendulum.point("bob2"));
+lab.trail(() => pendulum.point("bob2"));
+lab.plot({ x: "t", y: () => pendulum.energy(), title: "Energy" });
+lab.slider("g", { min: 1, max: 20 });
+```
+
+**Working when:** the double pendulum above runs, scrubs backward and forward, and its energy plot shows drift at the tolerance.
+
+## V3: Field visualizers
+
+**Goal:** every S3–S5 output drawn well, and readable in 3D.
+
+### Build
+
+- [ ] `lab.fieldLines(field, options)`: from S3's tracer, with direction arrows and colour by magnitude
+- [ ] `lab.arrows(field, grid)`: instanced arrows on a grid or a plane
+- [ ] `lab.slice(field | scalar, plane)`: a heatmap texture with a perceptual colormap and a legend
+- [ ] `lab.isosurface(scalar, levels)`: from S3's marching cubes
+- [ ] `lab.tracers(field)`: particles advected along the field, for flow
+- [ ] Draggable sources that re-trace lines on drag
+- [ ] For S6: draw straight from `aether-gpu` buffers with `WebGPURenderer`
+
+### Guidance
+
+- **3D clutter is the enemy.** Default to a plane slice or a small number of seeded lines; let users opt into full 3D.
+- **Colormaps:** viridis for magnitudes, a diverging map for signed quantities like potential.
+
+## V4: The Lab gallery
+
+**Goal:** textbook problems as live, editable examples on the website.
+
+### Build
+
+- [ ] `apps/site`: the Lab's own front page at `/lab`, separate from the engine's landing page, with a gallery organised by topic (oscillations, central forces, Lagrangian systems, rigid bodies, chaos, electrostatics, magnetostatics, conductors, waves, radiation)
+- [ ] Each example: a running lab, its source in an editor, a short description, and the analytic result it's checked against
+- [ ] Editing the source re-runs it in a sandboxed iframe (TypeScript type-stripped in the browser)
+- [ ] Share by URL
+
+## V5: Scenes without code
+
+**Goal:** a teacher can build and share a simulation without writing TypeScript.
+
+### Build
+
+- [ ] A JSON scene format: systems, fields, visualizers, controls, playback settings; versioned
+- [ ] `loadScene(lab, json)` in `aether-viz`
+- [ ] A scene editor in the demo app: add sources and bodies, set parameters, pick visualizers
+- [ ] Export the scene as JSON, as a URL, and as the equivalent TypeScript
+
+### Study (Track V)
+
+| Resource | Sections | What to take from it |
+|---|---|---|
+| [GlowScript / VPython](https://www.glowscript.org/) | The documentation and examples | The bar for brevity: what a ten-line simulation looks like. |
+| [myPhysicsLab](https://www.myphysicslab.com/) (open source) | The simulation and graph architecture | How a mature educational simulator separates model, view and controls. |
+| [PhET Interactive Simulations](https://phet.colorado.edu/) | Any EM and mechanics sims; PhET's published design research | What makes a teaching simulation clear. |
+| K. Moreland, "Diverging Color Maps for Scientific Visualization" (2009) | All | Choosing colormaps for signed fields. |
+| [Three.js manual](https://threejs.org/manual/) | Instancing, `BufferGeometry`, `WebGPURenderer` | Drawing many arrows and lines cheaply. |
+
+More: [RESOURCES.md, Track V](./RESOURCES.md#track-v-visualization-library)
 
 ---
 

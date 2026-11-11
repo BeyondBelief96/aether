@@ -20,7 +20,7 @@ import {
 } from "aether-physics";
 import { defineDemo } from "../../core/demo";
 import { formatNumber } from "../../core/format";
-import { number } from "../../core/params";
+import { number, toggle } from "../../core/params";
 import { DragHandle } from "../helpers/drag-handle";
 import { Polyline } from "../helpers/polyline";
 import { SpringCoil } from "../helpers/spring-coil";
@@ -30,7 +30,7 @@ import { VectorArrow } from "../helpers/vector-arrow";
  * The three particle springs side by side, sharing one stiffness and rest length. Left: a bob
  * on a `ParticleAnchoredSpring` whose anchor can be dragged. Middle: two floating particles
  * joined by a `ParticleSpring` on each end, so their total momentum stays zero. Right: a
- * `ParticleBungee` that pulls only while stretched. Arrows show each generator's force.
+ * `ParticleBungee` that pulls only while stretched. Force arrows, off by default, show each generator's force.
  */
 
 const MASS = 1; // kg
@@ -64,6 +64,7 @@ const params = {
         unit: " m",
     }),
     damping: number({ label: "Damping", min: 0.5, max: 1, step: 0.01, default: 0.9 }),
+    forces: toggle({ label: "Force arrows", default: false }),
 };
 
 /** The force `generator` applies to `particle`, measured on a stand-in so nothing changes. */
@@ -104,7 +105,11 @@ class Body {
         return this.mesh.position.copy(_blended);
     }
 
-    drawForce(generator: ParticleForceGenerator): void {
+    drawForce(generator: ParticleForceGenerator, show: boolean): void {
+        if (!show) {
+            this.arrow.visible = false;
+            return;
+        }
         const force = forceOn(this.particle, generator);
         const magnitude = force.magnitude();
         if (magnitude > MAX_ARROW_FORCE) force.scale(MAX_ARROW_FORCE / magnitude);
@@ -233,10 +238,10 @@ export const springsDemo = defineDemo({
             sync(alpha) {
                 anchorBlock.position.copy(anchored.anchor);
                 anchoredCoil.update(anchored.anchor, anchoredBob.blend(alpha));
-                anchoredBob.drawForce(anchored);
+                anchoredBob.drawForce(anchored, current.forces);
                 pairCoil.update(pairA.blend(alpha), pairB.blend(alpha));
-                pairA.drawForce(springOnA);
-                pairB.drawForce(springOnB);
+                pairA.drawForce(springOnA, current.forces);
+                pairB.drawForce(springOnB, current.forces);
                 const end = jumper.blend(alpha);
                 rope.setPoint(0, bungeeTop.position);
                 rope.setPoint(1, end);
@@ -245,7 +250,7 @@ export const springsDemo = defineDemo({
                         ? bungeeColor
                         : palette.muted,
                 );
-                jumper.drawForce(bungee);
+                jumper.drawForce(bungee, current.forces);
             },
             readouts() {
                 const omega = Math.sqrt(current.stiffness / MASS);

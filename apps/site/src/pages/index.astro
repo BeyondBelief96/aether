@@ -2,7 +2,6 @@
 import { Code } from "astro:components";
 import Base from "../layouts/Base.astro";
 import InstallLine from "../components/InstallLine.astro";
-import { PHASES } from "../data/roadmap";
 import { REPOSITORY_URL, href } from "../site";
 
 const demo = (id: string) => href(`/demos/#/${id}`);
@@ -12,14 +11,6 @@ const today = [
     { id: "fireworks", title: "Fireworks", line: "Hundreds of particles sharing one drag force.", warmup: 2.15, camera: "2,15,32 1,18,0", values: "sparks=360&burst=11" },
     { id: "springs", title: "Springs", line: "An anchor, a pair and a bungee. Grab the block.", warmup: 0.9, camera: "0,5.4,17 0,4.6,0", values: "" },
 ] as const;
-
-const statusLabel = {
-    shipped: "shipped",
-    now: "in progress",
-    next: "next",
-    planned: "planned",
-    later: "later",
-} as const;
 
 const sample = `import { Particle, ParticleWorld, ParticleAnchoredSpring } from "aether-physics";
 
@@ -39,19 +30,19 @@ function frame() {
 ---
 
 <Base
-    title="Aether · a 3D rigid-body physics engine for TypeScript"
-    description="Aether is a 3D rigid-body physics engine for TypeScript, written from scratch with no dependencies. Particles and forces run today; rigid bodies, collisions and joints are on the way."
+    title="Aether · a 3D physics engine for TypeScript"
+    description="Aether is a 3D physics engine for TypeScript, written from scratch with no dependencies. Particles, springs, drag and buoyancy on a fixed timestep."
 >
     <section class="hero" aria-labelledby="hero-title">
         <aether-scene
-            id="destination"
+            id="hero-scene"
             demo="cloth"
             values="wind=7"
-            label="A cloth blowing in the wind, beside dashed outlines of a block pyramid, dominoes and a ragdoll."
+            label="A cloth blowing in the wind."
         ></aether-scene>
         <div class="hero-copy">
-            <h1 id="hero-title">A 3D rigid-body physics engine for TypeScript.</h1>
-            <p>Written from scratch, no dependencies. The solid things run today. The outlines are on the way.</p>
+            <h1 id="hero-title">A 3D physics engine for TypeScript.</h1>
+            <p>Written from scratch, with no dependencies. Particles, springs, drag and buoyancy on a fixed timestep.</p>
             <div class="actions">
                 <a class="btn primary" href={href("/demos/")}>
                     Open the demos
@@ -60,16 +51,12 @@ function frame() {
                 <InstallLine />
             </div>
         </div>
-        <ul class="legend" aria-label="Legend">
-            <li><span class="swatch solid"></span>Shipped</li>
-            <li><span class="swatch dashed"></span>On the roadmap</li>
-            <li class="hint">Drag a pin on the cloth</li>
-        </ul>
+        <p class="hint">Drag a pin on the cloth</p>
     </section>
 
     <section class="today" aria-labelledby="today-title">
         <header class="section-head">
-            <h2 id="today-title">Runs today</h2>
+            <h2 id="today-title">Live demos</h2>
             <a href={href("/demos/")}>Every demo</a>
         </header>
         <ul class="today-grid">
@@ -90,33 +77,6 @@ function frame() {
                 ))
             }
         </ul>
-    </section>
-
-    <section class="roadmap" id="roadmap" aria-labelledby="roadmap-title">
-        <header class="section-head">
-            <h2 id="roadmap-title">The road to rigid bodies</h2>
-            <a href={`${REPOSITORY_URL}/blob/main/docs/PLAN.md`} target="_blank" rel="noopener">The full plan</a>
-        </header>
-        <ol class="phases">
-            {
-                PHASES.map((p) => (
-                    <li class:list={["phase", p.status]}>
-                        <span class="num">{String(p.number).padStart(2, "0")}</span>
-                        <span class="title">{p.title}</span>
-                        <span class="adds">{p.adds}</span>
-                        <span class="demos">
-                            {p.demos.map((d, i) => (
-                                <>
-                                    {i > 0 && ", "}
-                                    {d.id ? <a href={demo(d.id)}>{d.label}</a> : <span>{d.label}</span>}
-                                </>
-                            ))}
-                        </span>
-                        <span class="status">{statusLabel[p.status]}</span>
-                    </li>
-                ))
-            }
-        </ol>
     </section>
 
     <section class="code" aria-labelledby="code-title">
@@ -156,22 +116,15 @@ function frame() {
 <script>
     import "@aether/editor/scene";
     import type { AetherScene } from "@aether/editor/scene";
-    import { buildDestination, destinationTags } from "../scripts/destination";
-
-    const hero = document.getElementById("destination") as AetherScene | null;
+    const hero = document.getElementById("hero-scene") as AetherScene | null;
     if (hero) {
-        hero.decorate = buildDestination;
-        hero.tags =
-            hero.clientWidth < 760
-                ? destinationTags.filter((t) => !t.text.startsWith("dominoes") && !t.text.startsWith("ragdoll"))
-                : destinationTags;
-        // Wide screens leave room on the left for the headline; narrow ones frame the cloth and
-        // the pyramid, and the stage widens the view further for portrait shapes.
+        // Wide screens leave room on the left for the headline; narrow ones stack the headline
+        // above the scene and centre the cloth.
         const frame = () => {
             const narrow = hero.clientWidth < 760;
             hero.setCamera(
-                narrow ? { x: 4, y: 5.5, z: 17 } : { x: -1, y: 5.4, z: 22 },
-                narrow ? { x: 3.6, y: 3.4, z: 0 } : { x: -2.4, y: 4.6, z: 0 },
+                narrow ? { x: 3, y: 5.2, z: 13 } : { x: -2.5, y: 5, z: 14 },
+                narrow ? { x: 0, y: 3.6, z: 0.5 } : { x: -4.2, y: 4, z: 0 },
             );
         };
         hero.updateComplete.then(frame);
@@ -219,38 +172,14 @@ function frame() {
         gap: var(--u) 12px;
         margin-top: calc(var(--u) * 3.5);
     }
-    .legend {
+    .hint {
         position: absolute;
         left: calc(var(--u) * 5);
         bottom: calc(var(--u) * 3);
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--u) calc(var(--u) * 3);
         margin: 0;
-        padding: 0;
-        list-style: none;
-        font-size: var(--text-small);
-        color: var(--ink-2);
-        pointer-events: none;
-    }
-    .legend li {
-        display: flex;
-        align-items: center;
-        gap: var(--u);
-    }
-    .swatch {
-        width: 14px;
-        height: 14px;
-    }
-    .swatch.solid {
-        background: var(--accent);
-    }
-    .swatch.dashed {
-        border: 1.5px dashed var(--muted);
-    }
-    .legend .hint {
         font: 400 var(--text-label) / 1 var(--mono);
         color: var(--muted);
+        pointer-events: none;
     }
 
     section + section {
@@ -322,80 +251,6 @@ function frame() {
         color: var(--ink-2);
     }
 
-    .phases {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-    }
-    .phase {
-        display: grid;
-        grid-template-columns: 56px minmax(180px, 1.1fr) minmax(0, 2fr) minmax(0, 1.6fr) 110px;
-        gap: calc(var(--u) * 3);
-        align-items: baseline;
-        padding: 18px 0;
-        border-bottom: 1px solid var(--rule);
-    }
-    .num {
-        font: 500 var(--text-small) / 1 var(--mono);
-        color: var(--muted);
-    }
-    .title {
-        font: 700 22px / 1.15 var(--sans);
-        letter-spacing: -0.02em;
-    }
-    .adds {
-        font-size: var(--text-body);
-        color: var(--ink-2);
-    }
-    .demos {
-        font-size: var(--text-small);
-        color: var(--ink-2);
-    }
-    .demos a {
-        color: var(--ink);
-        text-underline-offset: 3px;
-        text-decoration-color: var(--accent);
-    }
-    .status {
-        justify-self: end;
-        font: 500 var(--text-label) / 1 var(--mono);
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        white-space: nowrap;
-    }
-    .phase.shipped .status::before,
-    .phase.now .status::before {
-        content: "";
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        margin-right: 8px;
-        background: var(--accent);
-        border-radius: 50%;
-    }
-    .phase.now .status::before {
-        background: linear-gradient(90deg, var(--accent) 50%, transparent 50%);
-        box-shadow: inset 0 0 0 1.5px var(--accent);
-    }
-    .phase.next,
-    .phase.planned,
-    .phase.later {
-        border-bottom-style: dashed;
-    }
-    .phase.next .title,
-    .phase.planned .title,
-    .phase.later .title {
-        color: var(--ink-2);
-    }
-    .phase.next .status,
-    .phase.planned .status,
-    .phase.later .status {
-        color: var(--muted);
-    }
-    .phase.next .title::after {
-        content: "";
-    }
-
     .code {
         display: grid;
         grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
@@ -452,18 +307,6 @@ function frame() {
     }
 
     @media (max-width: 1000px) {
-        .phase {
-            grid-template-columns: 40px 1fr auto;
-            row-gap: 6px;
-        }
-        .phase .adds,
-        .phase .demos {
-            grid-column: 2 / -1;
-        }
-        .phase .status {
-            grid-column: 3;
-            grid-row: 1;
-        }
         .code {
             grid-template-columns: minmax(0, 1fr);
             gap: calc(var(--u) * 4);
@@ -489,12 +332,7 @@ function frame() {
             max-width: none;
             padding: calc(var(--u) * 3) 0;
         }
-        .legend {
-            position: static;
-            order: 3;
-            padding-top: calc(var(--u) * 1.5);
-        }
-        .legend .hint {
+        .hint {
             display: none;
         }
         .today-grid {
