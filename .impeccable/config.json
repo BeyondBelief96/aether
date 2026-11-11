@@ -1,0 +1,233 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.235Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.268Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.300Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.332Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.366Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.397Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.429Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.461Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-console.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.490Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-console.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.517Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-console.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.542Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-console.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.564Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.589Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.617Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.645Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.673Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-specimen.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.701Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-specimen.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.729Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-specimen.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.755Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-specimen.html"
+        ],
+        "createdAt": "2026-11-11T00:58:47.781Z",
+        "reason": "agent: decision-round skeleton sketch, not shipped UI"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-11T01:09:27.282Z",
+        "reason": "agent: decision-round sketch predating DESIGN.md, not shipped UI"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-11-11T01:09:27.304Z",
+        "reason": "agent: decision-round sketch predating DESIGN.md, not shipped UI"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-console.html"
+        ],
+        "createdAt": "2026-11-11T01:09:27.328Z",
+        "reason": "agent: decision-round sketch predating DESIGN.md, not shipped UI"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-11T01:09:27.349Z",
+        "reason": "agent: decision-round sketch predating DESIGN.md, not shipped UI"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-specimen.html"
+        ],
+        "createdAt": "2026-11-11T01:09:27.371Z",
+        "reason": "agent: decision-round sketch predating DESIGN.md, not shipped UI"
+      }
+    ]
+  }
+}

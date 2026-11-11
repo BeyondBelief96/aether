@@ -1,0 +1,75 @@
+.skip {
+    position: absolute;
+    left: var(--gutter);
+    top: -48px;
+    padding: 8px 12px;
+    background: var(--ink);
+    color: var(--paper);
+    font: 600 var(--text-small) / 1 var(--sans);
+    z-index: 10;
+}
+.skip:focus {
+    top: 8px;
+}
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+main {
+    margin: 0 var(--gutter);
+}
+main.bleed {
+    margin: 0;
+}
+svg.icon {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--u);
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+    color: var(--ink);
+    font: 600 var(--text-small) / 1 var(--sans);
+    text-decoration: none;
+    transition: background-color 160ms var(--ease-out);
+}
+.btn:hover {
+    background: var(--paper-sunk);
+}
+.btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+}
+.btn.primary:hover {
+    background: color-mix(in srgb, var(--accent) 86%, var(--ink));
+}
+.label {
+    font: 500 var(--text-label) / 1.2 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+/* Code is set in ink: colour in this system is reserved for the accent and for data. */
+.astro-code,
+.astro-code span {
+    color: var(--ink) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition: none !important;
+        animation: none !important;
+    }
+}

@@ -1,0 +1,47 @@
+---
+import "@aether/editor/fonts";
+import "@aether/editor/tokens.css";
+import "../styles/site.css";
+import SiteNav from "../components/SiteNav.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import { href } from "../site";
+
+interface Props {
+    title: string;
+    description: string;
+    /** Which top-level section is open, for the nav. */
+    section?: "home" | "demos" | "docs";
+    /** Lets the page fill the viewport width (the demo app pads itself). */
+    bleed?: boolean;
+}
+
+const { title, description, section = "home", bleed = false } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)" />
+        <link rel="icon" href={href("/favicon.svg")} type="image/svg+xml" />
+    </head>
+    <body>
+        <a class="skip" href="#content">Skip to content</a>
+        <SiteNav section={section} />
+        <main id="content" class:list={{ bleed }}>
+            <slot />
+        </main>
+        <SiteFooter />
+        <script>
+            import { applyPalette, DARK, LIGHT } from "@aether/editor/palette";
+            const scheme = window.matchMedia("(prefers-color-scheme: dark)");
+            const apply = () => applyPalette(document.documentElement, scheme.matches ? DARK : LIGHT);
+            apply();
+            scheme.addEventListener("change", apply);
+        </script>
+    </body>
+</html>

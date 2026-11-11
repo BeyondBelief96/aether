@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+        "target": "ES2023",
+        "lib": ["ES2023"],
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        // Resolves workspace packages to their TypeScript source instead of dist/.
+        "customConditions": ["aether-source"],
+        "types": [],
+        "noEmit": true,
+        "skipLibCheck": true,
+
+        "strict": true,
+        "erasableSyntaxOnly": true,
+        "verbatimModuleSyntax": true,
+        "isolatedModules": true,
+        "useDefineForClassFields": true,
+        "noImplicitOverride": true,
+        "noUncheckedIndexedAccess": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true
+    }
+}

@@ -1,0 +1,18 @@
+{
+    // Emits the published .d.ts files.
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        // nodenext makes a relative import without its .js extension a build error, so the
+        // published types work for every consumer.
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "customConditions": [],
+        "noEmit": false,
+        "declaration": true,
+        "emitDeclarationOnly": true,
+        "rootDir": "src",
+        "outDir": "dist/types"
+    },
+    "include": ["src/index.ts", "src/math/index.ts"],
+    "exclude": []
+}

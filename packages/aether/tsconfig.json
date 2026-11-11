@@ -1,0 +1,5 @@
+{
+    // No DOM types: engine code that touches the browser fails to compile.
+    "extends": "../../tsconfig.base.json",
+    "include": ["src", "vite.config.ts"]
+}

@@ -1,0 +1,49 @@
+{
+    "name": "aether-physics",
+    "version": "0.2.0",
+    "description": "A 3D rigid-body physics engine written from scratch in TypeScript.",
+    "license": "MIT",
+    "author": "Brandon Berisford",
+    "keywords": [
+        "physics",
+        "physics-engine",
+        "rigid-body",
+        "quaternion",
+        "typescript"
+    ],
+    "homepage": "https://beyondbelief96.github.io/aether/",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/BeyondBelief96/aether.git",
+        "directory": "packages/aether"
+    },
+    "bugs": "https://github.com/BeyondBelief96/aether/issues",
+    "type": "module",
+    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
+    "types": "./dist/types/index.d.ts",
+    "exports": {
+        ".": {
+            "aether-source": "./src/index.ts",
+            "types": "./dist/types/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./math": {
+            "aether-source": "./src/math/index.ts",
+            "types": "./dist/types/math/index.d.ts",
+            "default": "./dist/math.js"
+        }
+    },
+    "scripts": {
+        "build": "vite build && tsc -p tsconfig.build.json",
+        "typecheck": "tsc",
+        "test": "vitest",
+        "test:run": "vitest run",
+        "prepublishOnly": "npm run typecheck && npm run test:run && npm run build"
+    },
+    "devDependencies": {
+        "fast-check": "^4.10.2"
+    }
+}
