@@ -1,0 +1,833 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-11T01:08:50+00:00",
+  "title": "Design System: Aether",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#f6f5f1",
+        "oklch": "oklch(97.0% 0.005 95.1)",
+        "tonalRamp": [
+          "oklch(15% 0.002 95.1)",
+          "oklch(26% 0.004 95.1)",
+          "oklch(38% 0.005 95.1)",
+          "oklch(49% 0.005 95.1)",
+          "oklch(61% 0.005 95.1)",
+          "oklch(72% 0.005 95.1)",
+          "oklch(84% 0.004 95.1)",
+          "oklch(95% 0.002 95.1)"
+        ]
+      },
+      "paper-sunk": {
+        "role": "neutral",
+        "displayName": "Sunk Paper",
+        "canonical": "#ecebe6",
+        "oklch": "oklch(93.9% 0.007 97.4)",
+        "tonalRamp": [
+          "oklch(15% 0.003 97.4)",
+          "oklch(26% 0.005 97.4)",
+          "oklch(38% 0.007 97.4)",
+          "oklch(49% 0.007 97.4)",
+          "oklch(61% 0.007 97.4)",
+          "oklch(72% 0.007 97.4)",
+          "oklch(84% 0.005 97.4)",
+          "oklch(95% 0.003 97.4)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#111111",
+        "oklch": "oklch(17.8% 0.000 89.9)",
+        "tonalRamp": [
+          "oklch(15% 0.000 89.9)",
+          "oklch(26% 0.000 89.9)",
+          "oklch(38% 0.000 89.9)",
+          "oklch(49% 0.000 89.9)",
+          "oklch(61% 0.000 89.9)",
+          "oklch(72% 0.000 89.9)",
+          "oklch(84% 0.000 89.9)",
+          "oklch(95% 0.000 89.9)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink Two",
+        "canonical": "#3a3a37",
+        "oklch": "oklch(34.7% 0.005 106.7)",
+        "tonalRamp": [
+          "oklch(15% 0.002 106.7)",
+          "oklch(26% 0.003 106.7)",
+          "oklch(38% 0.005 106.7)",
+          "oklch(49% 0.005 106.7)",
+          "oklch(61% 0.005 106.7)",
+          "oklch(72% 0.005 106.7)",
+          "oklch(84% 0.003 106.7)",
+          "oklch(95% 0.002 106.7)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Graphite",
+        "canonical": "#6b6a64",
+        "oklch": "oklch(52.3% 0.009 99.0)",
+        "tonalRamp": [
+          "oklch(15% 0.004 99.0)",
+          "oklch(26% 0.006 99.0)",
+          "oklch(38% 0.009 99.0)",
+          "oklch(49% 0.009 99.0)",
+          "oklch(61% 0.009 99.0)",
+          "oklch(72% 0.009 99.0)",
+          "oklch(84% 0.006 99.0)",
+          "oklch(95% 0.004 99.0)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "note": "Ink at 14% alpha; ramp follows ink."
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Ink Rule",
+        "canonical": "#111111",
+        "oklch": "oklch(17.8% 0.000 89.9)",
+        "tonalRamp": [
+          "oklch(15% 0.000 89.9)",
+          "oklch(26% 0.000 89.9)",
+          "oklch(38% 0.000 89.9)",
+          "oklch(49% 0.000 89.9)",
+          "oklch(61% 0.000 89.9)",
+          "oklch(72% 0.000 89.9)",
+          "oklch(84% 0.000 89.9)",
+          "oklch(95% 0.000 89.9)"
+        ]
+      },
+      "signal-orange": {
+        "role": "primary",
+        "displayName": "Signal Orange",
+        "canonical": "#ff4b1f",
+        "oklch": "oklch(66.7% 0.223 34.2)",
+        "tonalRamp": [
+          "oklch(15% 0.085 34.2)",
+          "oklch(26% 0.150 34.2)",
+          "oklch(38% 0.215 34.2)",
+          "oklch(49% 0.223 34.2)",
+          "oklch(61% 0.223 34.2)",
+          "oklch(72% 0.215 34.2)",
+          "oklch(84% 0.150 34.2)",
+          "oklch(95% 0.085 34.2)"
+        ]
+      },
+      "signal-orange-ink": {
+        "role": "primary",
+        "displayName": "Signal Orange Ink",
+        "canonical": "#c2360f",
+        "oklch": "oklch(54.2% 0.183 34.8)",
+        "tonalRamp": [
+          "oklch(15% 0.070 34.8)",
+          "oklch(26% 0.123 34.8)",
+          "oklch(38% 0.176 34.8)",
+          "oklch(49% 0.183 34.8)",
+          "oklch(61% 0.183 34.8)",
+          "oklch(72% 0.176 34.8)",
+          "oklch(84% 0.123 34.8)",
+          "oklch(95% 0.070 34.8)"
+        ]
+      },
+      "on-signal": {
+        "role": "neutral",
+        "displayName": "On Signal",
+        "canonical": "#111111",
+        "oklch": "oklch(17.8% 0.000 89.9)",
+        "tonalRamp": [
+          "oklch(15% 0.000 89.9)",
+          "oklch(26% 0.000 89.9)",
+          "oklch(38% 0.000 89.9)",
+          "oklch(49% 0.000 89.9)",
+          "oklch(61% 0.000 89.9)",
+          "oklch(72% 0.000 89.9)",
+          "oklch(84% 0.000 89.9)",
+          "oklch(95% 0.000 89.9)"
+        ]
+      },
+      "warn": {
+        "role": "status",
+        "displayName": "Warn",
+        "canonical": "#c2360f",
+        "oklch": "oklch(54.2% 0.183 34.8)",
+        "tonalRamp": [
+          "oklch(15% 0.070 34.8)",
+          "oklch(26% 0.123 34.8)",
+          "oklch(38% 0.176 34.8)",
+          "oklch(49% 0.183 34.8)",
+          "oklch(61% 0.183 34.8)",
+          "oklch(72% 0.176 34.8)",
+          "oklch(84% 0.123 34.8)",
+          "oklch(95% 0.070 34.8)"
+        ]
+      },
+      "selection": {
+        "role": "primary",
+        "displayName": "Selection Wash",
+        "note": "Signal Orange at 24% alpha; text selection only."
+      },
+      "paper-dark": {
+        "role": "neutral",
+        "displayName": "Paper (reversed)",
+        "canonical": "#121211",
+        "oklch": "oklch(18.2% 0.002 106.6)",
+        "tonalRamp": [
+          "oklch(15% 0.001 106.6)",
+          "oklch(26% 0.001 106.6)",
+          "oklch(38% 0.002 106.6)",
+          "oklch(49% 0.002 106.6)",
+          "oklch(61% 0.002 106.6)",
+          "oklch(72% 0.002 106.6)",
+          "oklch(84% 0.001 106.6)",
+          "oklch(95% 0.001 106.6)"
+        ]
+      },
+      "paper-sunk-dark": {
+        "role": "neutral",
+        "displayName": "Sunk Paper (reversed)",
+        "canonical": "#1a1a18",
+        "oklch": "oklch(21.7% 0.004 106.7)",
+        "tonalRamp": [
+          "oklch(15% 0.001 106.7)",
+          "oklch(26% 0.003 106.7)",
+          "oklch(38% 0.004 106.7)",
+          "oklch(49% 0.004 106.7)",
+          "oklch(61% 0.004 106.7)",
+          "oklch(72% 0.004 106.7)",
+          "oklch(84% 0.003 106.7)",
+          "oklch(95% 0.001 106.7)"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Ink (reversed)",
+        "canonical": "#edece6",
+        "oklch": "oklch(94.2% 0.008 98.9)",
+        "tonalRamp": [
+          "oklch(15% 0.003 98.9)",
+          "oklch(26% 0.005 98.9)",
+          "oklch(38% 0.008 98.9)",
+          "oklch(49% 0.008 98.9)",
+          "oklch(61% 0.008 98.9)",
+          "oklch(72% 0.008 98.9)",
+          "oklch(84% 0.005 98.9)",
+          "oklch(95% 0.003 98.9)"
+        ]
+      },
+      "ink-2-dark": {
+        "role": "neutral",
+        "displayName": "Ink Two (reversed)",
+        "canonical": "#c7c6bf",
+        "oklch": "oklch(82.5% 0.010 100.0)",
+        "tonalRamp": [
+          "oklch(15% 0.004 100.0)",
+          "oklch(26% 0.007 100.0)",
+          "oklch(38% 0.009 100.0)",
+          "oklch(49% 0.010 100.0)",
+          "oklch(61% 0.010 100.0)",
+          "oklch(72% 0.009 100.0)",
+          "oklch(84% 0.007 100.0)",
+          "oklch(95% 0.004 100.0)"
+        ]
+      },
+      "muted-dark": {
+        "role": "neutral",
+        "displayName": "Muted Graphite (reversed)",
+        "canonical": "#9c9b94",
+        "oklch": "oklch(68.8% 0.010 100.1)",
+        "tonalRamp": [
+          "oklch(15% 0.004 100.1)",
+          "oklch(26% 0.007 100.1)",
+          "oklch(38% 0.010 100.1)",
+          "oklch(49% 0.010 100.1)",
+          "oklch(61% 0.010 100.1)",
+          "oklch(72% 0.010 100.1)",
+          "oklch(84% 0.007 100.1)",
+          "oklch(95% 0.004 100.1)"
+        ]
+      },
+      "rule-dark": {
+        "role": "neutral",
+        "displayName": "Hairline (reversed)",
+        "note": "Reversed ink at 16% alpha."
+      },
+      "rule-strong-dark": {
+        "role": "neutral",
+        "displayName": "Ink Rule (reversed)",
+        "canonical": "#edece6",
+        "oklch": "oklch(94.2% 0.008 98.9)",
+        "tonalRamp": [
+          "oklch(15% 0.003 98.9)",
+          "oklch(26% 0.005 98.9)",
+          "oklch(38% 0.008 98.9)",
+          "oklch(49% 0.008 98.9)",
+          "oklch(61% 0.008 98.9)",
+          "oklch(72% 0.008 98.9)",
+          "oklch(84% 0.005 98.9)",
+          "oklch(95% 0.003 98.9)"
+        ]
+      },
+      "signal-orange-dark": {
+        "role": "primary",
+        "displayName": "Signal Orange (reversed)",
+        "canonical": "#ff5a2e",
+        "oklch": "oklch(68.3% 0.208 35.4)",
+        "tonalRamp": [
+          "oklch(15% 0.080 35.4)",
+          "oklch(26% 0.140 35.4)",
+          "oklch(38% 0.201 35.4)",
+          "oklch(49% 0.208 35.4)",
+          "oklch(61% 0.208 35.4)",
+          "oklch(72% 0.201 35.4)",
+          "oklch(84% 0.140 35.4)",
+          "oklch(95% 0.080 35.4)"
+        ]
+      },
+      "signal-orange-ink-dark": {
+        "role": "primary",
+        "displayName": "Signal Orange Ink (reversed)",
+        "canonical": "#ff7a55",
+        "oklch": "oklch(72.8% 0.171 36.5)",
+        "tonalRamp": [
+          "oklch(15% 0.065 36.5)",
+          "oklch(26% 0.115 36.5)",
+          "oklch(38% 0.165 36.5)",
+          "oklch(49% 0.171 36.5)",
+          "oklch(61% 0.171 36.5)",
+          "oklch(72% 0.165 36.5)",
+          "oklch(84% 0.115 36.5)",
+          "oklch(95% 0.065 36.5)"
+        ]
+      },
+      "on-signal-dark": {
+        "role": "neutral",
+        "displayName": "On Signal (reversed)",
+        "canonical": "#121211",
+        "oklch": "oklch(18.2% 0.002 106.6)",
+        "tonalRamp": [
+          "oklch(15% 0.001 106.6)",
+          "oklch(26% 0.001 106.6)",
+          "oklch(38% 0.002 106.6)",
+          "oklch(49% 0.002 106.6)",
+          "oklch(61% 0.002 106.6)",
+          "oklch(72% 0.002 106.6)",
+          "oklch(84% 0.001 106.6)",
+          "oklch(95% 0.001 106.6)"
+        ]
+      },
+      "warn-dark": {
+        "role": "status",
+        "displayName": "Warn (reversed)",
+        "canonical": "#ff7a55",
+        "oklch": "oklch(72.8% 0.171 36.5)",
+        "tonalRamp": [
+          "oklch(15% 0.065 36.5)",
+          "oklch(26% 0.115 36.5)",
+          "oklch(38% 0.165 36.5)",
+          "oklch(49% 0.171 36.5)",
+          "oklch(61% 0.171 36.5)",
+          "oklch(72% 0.165 36.5)",
+          "oklch(84% 0.115 36.5)",
+          "oklch(95% 0.065 36.5)"
+        ]
+      },
+      "selection-dark": {
+        "role": "primary",
+        "displayName": "Selection Wash (reversed)",
+        "note": "Reversed Signal Orange at 32% alpha."
+      },
+      "series-1": {
+        "role": "data",
+        "displayName": "Series 1 Orange",
+        "canonical": "#ff4b1f",
+        "oklch": "oklch(66.7% 0.223 34.2)",
+        "tonalRamp": [
+          "oklch(15% 0.085 34.2)",
+          "oklch(26% 0.150 34.2)",
+          "oklch(38% 0.215 34.2)",
+          "oklch(49% 0.223 34.2)",
+          "oklch(61% 0.223 34.2)",
+          "oklch(72% 0.215 34.2)",
+          "oklch(84% 0.150 34.2)",
+          "oklch(95% 0.085 34.2)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts, written to --series-1 at runtime"
+      },
+      "series-2": {
+        "role": "data",
+        "displayName": "Series 2 Cobalt",
+        "canonical": "#2747d6",
+        "oklch": "oklch(47.7% 0.220 266.9)",
+        "tonalRamp": [
+          "oklch(15% 0.084 266.9)",
+          "oklch(26% 0.148 266.9)",
+          "oklch(38% 0.212 266.9)",
+          "oklch(49% 0.220 266.9)",
+          "oklch(61% 0.220 266.9)",
+          "oklch(72% 0.212 266.9)",
+          "oklch(84% 0.148 266.9)",
+          "oklch(95% 0.084 266.9)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts, written to --series-2 at runtime"
+      },
+      "series-3": {
+        "role": "data",
+        "displayName": "Series 3 Green",
+        "canonical": "#0f8a5f",
+        "oklch": "oklch(56.1% 0.119 162.1)",
+        "tonalRamp": [
+          "oklch(15% 0.046 162.1)",
+          "oklch(26% 0.080 162.1)",
+          "oklch(38% 0.115 162.1)",
+          "oklch(49% 0.119 162.1)",
+          "oklch(61% 0.119 162.1)",
+          "oklch(72% 0.115 162.1)",
+          "oklch(84% 0.080 162.1)",
+          "oklch(95% 0.046 162.1)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts, written to --series-3 at runtime"
+      },
+      "series-4": {
+        "role": "data",
+        "displayName": "Series 4 Violet",
+        "canonical": "#8a3fd1",
+        "oklch": "oklch(54.0% 0.214 303.4)",
+        "tonalRamp": [
+          "oklch(15% 0.082 303.4)",
+          "oklch(26% 0.144 303.4)",
+          "oklch(38% 0.206 303.4)",
+          "oklch(49% 0.214 303.4)",
+          "oklch(61% 0.214 303.4)",
+          "oklch(72% 0.206 303.4)",
+          "oklch(84% 0.144 303.4)",
+          "oklch(95% 0.082 303.4)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts, written to --series-4 at runtime"
+      },
+      "series-1-dark": {
+        "role": "data",
+        "displayName": "Series 1 Orange (reversed)",
+        "canonical": "#ff5a2e",
+        "oklch": "oklch(68.3% 0.208 35.4)",
+        "tonalRamp": [
+          "oklch(15% 0.080 35.4)",
+          "oklch(26% 0.140 35.4)",
+          "oklch(38% 0.201 35.4)",
+          "oklch(49% 0.208 35.4)",
+          "oklch(61% 0.208 35.4)",
+          "oklch(72% 0.201 35.4)",
+          "oklch(84% 0.140 35.4)",
+          "oklch(95% 0.080 35.4)"
+        ]
+      },
+      "series-2-dark": {
+        "role": "data",
+        "displayName": "Series 2 Cobalt (reversed)",
+        "canonical": "#7d97ff",
+        "oklch": "oklch(70.3% 0.155 271.4)",
+        "tonalRamp": [
+          "oklch(15% 0.059 271.4)",
+          "oklch(26% 0.104 271.4)",
+          "oklch(38% 0.149 271.4)",
+          "oklch(49% 0.155 271.4)",
+          "oklch(61% 0.155 271.4)",
+          "oklch(72% 0.149 271.4)",
+          "oklch(84% 0.104 271.4)",
+          "oklch(95% 0.059 271.4)"
+        ]
+      },
+      "series-3-dark": {
+        "role": "data",
+        "displayName": "Series 3 Green (reversed)",
+        "canonical": "#3ccf8e",
+        "oklch": "oklch(76.2% 0.155 159.5)",
+        "tonalRamp": [
+          "oklch(15% 0.059 159.5)",
+          "oklch(26% 0.104 159.5)",
+          "oklch(38% 0.149 159.5)",
+          "oklch(49% 0.155 159.5)",
+          "oklch(61% 0.155 159.5)",
+          "oklch(72% 0.149 159.5)",
+          "oklch(84% 0.104 159.5)",
+          "oklch(95% 0.059 159.5)"
+        ]
+      },
+      "series-4-dark": {
+        "role": "data",
+        "displayName": "Series 4 Violet (reversed)",
+        "canonical": "#c08bff",
+        "oklch": "oklch(73.5% 0.169 303.6)",
+        "tonalRamp": [
+          "oklch(15% 0.065 303.6)",
+          "oklch(26% 0.114 303.6)",
+          "oklch(38% 0.163 303.6)",
+          "oklch(49% 0.169 303.6)",
+          "oklch(61% 0.169 303.6)",
+          "oklch(72% 0.163 303.6)",
+          "oklch(84% 0.114 303.6)",
+          "oklch(95% 0.065 303.6)"
+        ]
+      },
+      "axis-x": {
+        "role": "data",
+        "displayName": "Axis X Red",
+        "canonical": "#d7263d",
+        "oklch": "oklch(57.1% 0.209 21.1)",
+        "tonalRamp": [
+          "oklch(15% 0.080 21.1)",
+          "oklch(26% 0.140 21.1)",
+          "oklch(38% 0.201 21.1)",
+          "oklch(49% 0.209 21.1)",
+          "oklch(61% 0.209 21.1)",
+          "oklch(72% 0.201 21.1)",
+          "oklch(84% 0.140 21.1)",
+          "oklch(95% 0.080 21.1)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts, written to --axis-x at runtime"
+      },
+      "axis-y": {
+        "role": "data",
+        "displayName": "Axis Y Green",
+        "canonical": "#2e9e4f",
+        "oklch": "oklch(61.9% 0.153 149.1)",
+        "tonalRamp": [
+          "oklch(15% 0.058 149.1)",
+          "oklch(26% 0.103 149.1)",
+          "oklch(38% 0.147 149.1)",
+          "oklch(49% 0.153 149.1)",
+          "oklch(61% 0.153 149.1)",
+          "oklch(72% 0.147 149.1)",
+          "oklch(84% 0.103 149.1)",
+          "oklch(95% 0.058 149.1)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts, written to --axis-y at runtime"
+      },
+      "axis-z": {
+        "role": "data",
+        "displayName": "Axis Z Blue",
+        "canonical": "#2b59d9",
+        "oklch": "oklch(51.4% 0.203 264.9)",
+        "tonalRamp": [
+          "oklch(15% 0.077 264.9)",
+          "oklch(26% 0.136 264.9)",
+          "oklch(38% 0.195 264.9)",
+          "oklch(49% 0.203 264.9)",
+          "oklch(61% 0.203 264.9)",
+          "oklch(72% 0.195 264.9)",
+          "oklch(84% 0.136 264.9)",
+          "oklch(95% 0.077 264.9)"
+        ],
+        "source": "apps/editor/src/stage/palette.ts, written to --axis-z at runtime"
+      },
+      "axis-x-dark": {
+        "role": "data",
+        "displayName": "Axis X Red (reversed)",
+        "canonical": "#ff5c6c",
+        "oklch": "oklch(69.4% 0.198 18.3)",
+        "tonalRamp": [
+          "oklch(15% 0.075 18.3)",
+          "oklch(26% 0.133 18.3)",
+          "oklch(38% 0.190 18.3)",
+          "oklch(49% 0.198 18.3)",
+          "oklch(61% 0.198 18.3)",
+          "oklch(72% 0.190 18.3)",
+          "oklch(84% 0.133 18.3)",
+          "oklch(95% 0.075 18.3)"
+        ]
+      },
+      "axis-y-dark": {
+        "role": "data",
+        "displayName": "Axis Y Green (reversed)",
+        "canonical": "#5fd17f",
+        "oklch": "oklch(77.4% 0.157 150.4)",
+        "tonalRamp": [
+          "oklch(15% 0.060 150.4)",
+          "oklch(26% 0.105 150.4)",
+          "oklch(38% 0.151 150.4)",
+          "oklch(49% 0.157 150.4)",
+          "oklch(61% 0.157 150.4)",
+          "oklch(72% 0.151 150.4)",
+          "oklch(84% 0.105 150.4)",
+          "oklch(95% 0.060 150.4)"
+        ]
+      },
+      "axis-z-dark": {
+        "role": "data",
+        "displayName": "Axis Z Blue (reversed)",
+        "canonical": "#6f93ff",
+        "oklch": "oklch(68.7% 0.164 268.0)",
+        "tonalRamp": [
+          "oklch(15% 0.063 268.0)",
+          "oklch(26% 0.110 268.0)",
+          "oklch(38% 0.158 268.0)",
+          "oklch(49% 0.164 268.0)",
+          "oklch(61% 0.164 268.0)",
+          "oklch(72% 0.158 268.0)",
+          "oklch(84% 0.110 268.0)",
+          "oklch(95% 0.063 268.0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Demo title at the stage's top left."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Index page heading."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Demo names in the index grid."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "\"Aether\" in the header only."
+      },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "One-line demo summary, max 46ch."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Page default."
+      },
+      "nav": {
+        "displayName": "Nav",
+        "purpose": "Category tabs and data tabs."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Parameter, instance and button names."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "Live values, select values, transport stats, tabular figures."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase mono control captions; also range ends, key hints, callouts, meta (not uppercase)."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "Code view."
+      }
+    },
+    "shadows": [],
+    "elevationNote": "Flat: no box-shadow in the UI. Depth is paper to paper-sunk, rules, and ink inversion.",
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The single easing for all UI transitions (--ease-out)."
+      },
+      {
+        "name": "duration-control",
+        "value": "140ms",
+        "purpose": "Slider thumb fill/scale and segmented option fill."
+      },
+      {
+        "name": "duration-state",
+        "value": "160ms",
+        "purpose": "Button, instance, tab and link colour changes."
+      },
+      {
+        "name": "duration-cell",
+        "value": "180ms",
+        "purpose": "Index cell hover fill."
+      },
+      {
+        "name": "duration-arrow",
+        "value": "200ms",
+        "purpose": "Index arrow 4px slide and colour on hover."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "transition: none",
+        "purpose": "All UI transitions removed under prefers-reduced-motion; the simulation keeps running."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-header",
+        "value": "900px",
+        "purpose": "Hide wordmark subtitle and package version."
+      },
+      {
+        "name": "phone",
+        "value": "720px",
+        "purpose": "Gutter 40px to 16px; nav wraps to its own row; stage 56svh; summary and orbit hint hidden; stats wrap."
+      }
+    ],
+    "focus": {
+      "value": "outline: 2px solid var(--accent); outline-offset: 2px",
+      "purpose": "Every focusable control; vector cells use :focus-within."
+    },
+    "fonts": [
+      {
+        "family": "Schibsted Grotesk Variable",
+        "package": "@fontsource-variable/schibsted-grotesk",
+        "role": "words"
+      },
+      {
+        "family": "JetBrains Mono Variable",
+        "package": "@fontsource-variable/jetbrains-mono",
+        "role": "numbers, labels, key hints, code"
+      }
+    ],
+    "icons": {
+      "grid": "16px",
+      "stroke": "1.6, round caps and joins, currentColor, no fill",
+      "source": "apps/editor/src/ui/shared.ts (pause, play, step, reset, arrow, external, grid)"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button (transport)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one orange action per screen: Pause/Play with its key hint.",
+      "html": "<button class=\"ds-btn ds-btn-primary\"><svg class=\"ds-icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M5.5 3.5v9M10.5 3.5v9\" /></svg> Pause <kbd>Space</kbd></button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--u); min-height: 36px; padding: 0 14px; border: 1px solid var(--rule-strong); border-radius: var(--radius); background: none; color: var(--ink); font: 600 var(--text-small) / 1 var(--sans); cursor: pointer; transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out); } .ds-btn:hover { background: var(--paper-sunk); } .ds-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-btn kbd { font: 500 var(--text-label) / 1 var(--mono); color: var(--muted); } .ds-btn-primary { min-width: 108px; background: var(--accent); border-color: var(--accent); color: var(--on-accent); } .ds-btn-primary:hover { background: color-mix(in srgb, var(--accent) 86%, var(--ink)); } .ds-btn-primary kbd { color: inherit; opacity: 0.62; } .ds-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }"
+    },
+    {
+      "name": "Outlined Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Default square outlined control; icon variant is 36px square.",
+      "html": "<span style=\"display:flex;gap:8px\"><button class=\"ds-btn\"><svg class=\"ds-icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M3 3h4v4H3zM9 3h4v4H9zM3 9h4v4H3zM9 9h4v4H9z\" /></svg> All demos</button><button class=\"ds-btn ds-btn-icon\" aria-label=\"Reset\"><svg class=\"ds-icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M3.2 8a4.8 4.8 0 1 0 1.5-3.5\" /><path d=\"M4.5 2.2v2.6h2.6\" /></svg></button><button class=\"ds-btn ds-btn-icon\" aria-label=\"Step once\" disabled><svg class=\"ds-icon\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M3.5 3.5 9.5 8l-6 4.5zM12.5 3.5v9\" /></svg></button></span>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--u); min-height: 36px; padding: 0 14px; border: 1px solid var(--rule-strong); border-radius: var(--radius); background: none; color: var(--ink); font: 600 var(--text-small) / 1 var(--sans); cursor: pointer; transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out); } .ds-btn:hover { background: var(--paper-sunk); } .ds-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-btn kbd { font: 500 var(--text-label) / 1 var(--mono); color: var(--muted); } .ds-btn-icon { width: 36px; padding: 0; } .ds-btn:disabled { opacity: 0.4; cursor: default; } .ds-btn:disabled:hover { background: none; } .ds-icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }"
+    },
+    {
+      "name": "Ink Action Button",
+      "kind": "button",
+      "refersTo": "button-ink",
+      "description": "Demo actions such as Launch and Fire, beside the instance row.",
+      "html": "<button class=\"ds-btn ds-btn-ink\">Launch <kbd>L</kbd></button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--u); min-height: 36px; padding: 0 14px; border: 1px solid var(--rule-strong); border-radius: var(--radius); background: none; color: var(--ink); font: 600 var(--text-small) / 1 var(--sans); cursor: pointer; transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out); } .ds-btn:hover { background: var(--paper-sunk); } .ds-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-btn kbd { font: 500 var(--text-label) / 1 var(--mono); color: var(--muted); } .ds-btn-ink { min-height: 52px; padding: 0 20px; background: var(--ink); border-color: var(--ink); color: var(--paper); } .ds-btn-ink:hover { background: color-mix(in srgb, var(--ink) 82%, var(--paper)); } .ds-btn-ink kbd { color: inherit; opacity: 0.7; }"
+    },
+    {
+      "name": "Axis Slider",
+      "kind": "input",
+      "refersTo": "slider-thumb",
+      "description": "Signature control: every parameter is an axis with live mono value and mono range ends.",
+      "html": "<div class=\"ds-axis\" style=\"--fill:45%\"><div class=\"ds-axis-head\"><label for=\"ds-r\">Stiffness</label><output>500 N/m</output></div><input id=\"ds-r\" type=\"range\" min=\"100\" max=\"1000\" value=\"500\"><div class=\"ds-axis-ends\"><span>100</span><span>1000</span></div></div>",
+      "css": ".ds-axis { width: 260px; font-family: var(--sans); color: var(--ink); } .ds-axis-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--u); } .ds-axis label { font: 600 var(--text-small) / 1.3 var(--sans); } .ds-axis output { font: 500 var(--text-small) / 1.3 var(--mono); font-variant-numeric: tabular-nums; } .ds-axis input { display: block; width: 100%; height: 28px; margin: 6px 0 2px; background: transparent; appearance: none; -webkit-appearance: none; cursor: pointer; } .ds-axis input::-webkit-slider-runnable-track { height: 2px; background: linear-gradient(var(--ink), var(--ink)) 0 / var(--fill) 100% no-repeat, var(--rule); } .ds-axis input::-moz-range-track { height: 2px; background: var(--rule); } .ds-axis input::-moz-range-progress { height: 2px; background: var(--ink); } .ds-axis input::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -9px; border-radius: 50%; background: var(--paper); border: 2px solid var(--ink); transition: transform 140ms var(--ease-out), background-color 140ms var(--ease-out); } .ds-axis input::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--paper); border: 2px solid var(--ink); } .ds-axis input:hover::-webkit-slider-thumb, .ds-axis input:active::-webkit-slider-thumb { background: var(--accent); } .ds-axis input:active::-webkit-slider-thumb { transform: scale(1.15); } .ds-axis input:hover::-moz-range-thumb { background: var(--accent); } .ds-axis input:focus-visible { outline: none; } .ds-axis input:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-axis-ends { display: flex; justify-content: space-between; font: 400 var(--text-label) / 1 var(--mono); color: var(--muted); }"
+    },
+    {
+      "name": "Instance Buttons",
+      "kind": "chip",
+      "refersTo": "instance",
+      "description": "Preset instances with mono note and number key; active instance inverts to ink.",
+      "html": "<div class=\"ds-presets\"><button class=\"ds-preset\"><span class=\"ds-name\">Still air</span><span class=\"ds-note\">Hanging</span><kbd>1</kbd></button><button class=\"ds-preset\" aria-pressed=\"true\"><span class=\"ds-name\">Breeze</span><span class=\"ds-note\">6 m/s</span><kbd>2</kbd></button><button class=\"ds-preset\"><span class=\"ds-name\">Gale</span><span class=\"ds-note\">14 m/s, top edge</span><kbd>3</kbd></button></div>",
+      "css": ".ds-presets { display: grid; grid-template-columns: repeat(3, 160px); gap: var(--u); } .ds-preset { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px var(--u); min-height: 52px; padding: 8px 12px; border: 1px solid var(--rule-strong); border-radius: var(--radius); background: none; color: var(--ink); text-align: left; cursor: pointer; transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out); } .ds-preset:hover:not([aria-pressed=\"true\"]) { background: var(--paper-sunk); } .ds-preset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-preset[aria-pressed=\"true\"] { background: var(--ink); color: var(--paper); } .ds-preset[aria-pressed=\"true\"] .ds-note, .ds-preset[aria-pressed=\"true\"] kbd { color: color-mix(in srgb, var(--paper) 72%, transparent); } .ds-name { font: 600 var(--text-small) / 1.2 var(--sans); } .ds-note { grid-column: 1; font: 400 var(--text-label) / 1.2 var(--mono); color: var(--muted); } .ds-preset kbd { grid-column: 2; grid-row: 1 / span 2; font: 500 var(--text-label) / 1 var(--mono); color: var(--muted); }"
+    },
+    {
+      "name": "Segmented Choice",
+      "kind": "input",
+      "refersTo": "segmented-option",
+      "description": "Enum parameter as joined outlined options; checked option inverts to ink.",
+      "html": "<div class=\"ds-choice\"><span class=\"ds-choice-name\">Pinned</span><div class=\"ds-row\" role=\"radiogroup\"><button role=\"radio\" aria-checked=\"true\">Corners</button><button role=\"radio\" aria-checked=\"false\">Top edge</button><button role=\"radio\" aria-checked=\"false\">One pin</button></div></div>",
+      "css": ".ds-choice { width: 260px; color: var(--ink); } .ds-choice-name { display: block; margin-bottom: 10px; font: 600 var(--text-small) / 1.3 var(--sans); } .ds-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); } .ds-row button { min-height: 34px; padding: 0 10px; border: 1px solid var(--rule-strong); margin-left: -1px; background: none; color: var(--ink); font: 500 var(--text-small) / 1 var(--sans); white-space: nowrap; cursor: pointer; transition: background-color 140ms var(--ease-out); } .ds-row button:first-child { margin-left: 0; border-radius: var(--radius) 0 0 var(--radius); } .ds-row button:last-child { border-radius: 0 var(--radius) var(--radius) 0; } .ds-row button:hover:not([aria-checked=\"true\"]) { background: var(--paper-sunk); } .ds-row button[aria-checked=\"true\"] { background: var(--ink); color: var(--paper); } .ds-row button:focus-visible { position: relative; z-index: 1; outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Vector Field",
+      "kind": "input",
+      "description": "Three outlined numeric cells labelled X, Y, Z in their axis colours.",
+      "html": "<div class=\"ds-vec\"><label><span style=\"color:var(--axis-x, #d7263d)\">X</span><input value=\"0.00\"></label><label><span style=\"color:var(--axis-y, #2e9e4f)\">Y</span><input value=\"9.81\"></label><label><span style=\"color:var(--axis-z, #2b59d9)\">Z</span><input value=\"0.00\"></label></div>",
+      "css": ".ds-vec { display: grid; grid-template-columns: repeat(3, 90px); gap: var(--u); } .ds-vec label { display: flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 10px; border: 1px solid var(--rule-strong); border-radius: var(--radius); } .ds-vec label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-vec span { font: 700 var(--text-label) / 1 var(--mono); } .ds-vec input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--ink); font: 500 var(--text-small) / 1 var(--mono); font-variant-numeric: tabular-nums; text-align: right; caret-color: var(--accent); } .ds-vec input:focus { outline: none; }"
+    },
+    {
+      "name": "Category Navigation",
+      "kind": "nav",
+      "refersTo": "tab",
+      "description": "Header tabs: muted grotesk, ink when current with a 2px orange bar; closed by an ink rule.",
+      "html": "<nav class=\"ds-nav\"><b class=\"ds-mark\">Aether</b><a href=\"#\">Foundations</a><a href=\"#\">Particles</a><a href=\"#\" aria-current=\"true\">Forces</a><span class=\"ds-version\">aether-physics 0.2.0</span></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 24px; min-height: 60px; border-bottom: 1px solid var(--rule-strong); color: var(--ink); } .ds-mark { font: 800 22px / 1 var(--sans); letter-spacing: -0.03em; margin-right: 8px; } .ds-nav a { position: relative; display: inline-flex; align-items: center; min-height: 44px; color: var(--muted); font: 600 var(--text-body) / 1 var(--sans); text-decoration: none; transition: color 160ms var(--ease-out); } .ds-nav a:hover, .ds-nav a[aria-current] { color: var(--ink); } .ds-nav a[aria-current]::after { content: \"\"; position: absolute; left: 0; right: 0; bottom: 4px; height: 2px; background: var(--accent); } .ds-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-version { margin-left: auto; font: 400 var(--text-label) / 1 var(--mono); color: var(--muted); }"
+    },
+    {
+      "name": "Scene Callout",
+      "kind": "custom",
+      "refersTo": "callout",
+      "description": "Mono tag tracking a body in the 3D view; series colour on its left rule.",
+      "html": "<div class=\"ds-stage\"><span class=\"ds-callout\">stretch 28%</span><span class=\"ds-callout\" style=\"color:var(--series-2, #2747d6)\">v 12.40 m/s</span></div>",
+      "css": ".ds-stage { display: flex; gap: 16px; padding: 24px; background: var(--paper-sunk); border-radius: var(--radius); } .ds-callout { padding: 3px 6px; font: 500 var(--text-label) / 1.2 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); background: color-mix(in srgb, var(--paper) 86%, transparent); border-left: 1px solid currentColor; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Live Specimen",
+    "overview": "The page is a sheet of off-white paper printed in near-black ink, and the physics scene is the specimen pinned to it. One large running subject owns the viewport; everything else is a printed instrument around it: a header rule, a row of axis sliders with their ranges and live values, a row of instances, a transport strip. Each parameter is drawn as an axis, so dragging it reads as remapping the specimen rather than editing a form. The system deliberately rejects the three-pane game-engine editor (scene tree, viewport, property grid).\n\nThe material is print. Hairline ink rules divide the sheet; there are no shadows, no floating panels and no cards. Controls are square-cornered outlined boxes (2px at most), selection is shown by inverting a box to solid ink, and the only round forms are slider thumbs. A single signal orange marks the one thing to press, where you are, and what has focus. Dark mode is not a second theme: it is the same sheet printed in reverse, with the accent lifted slightly so it keeps its punch on black.\n\nType is a two-voice specimen. A heavy, tightly tracked grotesk sets words, from the 64px demo title down to 13px control names; a monospace sets every number, unit, range end, key hint, axis letter and version string, always with tabular figures, so values hold still while they change.",
+    "keyCharacteristics": [
+      "Paper ground and ink, one signal-orange accent, dark mode as the reversed print.",
+      "Grotesk for words, monospace for every number, unit, axis label and key hint.",
+      "Hairline rules instead of containers; no shadows, no cards, radius 2px at most.",
+      "Selected state is ink inversion; orange is reserved for action, location and focus.",
+      "Data colours (four series, three fixed axes) come from one runtime palette shared by scene, charts and readouts."
+    ],
+    "rules": [
+      {
+        "name": "The One Signal Rule",
+        "body": "Orange means press this, you are here, or focus is here. Selection is never orange; it is ink inversion.",
+        "section": "colors"
+      },
+      {
+        "name": "The Reverse Print Rule",
+        "body": "Dark mode inverts paper and ink and lifts the accent from #ff4b1f to #ff5a2e. It introduces no new hues and no new surfaces.",
+        "section": "colors"
+      },
+      {
+        "name": "The Data-Only Colour Rule",
+        "body": "Series and axis hues appear only as data: a line, a swatch, a body, a callout, an axis label. Never as decoration or a UI state.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono Numbers Rule",
+        "body": "Every number, unit, range end, key hint, axis letter and version string is JetBrains Mono with tabular figures. Words are never mono; numbers are never grotesk.",
+        "section": "typography"
+      },
+      {
+        "name": "The Heavy Title Rule",
+        "body": "Titles run at 750 with negative tracking (-0.03 to -0.035em); body copy stays at 400 and control text at 500-600, so weight alone separates a title from an instrument.",
+        "section": "typography"
+      },
+      {
+        "name": "The Specimen First Rule",
+        "body": "The stage takes the largest share of the first viewport; controls sit beneath it, never beside it.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Sheet Rule",
+        "body": "Nothing floats. If an element needs separation, it gets a rule or the sunk tone, never a shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Square Control, Round Thumb Rule",
+        "body": "Controls are boxes with at most 2px corners; only the thing you drag is round.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** keep Signal Orange to the primary action, the current-location bar, focus and the dragged thumb.",
+      "**Do** show selection by inverting to ink with paper text.",
+      "**Do** set every number, unit, range end and key hint in JetBrains Mono with tabular figures.",
+      "**Do** separate regions with a 1px ink rule or hairline, and use sunk paper as the only tonal step.",
+      "**Do** read data colours from `--series-N` and `--axis-x/y/z` so scene, chart and readout match, and pair axis colour with its X/Y/Z letter.",
+      "**Do** honour `prefers-reduced-motion` by dropping UI transitions; the simulation keeps running."
+    ],
+    "donts": [
+      "**Don't** add shadows, cards, floating panels or radii above 2px (slider thumbs excepted).",
+      "**Don't** introduce a second accent or use series and axis hues for UI state or decoration.",
+      "**Don't** build a three-pane editor layout (scene tree, viewport, property grid); controls live under the stage.",
+      "**Don't** design a separate dark palette; reverse the print."
+    ]
+  }
+}

@@ -17,30 +17,35 @@ These hold for every phase. Breaking them early is how hobby engines turn into u
 
 | Rule | Why |
 |---|---|
-| **The engine never imports `three` or touches the DOM.** `src/math`, `src/engine`, `src/forces`, `src/collision` and `src/constraints` are plain TypeScript. | You can unit-test the engine in Node, move it into a Web Worker later, and swap renderers. |
-| **Demos are the bridge.** Only `src/playground/demos/*` imports both the engine and Three.js. | Rendering concerns stay in one place. |
+| **The engine never imports `three` or touches the DOM.** `packages/aether` is plain TypeScript, type-checked without DOM types. | You can unit-test the engine in Node, move it into a Web Worker later, and swap renderers. |
+| **Demos are the bridge.** Only `apps/editor/src/demos/*` imports both the engine and Three.js. | Rendering concerns stay in one place. |
 | **Fixed timestep, always.** Physics steps in equal `dt` slices; the renderer interpolates. | Stable, reproducible simulation. Variable `dt` makes springs explode and stacks jitter. |
 | **TypeScript `erasableSyntaxOnly`.** No `enum`, `namespace`, parameter properties or `import x = require()`. Use `as const` objects and union types instead of enums. | The code stays "JavaScript with types", runs in Node's type stripping, and matches where TS is heading. |
 | **Lit without decorators.** Use `static properties` with `declare` fields and `customElements.define`. | Closer to the web-components platform; no decorator transform needed. |
 | **Write the test first for math.** Every vector, matrix and quaternion operation gets a Vitest test before it is used. | Physics bugs caused by a wrong cross product are miserable to find visually. |
 | **Draw what you compute.** Every new concept gets a debug visualization: contact points, normals, AABBs, velocity arrows. | Most physics bugs are obvious once you can see them. |
 | **Don't retrofit earlier phases.** Add new modules; leave old demos working. | The repo doubles as a record of how you learned it. |
-| **The engine is a publishable library.** `src/index.ts` is the package entry point. Public methods accept `Vec3Like` / `QuatLike` and return engine types. Source comments are terse API docs; explanations go in `docs/`. | Users can pass `THREE.Vector3` directly, and the code reads like a library, not a tutorial. |
+| **The engine is a publishable library.** `packages/aether/src/index.ts` is the package entry point. Public methods accept `Vec3Like` / `QuatLike` and return engine types. Source comments are terse API docs; explanations go in `docs/`. | Users can pass `THREE.Vector3` directly, and the code reads like a library, not a tutorial. |
 
 ### Folder layout
 
 ```
-src/
+packages/aether/src/
   index.ts      public package entry point (engine + math only)
   math/         Vec3, Mat3, Mat4, Quat, scalar helpers       (Phase 1)
   engine/       loop, Particle, RigidBody, World, islands     (Phases 0, 2, 4, 7)
   forces/       gravity, drag, springs, buoyancy, aero        (Phases 3, 4)
   collision/    shapes, AABB, broadphase, narrowphase, GJK    (Phase 5)
   constraints/  contacts, solver, joints                      (Phases 3, 6, 7)
-  demos/        one file per demo; the only engine+Three.js code
-  ui/           Lit components: app shell, viewport, sidebar, panels
+apps/editor/src/
+  core/         demo contract, parameter schema, routes, session
+  stage/        Three.js renderer and theme palette
+  demos/        one file per demo, by category; the only engine+Three.js code
+  ui/           Lit components that render each demo's description
 docs/           this plan, resources, notes
 ```
+
+Paths in the phase checklists below are where files lived when each phase was built; the engine now lives under `packages/aether/` and the demos under `apps/editor/src/demos/`.
 
 File names are lowercase kebab-case (`rigid-body.ts`), one main class per file, tests in a `tests/` folder inside each module (`engine/tests/rigid-body.test.ts`). Each folder has an `index.ts` barrel; other modules import from the barrel, not from individual files.
 

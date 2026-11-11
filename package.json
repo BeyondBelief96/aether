@@ -1,61 +1,27 @@
 {
-    "name": "aether-physics",
-    "version": "0.2.0",
-    "description": "A 3D rigid-body physics engine built from scratch in TypeScript, with a Lit + Three.js playground.",
+    "name": "aether",
+    "private": true,
     "license": "MIT",
-    "author": "Brandon Berisford",
-    "keywords": [
-        "physics",
-        "physics-engine",
-        "rigid-body",
-        "quaternion",
-        "typescript"
-    ],
-    "homepage": "https://beyondbelief96.github.io/aether/",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/BeyondBelief96/aether.git"
-    },
-    "bugs": "https://github.com/BeyondBelief96/aether/issues",
     "type": "module",
-    "sideEffects": [
-        "./src/playground/**"
+    "workspaces": [
+        "packages/*",
+        "apps/*"
     ],
-    "files": [
-        "dist"
-    ],
-    "types": "./dist/types/index.d.ts",
-    "exports": {
-        ".": {
-            "types": "./dist/types/index.d.ts",
-            "default": "./dist/index.js"
-        },
-        "./math": {
-            "types": "./dist/types/math/index.d.ts",
-            "default": "./dist/math.js"
-        }
-    },
     "scripts": {
-        "dev": "vite",
-        "build": "tsc && vite build",
-        "preview": "vite preview",
-        "build:lib": "vite build --config vite.lib.config.ts && tsc -p tsconfig.build.json",
-        "prepublishOnly": "npm run typecheck && npm run test:run && npm run build:lib",
-        "typecheck": "tsc",
+        "dev": "npm run dev -w @aether/editor",
+        "build": "npm run build -w @aether/editor",
+        "build:lib": "npm run build -w aether-physics",
+        "preview": "npm run preview -w @aether/editor",
+        "typecheck": "npm run typecheck --workspaces",
         "test": "vitest",
         "test:run": "vitest run",
-        "test:smoke": "node scripts/smoke-test.mjs",
+        "test:smoke": "npm run test:smoke -w @aether/editor --",
         "format": "prettier --write .",
         "format:check": "prettier --check ."
     },
     "devEngines": {},
     "devDependencies": {
-        "@types/three": "^0.186.0",
-        "fast-check": "^4.10.2",
-        "lit": "^3.3.3",
-        "playwright-core": "^1.58.0",
         "prettier": "3.9.10",
-        "three": "^0.186.1",
         "typescript": "^7.0.2",
         "vite": "^8.3.4",
         "vitest": "^5.0.3"

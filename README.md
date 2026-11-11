@@ -1,14 +1,14 @@
 # Aether
 
-A 3D rigid-body physics engine written from scratch in TypeScript, with a browser playground built on Lit and Three.js.
+A 3D rigid-body physics engine written from scratch in TypeScript, with a browser demo app built on Lit and Three.js.
 
 This is a learning project. The engine is built in phases, from vectors to stacking boxes to ragdolls, following Ian Millington's *Game Physics Engine Development*, Erin Catto's solver talks, and the resources collected at [brm.io/game-physics-for-beginners](https://brm.io/game-physics-for-beginners/).
 
 - **[docs/PLAN.md](docs/PLAN.md):** the phased build plan, with goals, checklists, tests and demos for each phase
 - **[docs/RESOURCES.md](docs/RESOURCES.md):** books, articles, talks and reference engines for each phase
-- **[docs/DEMOS.md](docs/DEMOS.md):** how to build a demo: templates, using the engine from Three.js, demo controls and UI style
+- **[docs/DEMOS.md](docs/DEMOS.md):** how to build a demo: the demo contract, parameters, readouts and charts, and using the engine from Three.js
 
-**[Try the playground](https://beyondbelief96.github.io/aether/)**. Each push to `main` deploys it to GitHub Pages.
+**[Try the demos](https://beyondbelief96.github.io/aether/)**. Each push to `main` deploys them to GitHub Pages.
 
 ## Using the package
 
@@ -37,41 +37,51 @@ world.particles.push(ball);
 for (let i = 0; i < 60; i++) world.step(1 / 60); // one simulated second
 ```
 
-It's early: so far the package has the math library, a fixed-timestep loop and particles. Rigid bodies and collisions arrive with the later phases below, and the API can change in any 0.x release. See the [engine API guide](src/engine/README.md) and the [math API guide](src/math/README.md).
+It's early: so far the package has the math library, a fixed-timestep loop and particles. Rigid bodies and collisions arrive with the later phases below, and the API can change in any 0.x release. See the [engine API guide](packages/aether/src/engine/README.md) and the [math API guide](packages/aether/src/math/README.md).
 
 ## Running it
 
+The repository is an npm workspaces monorepo: the engine package in `packages/aether` and the demo app in `apps/editor`.
+
 ```sh
 npm install
-npm run dev        # playground at http://localhost:5173
-npm test           # Vitest in watch mode
+npm run dev        # demo app at http://localhost:5173
+npm test           # Vitest in watch mode, every workspace
 npm run test:run   # Vitest once
-npm run test:smoke # load the built playground in Chrome (run npm run build first)
-npm run typecheck  # tsc, no emit
-npm run build      # typecheck, then production build of the playground to dist-playground/
-npm run build:lib  # build the npm package to dist/
+npm run typecheck  # tsc in every workspace
+npm run build      # typecheck, then production build of the demo app to apps/editor/dist/
+npm run test:smoke # load the built demo app in Chrome (run npm run build first)
+npm run build:lib  # build the npm package to packages/aether/dist/
 ```
 
-Keyboard: **Space** pauses, **.** steps once while paused, **R** resets the demo.
+In the demo app: **Space** pauses, **.** steps once while paused, **R** resets, **1–9** pick a demo's presets. Every parameter change is written to the URL, so a link reproduces what you see.
 
 ## Layout
 
 ```
-src/
-  math/         Vec3, Mat3, Mat4, Quat                     Phase 1
-  engine/       game loop, Particle, RigidBody, World      Phases 0, 2, 4, 7
-  forces/       force generators                           Phases 3, 4
-  collision/    shapes, broadphase, narrowphase            Phase 5
-  constraints/  contact solver, joints                     Phases 6, 7
-  playground/   the app in the browser, which uses the engine only through "aether-physics"
-    demos/      one file per demo (the only engine + Three.js code)
-    ui/         Lit components
+packages/
+  aether/             the npm package, aether-physics
+    src/
+      math/           Vec3, Mat3, Mat4, Quat
+      engine/         game loop, Particle, ParticleWorld
+      forces/         force generators
+      collision/      shapes, broadphase, narrowphase (planned)
+      constraints/    contact solver, joints (planned)
+apps/
+  editor/             the demo app, which uses the engine only through "aether-physics"
+    src/
+      core/           demo contract, parameter schema, URL routes, session (no UI)
+      stage/          Three.js renderer, camera and theme palette
+      demos/          one file per demo, by category (the only engine + Three.js code)
+      ui/             Lit components
+docs/                 build plan, demo guide, notes
 ```
 
 ## Rules
 
-- The engine (`math`, `engine`, `forces`, `collision`, `constraints`) never imports `three` or touches the DOM. Demos are the bridge.
+- The engine never imports `three` or touches the DOM; its tsconfig has no DOM types. Demos are the bridge.
 - Physics runs on a fixed timestep; rendering interpolates between steps.
+- A demo describes its parameters as data and never builds UI. See [docs/DEMOS.md](docs/DEMOS.md).
 - TypeScript runs with `erasableSyntaxOnly`: no `enum`, `namespace` or parameter properties.
 - Lit components use `static properties` with `declare` fields and `customElements.define`, never decorators.
 

@@ -1,6 +1,6 @@
 # Aether: monorepo plan
 
-How to split this repo into a publishable npm package, the playground, and a documentation site once the engine is ready to ship. Nothing here needs to happen yet; the [preparation](#do-now) section lists what keeps the eventual move mechanical.
+How the repo is split into the npm package, the demo app, and (next) the website. The package and demo app split is done: `packages/aether` and `apps/editor`. The website, `apps/site`, is still to come.
 
 ---
 
@@ -16,18 +16,18 @@ aether/
 │       ├── tsconfig.json
 │       └── src/            math/, engine/, collision/, forces/, constraints/, index.ts
 └── apps/
-    ├── playground/         current Lit + Three.js app: ui/, demos/, main.ts, index.html, vite.config.ts
-    └── docs/               documentation site
+    ├── editor/             the demo app (Lit + Three.js): core/, stage/, demos/, ui/
+    └── site/               planned: marketing page, docs and the hosted demos, on Railway
 ```
 
-The playground and docs site depend on `"aether-physics": "*"`, which the workspace links to the local package. They import it the same way users will, so they double as integration tests of the public API.
+The apps depend on `"aether-physics": "*"`, which the workspace links to the local package. The package's `exports` carry an `aether-source` condition pointing at its TypeScript source; the apps resolve with that condition (Vite `resolve.conditions`, tsconfig `customConditions`), so they need no build step for the engine and import it the same way users will.
 
 ## Tooling
 
 | Concern | Choice | Notes |
 |---|---|---|
 | Workspaces | npm workspaces | Already on npm. pnpm is stricter about undeclared dependencies but is optional. |
-| Docs site | Starlight (Astro) or VitePress | Both can import playground demos to embed live simulations in pages. |
+| Docs site | Starlight (Astro) or VitePress | Both can import demos from `apps/editor` to embed live simulations in pages. |
 | API reference | TypeDoc + `typedoc-plugin-markdown` | Generates pages from JSDoc into the docs site. |
 | Library build | `tsc` emitting `.js` + `.d.ts` to `dist/` | `tsdown` or Vite library mode if bundling is wanted. |
 

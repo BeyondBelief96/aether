@@ -1,6 +1,7 @@
 node_modules/
 dist/
-dist-playground/
+apps/*/dist/
+packages/*/dist/
 coverage/
 .DS_Store
 *.local

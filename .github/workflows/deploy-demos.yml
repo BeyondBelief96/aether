@@ -1,0 +1,46 @@
+name: Deploy demo app
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    pages: write
+    id-token: write
+
+# A newer deploy replaces one that's still waiting.
+concurrency:
+    group: pages
+    cancel-in-progress: true
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: npm
+            - run: npm ci
+            - run: npm run test:run
+            - run: npm run typecheck -w aether-physics
+            # Pages serves the site from /<repo>/, so the asset URLs need that prefix.
+            - run: npm run build -w @aether/editor -- --base=/${{ github.event.repository.name }}/
+            # Unit tests can't see a blank page, so load the built site before it goes live.
+            - run: npm run test:smoke -w @aether/editor -- /${{ github.event.repository.name }}/
+            - uses: actions/upload-pages-artifact@v3
+              with:
+                  path: apps/editor/dist
+
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - id: deployment
+              uses: actions/deploy-pages@v4
