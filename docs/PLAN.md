@@ -624,7 +624,8 @@ class ParticleContact {
 
 #### Step 6: Generators, the resolver and the ground
 
-- [ ] `src/particles/contacts/contact-resolver.ts`: `ParticleContactGenerator` and `ParticleContactResolver`
+- [ ] `src/particles/contacts/contact-generator.ts`: `ParticleContactGenerator`
+- [ ] `src/particles/contacts/contact-resolver.ts`: `ParticleContactResolver`
 - [ ] `src/particles/contacts/ground-contacts.ts`: `GroundContacts`
 - [ ] `ParticleWorld.step` becomes forces → integrate → generate → resolve, over a preallocated contact array
 
@@ -656,7 +657,8 @@ class ParticleWorld {
 
 #### Step 7: Cables, rods and the bridge
 
-- [ ] `src/particles/contacts/links.ts`: `ParticleCable`, `ParticleRod`
+- [ ] `src/particles/contacts/cable.ts`: `ParticleCable`
+- [ ] `src/particles/contacts/rod.ts`: `ParticleRod`
 - [ ] Demo: *Bridge*
 
 **Introduces:** hard constraints written as contact generators, so structures need no new solver.
