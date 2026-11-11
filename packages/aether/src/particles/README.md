@@ -1,13 +1,13 @@
-# engine
+# particles
 
-The simulation clock and the particle system. Pure TypeScript, with no `three` imports and no DOM access.
+The particle system: point masses, the world that steps them, and their force generators. Pure TypeScript, with no `three` imports and no DOM access.
 
 | Export | Purpose |
 |---|---|
-| `FixedStepLoop` | Fixed-timestep clock with an accumulator, pause, single-step and time scale |
 | `Particle` | Point mass integrated with semi-implicit Euler |
 | `ParticleWorld` | Collection of particles stepped together |
-| `FrameResult` | Supporting type |
+
+Force generators live in [`forces/`](forces/README.md). The clock is `FixedStepLoop` in [`core/`](../core/README.md).
 
 All quantities are SI: meters, seconds, kilograms, newtons.
 
@@ -103,6 +103,6 @@ Verlet and RK4 evaluate forces more than once per step, which a force accumulato
 
 ## Testing
 
-Tests live in `tests/`.
+Tests live in `tests/`, and the force generators' tests in `forces/tests/`.
 
 See [PLAN.md, Phase 2](../../../../docs/PLAN.md#phase-2-particles-and-integration).

@@ -1,5 +1,5 @@
-import type { Particle } from "../engine/index.js";
-import type { ParticleForceGenerator } from "./particle-force-generator.js";
+import type { Particle } from "../particle.js";
+import type { ParticleForceGenerator } from "./force-generator.js";
 
 /**
  * The force generators acting on each particle.

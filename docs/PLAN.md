@@ -50,10 +50,16 @@ These hold for every phase. Breaking them early is how hobby engines turn into u
 packages/aether/src/
   index.ts      public package entry point (engine + math only)
   math/         Vec3, Mat3, Mat4, Quat, scalar helpers       (Phase 1)
-  engine/       loop, Particle, RigidBody, World, islands     (Phases 0, 2, 4, 7)
-  forces/       gravity, drag, springs, buoyancy, attraction, aero   (Phases 3, 4)
+  core/         FixedStepLoop, anything both systems share   (Phase 0)
+  particles/    Particle, ParticleWorld                       (Phase 2)
+    forces/     gravity, drag, springs, buoyancy, attraction  (Phase 3)
+    contacts/   contacts, resolver, ground, cables and rods   (Phase 3)
+    verlet/     Verlet and XPBD                               (Phase 3)
+  bodies/       RigidBody, inertia                            (Phase 4)
+    forces/     gravity, springs, aero                        (Phase 4)
   collision/    shapes, AABB, broadphase, narrowphase, GJK    (Phase 5)
-  constraints/  contacts, solver, joints                      (Phases 3, 6, 7)
+  constraints/  rigid-body contact solver, joints             (Phases 6, 7)
+  world/        World, islands, sleeping                      (Phases 4, 7)
 packages/aether-lab/src/        Aether Lab's simulation core (planned); depends on aether-physics for math
   math/         Dual, HyperDual, small dense linear algebra   (S1, S2)
   ode/          OdeSystem, integrators, adaptive stepping, events (S1)
@@ -70,9 +76,11 @@ apps/editor/src/
 docs/           this plan, resources, notes
 ```
 
-Paths in the phase checklists below are where files lived when each phase was built; the engine now lives under `packages/aether/` and the demos under `apps/editor/src/demos/`.
+Paths in the checked items of the phase checklists below are where files lived when each phase was built; the engine now lives under `packages/aether/` and the demos under `apps/editor/src/demos/`.
 
-File names are lowercase kebab-case (`rigid-body.ts`), one main class per file, tests in a `tests/` folder inside each module (`engine/tests/rigid-body.test.ts`). Each folder has an `index.ts` barrel; other modules import from the barrel, not from individual files.
+The engine is split by system first and by stage second. Particles and rigid bodies are separate systems that share only `math/` and `core/`, so each particle stage lives under `particles/`. Rigid-body stages are top-level folders because they are large, and imports run one way: `math → core → particles` and `math → core → bodies → collision → constraints → world`. Inside a system folder, file names drop the system prefix the class name carries: `particles/forces/spring.ts` exports `ParticleSpring`.
+
+File names are lowercase kebab-case (`rigid-body.ts`), one main class per file, tests in a `tests/` folder inside each module (`bodies/tests/rigid-body.test.ts`). Each folder has an `index.ts` barrel; other modules import from the barrel, not from individual files.
 
 ### Millington chapter map
 
@@ -482,7 +490,7 @@ Forces come first because they only extend the integrator you already have. Cont
 | 8 | Verlet and XPBD | Compare position-based constraints with contacts |
 | 9 | Dragging and tearing | Finish rope and cloth |
 
-**Module dependencies.** `ParticleWorld` imports `forces` and `constraints` at runtime, and they need the `Particle` type from `engine`. Use `import type` there and the barrels never form a runtime cycle. Phases 4–7 follow the same rule with `RigidBody`.
+**Module dependencies.** `ParticleWorld` imports `particles/forces` and `particles/contacts` at runtime, and they need the `Particle` type from `particles/particle.ts`. Use `import type` there and the barrels never form a runtime cycle. Phases 4–7 follow the same rule with `RigidBody`.
 
 #### Step 1: Force generators and the registry
 
@@ -593,7 +601,7 @@ class ParticleAttraction implements ParticleForceGenerator {
 
 #### Step 5: A single contact
 
-- [ ] `src/constraints/particle-contact.ts`: `ParticleContact`, velocity resolution first, then position
+- [ ] `src/particles/contacts/contact.ts`: `ParticleContact`, velocity resolution first, then position
 - [ ] `Particle.lastAcceleration`: the acceleration `integrate` actually applied, before it clears the accumulator
 - [ ] The resting-contact correction inside `ParticleContact`
 
@@ -615,8 +623,8 @@ class ParticleContact {
 
 #### Step 6: Generators, the resolver and the ground
 
-- [ ] `src/constraints/particle-contact-resolver.ts`: `ParticleContactGenerator` and `ParticleContactResolver`
-- [ ] `src/constraints/ground-contacts.ts`: `GroundContacts`
+- [ ] `src/particles/contacts/contact-resolver.ts`: `ParticleContactGenerator` and `ParticleContactResolver`
+- [ ] `src/particles/contacts/ground-contacts.ts`: `GroundContacts`
 - [ ] `ParticleWorld.step` becomes forces → integrate → generate → resolve, over a preallocated contact array
 
 **Introduces:** the split between finding contacts and resolving them, and iteration, since resolving one contact disturbs its neighbors.
@@ -647,7 +655,7 @@ class ParticleWorld {
 
 #### Step 7: Cables, rods and the bridge
 
-- [ ] `src/constraints/particle-links.ts`: `ParticleCable`, `ParticleRod`
+- [ ] `src/particles/contacts/links.ts`: `ParticleCable`, `ParticleRod`
 - [ ] Demo: *Bridge*
 
 **Introduces:** hard constraints written as contact generators, so structures need no new solver.
@@ -666,7 +674,7 @@ class ParticleRod implements ParticleContactGenerator {
 
 #### Step 8: Verlet and XPBD
 
-- [ ] `src/engine/verlet.ts`: `VerletSystem`, a Jakobsen-style position-based system
+- [ ] `src/particles/verlet/verlet-system.ts`: `VerletSystem`, a Jakobsen-style position-based system
 - [ ] `compliance` on each stick, for XPBD
 
 **Introduces:** velocity held implicitly in two positions, constraints that move positions directly, and compliance as a stiffness that doesn't depend on iteration count. This is a separate system, not a mode of `Particle`.
@@ -710,7 +718,7 @@ class VerletSystem {
 
 #### Finishing up
 
-- [ ] Export from the `forces`, `constraints` and `engine` barrels and `src/index.ts`
+- [ ] Export from the `particles` barrels (`forces/`, `contacts/`, `verlet/`) and `src/index.ts`
 - [ ] Record the API decisions in each module's README, and replace the stub text
 
 ### Guidance
@@ -805,7 +813,7 @@ Build the body's state first, then the forces that act on it, then integration, 
 #### Step 1: Inertia tensors
 
 - [ ] `Mat3x3.setInertiaTensorCoeffs(ixx, iyy, izz, ixy?, ixz?, iyz?)`, deferred from Phase 1. Test first; callers pass positive products of inertia and the method negates the off-diagonals
-- [ ] `src/engine/inertia.ts`: sphere, box, cylinder and capsule
+- [ ] `src/bodies/inertia.ts`: sphere, box, cylinder and capsule
 
 **Introduces:** the inertia tensor as a plain matrix you can test before any body exists. Use half extents, to match Phase 5's `Box`.
 
@@ -820,7 +828,7 @@ function capsuleInertia(mass: number, radius: number, halfHeight: number, out: M
 
 #### Step 2: Body state and derived data
 
-- [ ] `src/engine/rigid-body.ts`: state, mass and inertia setters, `setStatic`, `calculateDerivedData`
+- [ ] `src/bodies/rigid-body.ts`: state, mass and inertia setters, `setStatic`, `calculateDerivedData`
 
 **Introduces:** the split between stored state and data derived from it each step, and the world-space inverse inertia `R · I⁻¹ · Rᵀ`.
 
@@ -900,9 +908,9 @@ class RigidBody {
 
 #### Step 5: Force generators and the world
 
-- [ ] `src/forces/body-force-generator.ts`: `BodyForceGenerator` and `BodyForceRegistry`
-- [ ] `src/forces/body-gravity.ts`: `BodyGravity`
-- [ ] `src/engine/world.ts`: `World`
+- [ ] `src/bodies/forces/force-generator.ts` and `force-registry.ts`: `BodyForceGenerator` and `BodyForceRegistry`
+- [ ] `src/bodies/forces/gravity.ts`: `BodyGravity`
+- [ ] `src/world/world.ts`: `World`
 
 **Introduces:** the rigid-body version of Phase 3's structure, and interpolating both position and orientation by `alpha` in a demo.
 
@@ -977,8 +985,8 @@ class World {
 
 #### Step 9: Body springs, aero surfaces and the flight sim
 
-- [ ] `src/forces/body-spring.ts`: `BodySpring`, between body-space points
-- [ ] `src/forces/aero.ts`: `Aero`, `AeroControl`
+- [ ] `src/bodies/forces/spring.ts`: `BodySpring`, between body-space points
+- [ ] `src/bodies/forces/aero.ts`: `Aero`, `AeroControl`
 - [ ] Demo: *Flight sim*
 
 **Introduces:** generators that apply force at a point, and forces computed in body space and converted back to world space.
@@ -1003,7 +1011,7 @@ class AeroControl extends Aero {
 
 #### Step 10: Mirtich's algorithm
 
-- [ ] Mass properties for a closed mesh in `src/engine/inertia.ts`
+- [ ] Mass properties for a closed mesh in `src/bodies/inertia.ts`
 
 **Introduces:** mass properties computed from geometry. The center of mass usually isn't the origin of the mesh, so the result has to return it. Phase 5's `ConvexHull` is the first real user, so this can wait until then.
 
@@ -1017,7 +1025,7 @@ function polyhedronMassProperties(vertices: Vec3Like[], faces: number[][], densi
 
 #### Finishing up
 
-- [ ] Export from the `engine`, `forces` and `math` barrels and `src/index.ts`
+- [ ] Export from the `bodies`, `world` and `math` barrels and `src/index.ts`
 - [ ] Record the API decisions in the module READMEs
 
 ### Guidance
@@ -1697,7 +1705,7 @@ Refresh derived data in every substep at first. That's the simple, correct versi
 
 #### Finishing up
 
-- [ ] Export from the `constraints` and `engine` barrels and `src/index.ts`
+- [ ] Export from the `constraints` and `world` barrels and `src/index.ts`
 - [ ] Record the API decisions in `src/constraints/README.md`
 
 ### Guidance
@@ -1943,7 +1951,7 @@ interface SoftJoint {
 
 #### Step 9: Islands
 
-- [ ] `src/engine/islands.ts`: union-find island builder, rebuilt every step
+- [ ] `src/world/islands.ts`: union-find island builder, rebuilt every step
 
 **Introduces:** bodies and constraints as a graph, with static bodies left out of it.
 
@@ -2026,7 +2034,7 @@ class World {
 
 #### Finishing up
 
-- [ ] Export from the `constraints` and `engine` barrels and `src/index.ts`
+- [ ] Export from the `constraints` and `world` barrels and `src/index.ts`
 - [ ] Record the API decisions in the module READMEs
 
 ### Guidance

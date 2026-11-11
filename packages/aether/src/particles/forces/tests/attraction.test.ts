@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Particle, ParticleWorld } from "../../engine";
-import { ParticleAttraction } from "../particle-attraction";
+import { Particle, ParticleWorld } from "../..";
+import { ParticleAttraction } from "../attraction";
 
 function at(x: number, y: number, z: number, mass = 1): Particle {
     const p = new Particle();

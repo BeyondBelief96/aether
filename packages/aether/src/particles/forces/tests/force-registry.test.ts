@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { Particle } from "../../engine";
-import type { ParticleForceGenerator } from "../particle-force-generator";
-import { ParticleForceRegistry } from "../particle-force-registry";
+import { Particle } from "../..";
+import type { ParticleForceGenerator } from "../force-generator";
+import { ParticleForceRegistry } from "../force-registry";
 
 /** A generator that records each call into `log`. */
 function recorder(name: string, log: string[]): ParticleForceGenerator {

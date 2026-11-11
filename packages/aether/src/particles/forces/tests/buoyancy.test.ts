@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Particle } from "../../engine";
-import { ParticleBuoyancy } from "../particle-buoyancy";
+import { Particle } from "../..";
+import { ParticleBuoyancy } from "../buoyancy";
 
 /** A particle at rest at height `y`. */
 function atHeight(y: number): Particle {

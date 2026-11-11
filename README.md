@@ -37,7 +37,7 @@ world.particles.push(ball);
 for (let i = 0; i < 60; i++) world.step(1 / 60); // one simulated second
 ```
 
-The package has the math library, a fixed-timestep loop, particles and force generators. The API can change in any 0.x release. See the [engine API guide](packages/aether/src/engine/README.md) and the [math API guide](packages/aether/src/math/README.md).
+The package has the math library, a fixed-timestep loop, particles and force generators. The API can change in any 0.x release. See the [particles API guide](packages/aether/src/particles/README.md) and the [math API guide](packages/aether/src/math/README.md).
 
 ## Running it
 

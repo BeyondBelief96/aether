@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { Particle } from "../../engine";
-import { Vec3 } from "../../math";
-import { ParticleAnchoredSpring } from "../particle-anchored-spring";
+import { Particle } from "../..";
+import { Vec3 } from "../../../math";
+import { ParticleAnchoredSpring } from "../anchored-spring";
 
 /** A particle at rest at `(x, y, z)`. */
 function at(x: number, y: number, z: number): Particle {

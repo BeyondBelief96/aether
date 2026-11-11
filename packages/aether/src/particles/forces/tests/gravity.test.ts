@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { Particle, ParticleWorld } from "../../engine";
-import { Vec3 } from "../../math";
-import { ParticleGravity } from "../particle-gravity";
+import { Particle, ParticleWorld } from "../..";
+import { Vec3 } from "../../../math";
+import { ParticleGravity } from "../gravity";
 
 const G = { x: 0, y: -9.81, z: 0 };
 

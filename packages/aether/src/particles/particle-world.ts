@@ -1,5 +1,5 @@
-import { ParticleForceRegistry } from "../forces/index.js";
-import { addGravityForce } from "../forces/particle-gravity.js";
+import { ParticleForceRegistry } from "./forces/index.js";
+import { addGravityForce } from "./forces/gravity.js";
 import { Vec3 } from "../math/index.js";
 import type { Particle } from "./particle.js";
 

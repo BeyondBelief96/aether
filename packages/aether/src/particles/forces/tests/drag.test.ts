@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Particle, ParticleWorld } from "../../engine";
-import { ParticleDrag } from "../particle-drag";
+import { Particle, ParticleWorld } from "../..";
+import { ParticleDrag } from "../drag";
 
 /** A particle at the origin moving at `velocity`. */
 function moving(x: number, y: number, z: number): Particle {

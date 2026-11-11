@@ -1,4 +1,4 @@
-import type { Particle } from "../engine/index.js";
+import type { Particle } from "../particle.js";
 
 /**
  * Adds a force to whichever particle it is given.
