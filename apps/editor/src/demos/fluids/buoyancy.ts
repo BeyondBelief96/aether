@@ -9,7 +9,7 @@ import {
 import { Particle, ParticleBuoyancy, ParticleWorld, Vec3, type Vec3Like } from "aether-physics";
 import { defineDemo, type SeriesIndex } from "../../core/demo";
 import { formatNumber } from "../../core/format";
-import { number } from "../../core/params";
+import { number, toggle } from "../../core/params";
 import { VectorArrow } from "../helpers/vector-arrow";
 
 /**
@@ -54,6 +54,7 @@ const params = {
         unit: " kg/m³",
     }),
     damping: number({ label: "Damping", min: 0.05, max: 1, step: 0.01, default: 0.4 }),
+    forces: toggle({ label: "Force arrows", default: false }),
 };
 
 export const buoyancyDemo = defineDemo({
@@ -171,6 +172,11 @@ export const buoyancyDemo = defineDemo({
                 for (const cube of cubes) {
                     _blended.copy(cube.previous).lerp(cube.particle.position, alpha);
                     const centre = cube.mesh.position.copy(_blended);
+                    if (!current.forces) {
+                        cube.buoyancyArrow.visible = false;
+                        cube.weightArrow.visible = false;
+                        continue;
+                    }
                     cube.buoyancyArrow.update(centre, buoyancyForce(cube), FORCE_ARROW_SCALE);
                     _weight.set(0, -cube.particle.mass * GRAVITY, 0);
                     cube.weightArrow.update(centre, _weight, FORCE_ARROW_SCALE);
