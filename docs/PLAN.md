@@ -2750,9 +2750,9 @@ More: [RESOURCES.md, Track V](./RESOURCES.md#track-v-visualization-library)
 
 ## Working rhythm for each phase
 
-1. Work through the phase's **Study** section in order. Take notes in `docs/notes/phase-N.md`.
+1. Work through the phase's **Study** section in order.
 2. Work through the **Build** steps in order. For each one, adjust the sketch to your API decisions, write the tests, implement it in plain TypeScript with terse TSDoc on public members, and move on once its **Working when** line holds.
 3. Write tests first for anything in the math library.
 4. When a step adds a demo, build it and its debug visualization, following the checklist in [DEMOS.md](./DEMOS.md#2-checklist-for-a-new-demo).
 5. Add the phase's UI feature.
-6. Update the notes file, tick the boxes here, and commit.
+6. Tick the boxes here and commit.
