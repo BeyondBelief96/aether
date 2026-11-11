@@ -7,7 +7,7 @@ The particle system: point masses, the world that steps them, and their force ge
 | `Particle` | Point mass integrated with semi-implicit Euler |
 | `ParticleWorld` | Collection of particles stepped together |
 
-Force generators live in [`forces/`](forces/README.md). The clock is `FixedStepLoop` in [`core/`](../core/README.md).
+Force generators live in [`forces/`](forces/README.md). The clock is `FixedStepLoop` in [`loop/`](../loop/README.md).
 
 All quantities are SI: meters, seconds, kilograms, newtons.
 

@@ -1,5 +1,5 @@
-export { FixedStepLoop } from "./core/index.js";
-export type { FrameResult } from "./core/index.js";
+export { FixedStepLoop } from "./loop/index.js";
+export type { FrameResult } from "./loop/index.js";
 
 export {
     Particle,

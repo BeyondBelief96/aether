@@ -1,6 +1,6 @@
-# core
+# loop
 
-The simulation clock, shared by every system in the engine. Pure TypeScript, with no `three` imports and no DOM access.
+The fixed-timestep clock that drives the simulation. Pure TypeScript, with no `three` imports and no DOM access.
 
 | Export | Purpose |
 |---|---|

@@ -50,16 +50,17 @@ These hold for every phase. Breaking them early is how hobby engines turn into u
 packages/aether/src/
   index.ts      public package entry point (engine + math only)
   math/         Vec3, Mat3, Mat4, Quat, scalar helpers       (Phase 1)
-  core/         FixedStepLoop, anything both systems share   (Phase 0)
+  loop/         FixedStepLoop                                 (Phase 0)
+  collision/    shapes, AABB, broadphase, narrowphase, GJK, EPA; no bodies   (Phase 5)
   particles/    Particle, ParticleWorld                       (Phase 2)
     forces/     gravity, drag, springs, buoyancy, attraction  (Phase 3)
     contacts/   contacts, resolver, ground, cables and rods   (Phase 3)
     verlet/     Verlet and XPBD                               (Phase 3)
-  bodies/       RigidBody, inertia                            (Phase 4)
+  bodies/       RigidBody, inertia, World, islands            (Phases 4, 7)
     forces/     gravity, springs, aero                        (Phase 4)
-  collision/    shapes, AABB, broadphase, narrowphase, GJK    (Phase 5)
-  constraints/  rigid-body contact solver, joints             (Phases 6, 7)
-  world/        World, islands, sleeping                      (Phases 4, 7)
+    contacts/   Collider, ContactManifold, the collision pipeline   (Phase 5)
+    solver/     solver interface and settings, contact constraints, v1–v3   (Phases 6, 7)
+    joints/     distance, ball-socket, hinge, fixed           (Phase 7)
 packages/aether-lab/src/        Aether Lab's simulation core (planned); depends on aether-physics for math
   math/         Dual, HyperDual, small dense linear algebra   (S1, S2)
   ode/          OdeSystem, integrators, adaptive stepping, events (S1)
@@ -73,12 +74,12 @@ apps/editor/src/
   stage/        Three.js renderer and theme palette
   demos/        one file per demo, by category; the only engine+Three.js code
   ui/           Lit components that render each demo's description
-docs/           this plan, resources, notes
+docs/           this plan, resources, demo guide
 ```
 
 Paths in the checked items of the phase checklists below are where files lived when each phase was built; the engine now lives under `packages/aether/` and the demos under `apps/editor/src/demos/`.
 
-The engine is split by system first and by stage second. Particles and rigid bodies are separate systems that share only `math/` and `core/`, so each particle stage lives under `particles/`. Rigid-body stages are top-level folders because they are large, and imports run one way: `math → core → particles` and `math → core → bodies → collision → constraints → world`. Inside a system folder, file names drop the system prefix the class name carries: `particles/forces/spring.ts` exports `ParticleSpring`.
+The engine is split by system first and by stage second. Particles and rigid bodies are separate systems with the same shape: a body type and a world, with `forces/` and `contacts/` underneath. They share `math/` and the body-agnostic geometry in `collision/`, which works on shapes and transforms and never imports a body. `loop/` is the clock the user drives; the engine never calls it. Imports run one way: `math → collision → particles` and `math → collision → bodies`, and inside `bodies/`, `forces/` and `contacts/` → `solver/` → `joints/` → `World`. Inside a system folder, file names drop the system prefix the class name carries: `particles/forces/spring.ts` exports `ParticleSpring`.
 
 File names are lowercase kebab-case (`rigid-body.ts`), one main class per file, tests in a `tests/` folder inside each module (`bodies/tests/rigid-body.test.ts`). Each folder has an `index.ts` barrel; other modules import from the barrel, not from individual files.
 
@@ -910,7 +911,7 @@ class RigidBody {
 
 - [ ] `src/bodies/forces/force-generator.ts` and `force-registry.ts`: `BodyForceGenerator` and `BodyForceRegistry`
 - [ ] `src/bodies/forces/gravity.ts`: `BodyGravity`
-- [ ] `src/world/world.ts`: `World`
+- [ ] `src/bodies/world.ts`: `World`
 
 **Introduces:** the rigid-body version of Phase 3's structure, and interpolating both position and orientation by `alpha` in a demo.
 
@@ -1025,7 +1026,7 @@ function polyhedronMassProperties(vertices: Vec3Like[], faces: number[][], densi
 
 #### Finishing up
 
-- [ ] Export from the `bodies`, `world` and `math` barrels and `src/index.ts`
+- [ ] Export from the `bodies` and `math` barrels and `src/index.ts`
 - [ ] Record the API decisions in the module READMEs
 
 ### Guidance
@@ -1157,9 +1158,9 @@ A plane is infinite, so give it a huge `AABB` and let the broadphase treat it as
 
 #### Step 2: Colliders
 
-- [ ] `src/collision/collider.ts`: `Collider` (shape + body + local offset + material)
+- [ ] `src/bodies/contacts/collider.ts`: `Collider` (shape + body + local offset + material)
 
-**Introduces:** the separation between a body, which has mass and motion, and a shape, which has geometry.
+**Introduces:** the separation between a body, which has mass and motion, and a shape, which has geometry. `collision/` never sees a `Collider`: it takes shapes and world transforms, and `Collider` is how a rigid body hands it those.
 
 ```ts
 class Collider {
@@ -1178,7 +1179,8 @@ class Collider {
 
 #### Step 3: Contact data
 
-- [ ] `src/collision/contact.ts`: `Contact` and `ContactManifold`
+- [ ] `src/collision/manifold.ts`: `Contact` and `Manifold`
+- [ ] `src/bodies/contacts/contact-manifold.ts`: `ContactManifold`, a `Manifold` that knows its two colliders
 - [ ] The normal convention and the sign of `penetration`, written in the module README
 
 **Introduces:** the shape of every result that follows. The normal points from B toward A. `penetration` is negative when there's a gap, which is what speculative contacts rely on later.
@@ -1191,11 +1193,14 @@ class Contact {
   id = 0                           // feature key, stable across frames (used in Phase 6)
 }
 
-class ContactManifold {
-  a: Collider; b: Collider
+class Manifold {                   // collision/: geometry only
   readonly normal = new Vec3()
   readonly points: Contact[]       // preallocated, up to 4
   count = 0
+}
+
+class ContactManifold extends Manifold {   // bodies/contacts/
+  a: Collider; b: Collider
 }
 ```
 
@@ -1206,12 +1211,12 @@ class ContactManifold {
 - [ ] `src/collision/narrowphase/index.ts`: the dispatch table
 - [ ] `sphere-sphere.ts`, `sphere-plane.ts`
 
-**Introduces:** one function per pair, a lookup by shape kinds, and one place that handles reversed arguments. Each function takes a `margin`, so contacts within that gap are reported with negative `penetration`.
+**Introduces:** one function per pair, a lookup by shape kinds, and one place that handles reversed arguments. Each function takes a `margin`, so contacts within that gap are reported with negative `penetration`. Pairs take shapes and their world transforms, so they can be tested without bodies.
 
 ```ts
-type NarrowphaseFn = (a: Collider, b: Collider, margin: number, out: ContactManifold) => boolean
+type NarrowphaseFn = (a: Shape, xfA: Mat3x4, b: Shape, xfB: Mat3x4, margin: number, out: Manifold) => boolean
 
-function collide(a: Collider, b: Collider, margin: number, out: ContactManifold): boolean
+function collide(a: Shape, xfA: Mat3x4, b: Shape, xfB: Mat3x4, margin: number, out: Manifold): boolean
 // Looks up 'sphere:plane'. For 'plane:sphere' it swaps the arguments and negates the normal.
 ```
 
@@ -1266,17 +1271,17 @@ class DebugDraw {
 #### Step 9: The broadphase and the pipeline
 
 - [ ] `src/collision/broadphase/`: `Broadphase` interface, `BruteForceBroadphase`, `SweepAndPrune`
-- [ ] `src/collision/collision-pipeline.ts`: update colliders → find pairs → run the narrowphase
+- [ ] `src/bodies/contacts/collision-pipeline.ts`: update colliders → find pairs → run the narrowphase
 - [ ] Demo: *Broadphase heatmap*
 
-**Introduces:** the funnel of broadphase then narrowphase, with brute force as the reference to test other broadphases against. `CollisionPipeline` is what `World` calls in Phase 6.
+**Introduces:** the funnel of broadphase then narrowphase, with brute force as the reference to test other broadphases against. The broadphase stores boxes under a number the caller chooses, so it knows nothing about colliders. `CollisionPipeline` maps those numbers back to colliders, and is what `World` calls in Phase 6.
 
 ```ts
 interface Broadphase {
-  add(collider: Collider): void
-  remove(collider: Collider): void
-  update(): void
-  pairs(out: [Collider, Collider][]): number
+  add(aabb: AABB, userData: number): number    // returns a proxy
+  remove(proxy: number): void
+  move(proxy: number, aabb: AABB): void
+  pairs(out: number[]): number     // userData pairs, flattened: a0, b0, a1, b1, ...
 }
 
 class CollisionPipeline {
@@ -1307,7 +1312,7 @@ interface GjkResult {
   simplexCount: number
 }
 
-function gjk(a: Collider, b: Collider, out: GjkResult): boolean
+function gjk(a: Shape, xfA: Mat3x4, b: Shape, xfB: Mat3x4, out: GjkResult): boolean
 ```
 
 **Working when:** GJK agrees with SAT on overlap for 10,000 random box pairs, and distance matches a hand-computed case.
@@ -1325,7 +1330,7 @@ interface EpaResult {
   readonly pointA: Vec3; readonly pointB: Vec3
 }
 
-function epa(a: Collider, b: Collider, simplex: GjkResult, out: EpaResult): boolean
+function epa(a: Shape, xfA: Mat3x4, b: Shape, xfB: Mat3x4, simplex: GjkResult, out: EpaResult): boolean
 ```
 
 **Working when:** EPA's depth agrees with SAT's on random overlapping boxes within tolerance, and the inspector shows its normal matching SAT's axis.
@@ -1376,8 +1381,8 @@ class DynamicTreeBroadphase implements Broadphase { /* wraps DynamicTree */ }
 
 #### Finishing up
 
-- [ ] Export from the `collision` barrel and `src/index.ts`
-- [ ] Record the API decisions in `src/collision/README.md`
+- [ ] Export from the `collision` and `bodies` barrels and `src/index.ts`
+- [ ] Record the API decisions in `src/collision/README.md`, and the collider and pipeline decisions in `src/bodies/contacts/README.md`
 
 ### Guidance
 
@@ -1482,8 +1487,8 @@ There are three solvers here, and each one reuses the work of the last. A `Solve
 
 #### Step 1: The solver seam
 
-- [ ] `src/constraints/solver.ts`: the `Solver` interface
-- [ ] `src/constraints/solver-settings.ts`: iterations, Baumgarte factor, slop, restitution threshold, warm starting on/off
+- [ ] `src/bodies/solver/solver.ts`: the `Solver` interface
+- [ ] `src/bodies/solver/solver-settings.ts`: iterations, Baumgarte factor, slop, restitution threshold, warm starting on/off
 - [ ] `World` owns a `CollisionPipeline` and hands the step to its solver
 - [ ] Solver settings exposed in the UI
 
@@ -1526,8 +1531,8 @@ class World {
 
 #### Step 2: v1, velocity
 
-- [ ] `src/constraints/contact-basis.ts`: build a stable basis from a normal
-- [ ] `src/constraints/contact-resolver.ts`: v1, Millington-style resolver (worst contact first), velocity pass
+- [ ] `src/bodies/solver/contact-basis.ts`: build a stable basis from a normal
+- [ ] `src/bodies/solver/contact-resolver.ts`: v1, Millington-style resolver (worst contact first), velocity pass
 
 **Introduces:** contact coordinates, and velocity change per unit impulse: the single-contact formula in 3D with the angular terms. Derive it in your notes first.
 
@@ -1563,7 +1568,7 @@ interface ResolverContact {        // per point, private to v1
 
 #### Step 4: v2, normal impulses
 
-- [ ] `src/constraints/contact-solver.ts`: v2, sequential impulses, `prepare` and `solveVelocities` for the normal only
+- [ ] `src/bodies/solver/contact-solver.ts`: v2, sequential impulses, `prepare` and `solveVelocities` for the normal only
 
 **Introduces:** the effective mass and clamping the *accumulated* impulse rather than each increment.
 
@@ -1627,7 +1632,7 @@ class ManifoldCache {
 
 #### Step 8: `makeSoft`
 
-- [ ] `src/constraints/softness.ts`: `makeSoft(hertz, dampingRatio, h)` → `{ biasRate, massScale, impulseScale }`, shared with Phase 7's joints
+- [ ] `src/bodies/solver/softness.ts`: `makeSoft(hertz, dampingRatio, h)` → `{ biasRate, massScale, impulseScale }`, shared with Phase 7's joints
 
 **Introduces:** a constraint described as a damped spring, in hertz and damping ratio.
 
@@ -1642,7 +1647,7 @@ function makeSoft(hertz: number, dampingRatio: number, h: number, out?: Softness
 
 #### Step 9: v3, the substep loop
 
-- [ ] `src/constraints/soft-step-solver.ts`: v3, Box3D's **Soft Step**: substeps, soft contacts, relax and restitution passes, speculative contacts. This step is the loop, using v2's rigid bias
+- [ ] `src/bodies/solver/soft-step-solver.ts`: v3, Box3D's **Soft Step**: substeps, soft contacts, relax and restitution passes, speculative contacts. This step is the loop, using v2's rigid bias
 - [ ] `deltaPosition` and `deltaRotation` on `RigidBody`, reset at the start of each step
 - [ ] Anchors stored once per step, with separation estimated in each substep
 
@@ -1705,8 +1710,8 @@ Refresh derived data in every substep at first. That's the simple, correct versi
 
 #### Finishing up
 
-- [ ] Export from the `constraints` and `world` barrels and `src/index.ts`
-- [ ] Record the API decisions in `src/constraints/README.md`
+- [ ] Export from the `bodies` barrels and `src/index.ts`
+- [ ] Record the API decisions in `src/bodies/solver/README.md`
 
 ### Guidance
 
@@ -1826,8 +1831,8 @@ Start by moving contacts behind a general `Constraint` interface. Then add joint
 
 #### Step 1: The constraint interface
 
-- [ ] `src/constraints/constraint.ts`: a `Constraint` interface that contacts also implement
-- [ ] `src/constraints/contact-constraint.ts`: one per manifold
+- [ ] `src/bodies/solver/constraint.ts`: a `Constraint` interface that contacts also implement
+- [ ] `src/bodies/solver/contact-constraint.ts`: one per manifold
 - [ ] v2 and v3 iterate over `Constraint`s
 - [ ] `World.addJoint` and `World.removeJoint`
 
@@ -1848,7 +1853,7 @@ interface Constraint {
 
 #### Step 2: Distance joint
 
-- [ ] `src/constraints/joints/distance-joint.ts`: `DistanceJoint`
+- [ ] `src/bodies/joints/distance-joint.ts`: `DistanceJoint`
 - [ ] Demo: *Newton's cradle*
 
 **Introduces:** the recipe from `C` to `J` to `K` to `λ`, on its simplest case: one row, with a scalar effective mass.
@@ -1867,7 +1872,7 @@ Joints turn world anchors into body-local ones at construction, and every later 
 #### Step 3: Ball-socket joint
 
 - [ ] `Mat3x3.setSkewSymmetric(v)` (`M · w == v × w`) and `Mat3x3.add(m)`, deferred from Phase 1. The ball-socket `K` matrix needs both. Test first
-- [ ] `src/constraints/joints/ball-socket-joint.ts`: `BallSocketJoint`
+- [ ] `src/bodies/joints/ball-socket-joint.ts`: `BallSocketJoint`
 - [ ] Demo: *Chain bridge*
 
 **Introduces:** a three-row block solved together, with a matrix for the effective mass.
@@ -1882,7 +1887,7 @@ class BallSocketJoint implements Constraint {
 
 #### Step 4: Hinge axis
 
-- [ ] `src/constraints/joints/hinge-joint.ts`: `HingeJoint`, ball-socket rows plus two angular rows
+- [ ] `src/bodies/joints/hinge-joint.ts`: `HingeJoint`, ball-socket rows plus two angular rows
 
 **Introduces:** angular constraint rows, and using two perpendicular vectors to hold an axis.
 
@@ -1914,7 +1919,7 @@ class HingeJoint implements Constraint {
 
 #### Step 6: Fixed joint
 
-- [ ] `src/constraints/joints/fixed-joint.ts`: `FixedJoint`
+- [ ] `src/bodies/joints/fixed-joint.ts`: `FixedJoint`
 
 **Introduces:** a rotation error taken from the relative orientation, using the rest orientation captured at construction.
 
@@ -1951,7 +1956,7 @@ interface SoftJoint {
 
 #### Step 9: Islands
 
-- [ ] `src/world/islands.ts`: union-find island builder, rebuilt every step
+- [ ] `src/bodies/islands.ts`: union-find island builder, rebuilt every step
 
 **Introduces:** bodies and constraints as a graph, with static bodies left out of it.
 
@@ -2034,7 +2039,7 @@ class World {
 
 #### Finishing up
 
-- [ ] Export from the `constraints` and `world` barrels and `src/index.ts`
+- [ ] Export from the `bodies` barrels and `src/index.ts`
 - [ ] Record the API decisions in the module READMEs
 
 ### Guidance
