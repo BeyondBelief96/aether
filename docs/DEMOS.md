@@ -4,6 +4,8 @@ How to add a demo to the demo app in `apps/editor`: the demo contract, parameter
 
 A demo is one file. It describes its parameters as data and returns a running instance; the app draws every control, the transport, the readouts, the charts and the code view from that description. A demo never builds UI.
 
+**Where this is heading.** V1 in [PLAN.md](./PLAN.md#track-v-visualization-library) moves the stage, drawing helpers and parameter schema into `packages/aether-viz`, shared with Aether Lab. The engine's demos then import them from there; the demo contract below doesn't change. Lab examples are a separate thing, built on `createLab` (V2), and get their own guide.
+
 Contents:
 
 1. [How a demo fits in](#1-how-a-demo-fits-in)
@@ -78,7 +80,7 @@ When a demo could fit two categories, put it where its most interesting thing ha
 5. Add readouts for the numbers that prove the physics is right, and callouts for the few that belong next to a body.
 6. If the simulation is non-trivial, move it into a Three.js-free module beside the demo and test it (see `soft-bodies/cloth-sim.ts`).
 7. Add the demo's id to `DEMOS` in `apps/editor/scripts/smoke-test.mjs`. `demos/tests/stability.test.ts` picks up every registered demo on its own and fails if any preset goes non-finite at any physics rate; if yours does, substep with `substepsFor`.
-8. Tick it off in `docs/PLAN.md`, and add it to its phase in `apps/site/src/data/roadmap.ts` so the landing page links to it.
+8. Tick it off in `docs/PLAN.md`.
 9. Check it by hand:
    - Every preset, then Reset (R): it restarts cleanly with the current values.
    - Pause (Space) and step (`.`).

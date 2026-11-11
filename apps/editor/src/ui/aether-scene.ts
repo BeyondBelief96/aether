@@ -12,8 +12,6 @@ import { disposeObject } from "../demos/helpers/three";
 export interface SceneTag {
     readonly at: Readonly<Vec3Like>;
     readonly text: string;
-    /** Draws the tag in the muted, dashed style used for things that don't exist yet. */
-    readonly ghost?: boolean;
 }
 
 const _screen = { x: 0, y: 0 };
@@ -95,10 +93,6 @@ export class AetherScene extends LitElement {
             border-left: 1px solid var(--ink);
             pointer-events: none;
             will-change: transform;
-        }
-        .tag.ghost {
-            color: var(--ink-2);
-            border-left: 1px dashed var(--muted);
         }
     `;
 
@@ -259,9 +253,7 @@ export class AetherScene extends LitElement {
     protected override render() {
         return html`<canvas role="img" aria-label=${this.label}></canvas> ${this.tags.map(
                 (t) =>
-                    html`<span class="tag ${t.ghost ? "ghost" : ""}" aria-hidden="true"
-                        >${t.text}</span
-                    >`,
+                    html`<span class="tag" aria-hidden="true">${t.text}</span>`,
             )}`;
     }
 }

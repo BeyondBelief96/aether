@@ -14,7 +14,7 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { Content } = await render(entry);
 const docs = (await getCollection("docs")).sort((a, b) => a.data.order - b.data.order);
-const groups = ["Start", "Engine", "Reference"] as const;
+const groups = ["Start", "Engine"] as const;
 const url = (id: string) => href(id === "index" ? "/docs/" : `/docs/${id}/`);
 ---
 
@@ -46,8 +46,7 @@ const url = (id: string) => href(id === "index" ? "/docs/" : `/docs/${id}/`);
             {
                 entry.data.stub && (
                     <p class="notice">
-                        This page is an outline. It fills in once this part of the API settles; until
-                        then, the demos' source is the best reference.
+                        This page is a short outline. The demos' source shows the full API in use.
                     </p>
                 )
             }

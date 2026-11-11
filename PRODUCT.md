@@ -26,7 +26,9 @@ The demo app succeeds when a visitor:
 - can change the parameters that matter and see the scene respond immediately;
 - can find the demo's code and see that it is ordinary use of the public API.
 
-The website (`apps/site`, Astro) carries the landing page at `/`, the demo app at `/demos`, and documentation at `/docs`. It will be hosted on Railway; until then it deploys to GitHub Pages. The landing page presents Aether as the rigid-body engine it is becoming, shows what runs today, and shows the roadmap, with every unbuilt capability labelled as unbuilt.
+The website (`apps/site`, Astro) carries the landing page at `/`, the demo app at `/demos`, and documentation at `/docs`. It will be hosted on Railway; until then it deploys to GitHub Pages. The landing page presents Aether as what it is today: a 3D physics engine for TypeScript, shown running. Public surfaces (website, demo app, docs, npm description) show only what exists. They carry no roadmap, no outlines of future work and no "coming next"; features appear when they ship. The roadmap lives in `docs/PLAN.md` only; the README has none either.
+
+**Aether Lab** is a second, planned product from the same repository: a simulation and visualization library for the systems in a physics course (pendulums, orbits, fields, waves), accurate to a stated tolerance, for students and teachers. It shares the engine's math library and the Three.js layer (`aether-viz`), and nothing else. It is built after the engine's Phase 7 (`docs/PLAN.md`, Tracks S and V). Public surfaces don't mention it until it ships; it then gets its own front page at `/lab`. Engine copy stays engine-focused and does not describe Lab capabilities.
 
 ## Positioning
 
@@ -44,7 +46,7 @@ The website (`apps/site`, Astro) carries the landing page at `/`, the demo app a
 ## Capabilities and Constraints
 
 - Current package scope (0.x): the math library (Vec3, Mat3, Mat4, Quaternion), a fixed-timestep loop, particles, a particle world, and force generators (gravity, drag, springs, anchored springs, bungees, buoyancy). Rigid bodies, collisions, contacts and joints come later. The API can change in any 0.x release.
-- Demos are grouped by what they simulate: Particles, Soft bodies, Fluids and Rigid bodies today; Collisions and Joints as those phases ship. A category appears once it has a demo. Planned demos are not shown in the demo app. The build phase a demo came from is not shown in the demo app; the landing page's roadmap may name phases.
+- Demos are grouped by what they simulate: Particles, Soft bodies, Fluids and Rigid bodies. A category is added when its first demo ships. Planned demos and build phases are not shown anywhere public.
 - Demos exist to show the engine off. A demo that only teaches a concept and does not exercise the engine is cut (the fixed-timestep and integrator demos were; interpolation is a setting instead).
 - Documentation pages are stubs until the API settles.
 - Demos are authored in code. A user-facing scene builder is not in scope.
@@ -70,7 +72,7 @@ The website (`apps/site`, Astro) carries the landing page at `/`, the demo app a
 
 1. **Show, then let them touch.** A demo should be striking on load with no input, and every parameter that matters is one control away.
 2. **The engine is the product.** Demos use only the public API; nothing depends on demo-app-only tricks.
-3. **Honest scope.** Present what the engine does today. Capabilities that are not built yet are not implied.
+3. **Only what exists.** Present what the engine does today. Unbuilt capabilities are not shown, listed, outlined or implied; they appear when they ship.
 4. **Numbers on demand.** Readouts and charts stay available for people who want proof, but they never crowd the scene.
 5. **Desktop-first, phone-safe.**
 

@@ -1,6 +1,6 @@
 # Aether: resources
 
-Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items from [brm.io, "Game physics from scratch"](https://brm.io/game-physics-for-beginners/) by Liam Brummitt (author of matter.js). Many of that page's links are from around 2012; the links below were checked in October 2026 and updated where the originals moved or died.
+Resources are grouped by the phases and tracks in [PLAN.md](./PLAN.md): Phases 0–8 (Track G) build the engine; Tracks S and V build Aether Lab, the simulation and visualization library. ★ marks items from [brm.io, "Game physics from scratch"](https://brm.io/game-physics-for-beginners/) by Liam Brummitt (author of matter.js). Many of that page's links are from around 2012; the links below were checked in October 2026 and updated where the originals moved or died.
 
 **Key:** 📖 book · 📄 article/paper · 🎤 talk/slides · 🎥 video · 💻 source code · 🌐 web-platform docs
 
@@ -173,6 +173,44 @@ Resources are grouped by the phases in [PLAN.md](./PLAN.md). ★ marks items fro
 | 📄 | Harry Smith, [*Aircraft Flight Mechanics*](https://aircraftflightmechanics.com/) · [Airfoil Tools](http://airfoiltools.com/): drag models, stability derivatives, real airfoil data |
 | 📄 | ★ Mark Bayazit, convex polygon decomposition (linked from brm.io; the original page is gone, so search for "Bayazit decomposition"): for splitting concave shapes into convex pieces |
 | 🌐 | MDN: [Using Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) · [SharedArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) (requires cross-origin isolation headers) |
+
+---
+
+## Track S: simulation core
+
+| | Resource | Use it for |
+|---|---|---|
+| 📖 | Press, Teukolsky, Vetterling & Flannery, *Numerical Recipes* (3rd ed.) | S1: Runge–Kutta, adaptive step-size control, dense output, stiff systems (ch. 17). S4: relaxation and multigrid (ch. 20). |
+| 📖 | Hairer, Nørsett & Wanner, *Solving Ordinary Differential Equations I* | S1: the reference for embedded pairs, step-size control and dense output. |
+| 📖 | Hairer, Lubich & Wanner, *Geometric Numerical Integration* | S1–S2: symplectic methods, why energy error stays bounded, Kepler and rigid-body test problems. |
+| 📄 | H. Yoshida, "Construction of higher order symplectic integrators", *Phys. Lett. A* 150 (1990) | S1: the fourth-order composition of Verlet. |
+| 📖 | J. R. Taylor, *Classical Mechanics* | S2: the problem source. Lagrange's equations (ch. 7), central forces (ch. 8), rigid bodies (ch. 10), coupled oscillators (ch. 11), chaos (ch. 12), Hamiltonian mechanics (ch. 13). |
+| 📄 | Baydin, Pearlmutter, Radul & Siskind, "Automatic Differentiation in Machine Learning: a Survey", *JMLR* 18 (2018) | S2: forward-mode AD and dual numbers. |
+| 📄 | J. A. Fike & J. J. Alonso, "The Development of Hyper-Dual Numbers for Exact Second-Derivative Calculations" (AIAA 2011) | S2: exact second derivatives for the mass matrix. |
+| 📖 | D. J. Griffiths, *Introduction to Electrodynamics* | S3–S5: the problem source. Electrostatics (ch. 2), potentials and images (ch. 3), magnetostatics (ch. 5), waves (ch. 9), retarded fields (ch. 10), radiation (ch. 11). |
+| 📖 | E. M. Purcell & D. J. Morin, *Electricity and Magnetism* (3rd ed.) | S5: the kinked-field-line picture of radiation from an accelerated charge. |
+| 📄 | H. Qin et al., "Why is Boris algorithm so good?", *Phys. Plasmas* 20 (2013) | S3: the Boris pusher's conservation properties. |
+| 📖 | C. K. Birdsall & A. B. Langdon, *Plasma Physics via Computer Simulation* | S3: the Boris mover in its original context. |
+| 📄 | B. Jobard & W. Lefer, "Creating Evenly-Spaced Streamlines of Arbitrary Density" (1997) | S3: seeding field lines in a plane. |
+| 📄 | W. Lorensen & H. Cline, "Marching Cubes" (SIGGRAPH 1987) · Paul Bourke, "Polygonising a scalar field" | S3: isosurfaces for equipotentials. |
+| 📖 | W. Briggs, V. E. Henson & S. McCormick, *A Multigrid Tutorial* (2nd ed.) | S4: relaxation, smoothing and the V-cycle. |
+| 📖 | A. Taflove & S. Hagness, *Computational Electrodynamics: The FDTD Method* | S5: the Yee algorithm, numerical dispersion, PML. |
+| 📖 | J. B. Schneider, *Understanding the FDTD Method* (free online) | S5: a code-first introduction to FDTD. |
+| 🌐 | [WebGPU Fundamentals](https://webgpufundamentals.org/) | S6: compute shaders, storage buffers, WGSL. |
+| 📄 | NVIDIA, *GPU Gems 3*, "Fast N-Body Simulation with CUDA" | S6: tiled N-body; the tiling maps onto WGSL workgroup memory. |
+
+---
+
+## Track V: visualization library
+
+| | Resource | Use it for |
+|---|---|---|
+| 💻 | [GlowScript / VPython](https://www.glowscript.org/) | The bar for brevity: a simulation in ten lines. |
+| 💻 | [myPhysicsLab](https://www.myphysicslab.com/) (open source) | How a mature educational simulator separates model, view, graphs and controls. |
+| 🌐 | [PhET Interactive Simulations](https://phet.colorado.edu/) | What makes a teaching simulation clear; PhET publishes its design research. |
+| 💻 | [Falstad applets](https://www.falstad.com/) | EM fields, waves and circuits in the browser; good reference visuals. |
+| 📄 | K. Moreland, "Diverging Color Maps for Scientific Visualization" (2009) | Colormaps for signed quantities like potential. |
+| 🌐 | [Three.js manual](https://threejs.org/manual/) | Instancing, `BufferGeometry` and `WebGPURenderer`, for drawing many arrows and lines. |
 
 ---
 

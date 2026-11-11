@@ -10,7 +10,7 @@ const docs = defineCollection({
         /** Position in the sidebar. */
         order: z.number(),
         /** Sidebar group. */
-        group: z.enum(["Start", "Engine", "Reference"]),
+        group: z.enum(["Start", "Engine"]),
         /** A stub is an outline waiting for the API to settle. */
         stub: z.boolean().default(false),
     }),
