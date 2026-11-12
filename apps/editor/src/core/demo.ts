@@ -12,6 +12,7 @@ export const CATEGORIES = [
     { id: "soft-bodies", label: "Soft bodies" },
     { id: "fluids", label: "Fluids" },
     { id: "rigid-bodies", label: "Rigid bodies" },
+    { id: "collisions", label: "Collisions" },
 ] as const;
 
 export type CategoryId = (typeof CATEGORIES)[number]["id"];

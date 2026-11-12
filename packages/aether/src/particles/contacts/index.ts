@@ -1,4 +1,7 @@
+export { ParticleCable } from "./cable.js";
 export { ParticleContact } from "./contact.js";
 export type { ParticleContactGenerator } from "./contact-generator.js";
 export { ParticleContactResolver } from "./contact-resolver.js";
 export { GroundContacts } from "./ground-contacts.js";
+export { ParticleLink } from "./link.js";
+export { ParticleRod } from "./rod.js";

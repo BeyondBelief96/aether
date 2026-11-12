@@ -58,15 +58,15 @@ The rules that keep this working:
 
 ### Where a demo goes
 
-Demos are grouped by what they simulate, not by which engine module or build phase they use. The categories are fixed in `CATEGORIES` in `core/demo.ts` and cover the whole roadmap; the app only shows a category once it has a demo, so adding the first demo to `collisions/` makes the Collisions tab appear. Each category's demos live in `demos/<category id>/`.
+Demos are grouped by what they simulate, not by which engine module or build phase they use. The categories are fixed in `CATEGORIES` in `core/demo.ts` and cover the whole roadmap; the app only shows a category once it has a demo, so adding the first demo to `joints/` makes the Joints tab appear. Each category's demos live in `demos/<category id>/`.
 
 | Category | Folder | What belongs there | Built | Planned (from `docs/PLAN.md`) |
 |---|---|---|---|---|
 | Particles | `particles/` | Point masses moving under forces: projectiles, swarms, fields | Orbits, Fireworks, Ballistics, Integrators | |
-| Soft bodies | `soft-bodies/` | Particles joined by springs or constraints | Cloth, Drumhead, Elastic pendulum, Springs | Bridge, Rope and cloth tearing |
+| Soft bodies | `soft-bodies/` | Particles joined by springs or constraints | Cloth, Drumhead, Elastic pendulum, Springs, Bridge | Rope and cloth tearing |
 | Fluids | `fluids/` | Buoyancy, drag through a medium, lift | Raft, Density column, Buoyancy | Sailing, Flight sim |
 | Rigid bodies | `rigid-bodies/` | Orientation, inertia, torque, a single body's motion | Rotation | Spinning bodies |
-| Collisions | `collisions/` | Detection, contacts, restitution, friction, stacking | | Collision inspector, Broadphase heatmap, Restitution and friction lab, Solver comparison |
+| Collisions | `collisions/` | Detection, contacts, restitution, friction, stacking | Bounce, Break | Collision inspector, Broadphase heatmap, Restitution and friction lab, Solver comparison |
 | Joints | `joints/` | Bodies held together by joints; islands and sleeping | | Newton's cradle, Chain bridge, Car, Ragdoll, Sleep visualizer |
 
 When a demo could fit two categories, put it where its most interesting thing happens: a sailing boat is about the water, so it goes in Fluids even though the boat is a rigid body. Add a category only when a new kind of simulation arrives that none of these describe; insert it in `CATEGORIES` where it falls in the roadmap.
@@ -295,6 +295,12 @@ About 1,200 particles on a square grid inside a 5 m circle, each joined to its f
 
 One particle on a `ParticleAnchoredSpring` under gravity. The spring's frequency is `√(k/m)` and the swing's is `√(g/L)` with `L` the length the spring hangs at; when the first is twice the second the two motions trade energy. With `m = 1 kg` and a 3 m rest length that happens at `k = 3mg / L₀ ≈ 9.8 N/m`, the default. The chart splits the energy along the spring (bounce) from the energy across it (swing), both measured about the resting point. A small sideways start speed takes the path out of a single plane.
 
+### Bridge
+
+A rope bridge built only from contact generators: two rails of 9 particles each, fixed at both ends, joined along each rail by a `ParticleCable` and across the deck by a `ParticleRod`. *Hangers* adds a cable from a fixed anchor above each deck particle, 0.6 m longer than the drop to the deck, so the hangers near the ends stay slack. The load is not a particle: each step `bridge-sim.ts` adds its mass to the four deck particles around it, split by how far along the section it is, so gravity pulls harder there. Cables are drawn in the accent colour when within 2 mm of their length and grey when slack.
+
+A hanging chain needs far more resolver iterations than the default of twice the contact count, which leaves the cables stretched by half a meter (*Starved*). The default is 2,000 per step. Changing *Auto iterations* or *Iterations* builds a new world around the same particles, as in *Break*. The world is substepped to 1/60 s so a heavy load stays stable at low physics rates.
+
 ### Density column
 
 Three liquid layers and four upright prisms. Pressure from stacked liquids adds, so each object has three `ParticleBuoyancy` generators: one at the top surface with the top layer's density, and one at each lower surface with the difference between that layer and the one above it. An object inside the middle layer then gets the top density plus the difference, which is the middle density. The density sliders' ranges don't overlap, so no difference is negative. Prisms keep the generator's linear submerged fraction exact.
@@ -302,4 +308,14 @@ Three liquid layers and four upright prisms. Pressure from stacked liquids adds,
 ### Raft
 
 Five logs as a two-layer truss: 35 log nodes and 35 deck nodes, joined along, across and diagonally within each layer and between them, so the raft resists bending without any rigid body. Only log nodes float. A crate is one particle on four springs to the corners of the deck cell under it, registered on both ends, so removing a crate removes the springs on the deck nodes too. The truss and crate springs are stiff for the lightest deck nodes, so the world is substepped to 1/600 s; that holds 20 crates of 1,500 kg on balsa at every physics rate.
+
+### Bounce
+
+Four particles side by side, each with its own `GroundContacts` (height = radius) so each can have its own restitution. `bounce-sim.ts` records the peak height after every bounce, and the readouts compare the ratio of successive peaks with `e²`. Lower physics rates fall short of `e²`, because a ball is caught up to one step below the ground and the resting-contact correction subtracts `e · g · dt` from each rebound; at 240 Hz the ratio is within a percent or two. Every ball comes to rest exactly on the ground. Changing the drop height drops again; changing a restitution or gravity applies on the next bounce.
+
+### Break
+
+A rack of touching balls and a cue ball on a table: `GroundContacts` for the top, and two generators in `break-sim.ts` for the cushions and the ball pairs (brute force, every pair). Ball pairs within 0.1 mm count as touching; racked balls start exactly touching and fall the same distance each step, so without the margin their contacts would never be generated. A square hit on a perfect rack of frictionless balls sends nearly all the energy to the back corners, so the default aim is 1° off centre.
+
+The resolver's iteration count can't change on a live world, so changing *Auto iterations* or *Iterations* builds a new world around the same particles and registers it with `useWorld`. With a fixed budget below the contact count, the resolver spends it on the most negative separating velocities, which every step are the balls pressing into the table, so overlapping pairs that are already separating are never pushed apart (*Starved*). The readouts show the iterations used against the limit and the deepest overlap between any two balls.
 

@@ -13,7 +13,10 @@ export class ParticleContact {
     particleA!: Particle;
     /** Null for contact with immovable scenery. */
     particleB: Particle | null = null;
-    /** Unit contact normal, from `particleB` toward `particleA`. */
+    /**
+     * Unit normal along which resolving the contact pushes `particleA`; `particleB` is pushed
+     * the opposite way. For a collision it points from `particleB` toward `particleA`.
+     */
     readonly normal = new Vec3();
     /** Overlap along `normal` in meters. Negative values are a gap. */
     penetration = 0;
@@ -23,7 +26,7 @@ export class ParticleContact {
     /**
      * Overwrites every field of the contact.
      *
-     * @param normal Unit normal from `particleB` toward `particleA`.
+     * @param normal Unit normal along which `particleA` is pushed.
      */
     set(
         particleA: Particle,

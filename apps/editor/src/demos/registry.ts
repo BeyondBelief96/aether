@@ -2,11 +2,14 @@ import type { DemoDefinition } from "../core/demo";
 import { buoyancyDemo } from "./fluids/buoyancy";
 import { densityColumnDemo } from "./fluids/density-column";
 import { raftDemo } from "./fluids/raft";
+import { bounceDemo } from "./collisions/bounce";
+import { breakDemo } from "./collisions/break";
 import { ballisticsDemo } from "./particles/ballistics";
 import { fireworksDemo } from "./particles/fireworks";
 import { integratorsDemo } from "./particles/integrators";
 import { orbitsDemo } from "./particles/orbits";
 import { rotationDemo } from "./rigid-bodies/rotation";
+import { bridgeDemo } from "./soft-bodies/bridge";
 import { clothDemo } from "./soft-bodies/cloth";
 import { drumheadDemo } from "./soft-bodies/drumhead";
 import { elasticPendulumDemo } from "./soft-bodies/elastic-pendulum";
@@ -22,10 +25,13 @@ export const demos: readonly DemoDefinition[] = [
     drumheadDemo,
     elasticPendulumDemo,
     springsDemo,
+    bridgeDemo,
     raftDemo,
     densityColumnDemo,
     buoyancyDemo,
     rotationDemo,
+    bounceDemo,
+    breakDemo,
 ] as readonly DemoDefinition[];
 
 /** The demo the app opens with. */

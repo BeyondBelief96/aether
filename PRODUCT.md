@@ -45,8 +45,8 @@ The website (`apps/site`, Astro) carries the landing page at `/`, the demo app a
 
 ## Capabilities and Constraints
 
-- Current package scope (0.x): the math library (Vec3, Mat3, Mat4, Quaternion), a fixed-timestep loop, particles, a particle world, and force generators (gravity, drag, springs, anchored springs, bungees, buoyancy). Rigid bodies, collisions, contacts and joints come later. The API can change in any 0.x release.
-- Demos are grouped by what they simulate: Particles, Soft bodies, Fluids and Rigid bodies. A category is added when its first demo ships. Planned demos and build phases are not shown anywhere public.
+- Current package scope (0.x): the math library (Vec3, Mat3, Mat4, Quaternion), a fixed-timestep loop, particles, a particle world, force generators (gravity, drag, springs, anchored springs, bungees, buoyancy, attraction), and particle contacts (contact generators, a ground plane, cables, rods, an iterative contact resolver). Rigid bodies, rigid-body collisions and joints come later. The API can change in any 0.x release.
+- Demos are grouped by what they simulate: Particles, Soft bodies, Fluids, Rigid bodies and Collisions. A category is added when its first demo ships. Planned demos and build phases are not shown anywhere public.
 - Demos exist to show the engine off. A demo that only teaches a concept and does not exercise the engine is cut (the fixed-timestep and integrator demos were; interpolation is a setting instead).
 - Documentation pages are stubs until the API settles.
 - Demos are authored in code. A user-facing scene builder is not in scope.
@@ -63,7 +63,7 @@ The website (`apps/site`, Astro) carries the landing page at `/`, the demo app a
 
 ## Evidence on Hand
 
-- The demos: Cloth, Springs, Buoyancy, Orbits, Fireworks, Ballistics, Rotation.
+- The demos: Orbits, Fireworks, Ballistics, Integrators, Cloth, Drumhead, Elastic pendulum, Springs, Bridge, Raft, Density column, Buoyancy, Rotation, Bounce, Break.
 - Unit tests for the engine and the demo app's helpers (Vitest), plus a browser smoke test that loads every demo.
 - API guides in the engine and math READMEs.
 - None yet: users, testimonials, benchmarks, performance comparisons with other engines, or download figures. Future work must not invent them.

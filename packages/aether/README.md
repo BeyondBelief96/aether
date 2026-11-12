@@ -31,7 +31,22 @@ world.particles.push(ball);
 for (let i = 0; i < 60; i++) world.step(1 / 60); // one simulated second
 ```
 
-The package has the math library, a fixed-timestep loop, particles and force generators. The API can change in any 0.x release.
+Contact generators find contacts after each step, and the world resolves them:
+
+```ts
+import { GroundContacts, ParticleCable } from 'aether-physics';
+
+// Bounce off the plane y = 0 with restitution 0.5, then come to rest on it.
+world.contactGenerators.push(new GroundContacts(world.particles, 0, 0.5));
+
+// Tie the ball to a fixed hook: slack within 4 m, taut past it.
+const hook = new Particle();
+hook.inverseMass = 0;
+hook.position.set(0, 12, 0);
+world.contactGenerators.push(new ParticleCable(hook, ball, 4));
+```
+
+The package has the math library, a fixed-timestep loop, particles, force generators and particle contacts. The API can change in any 0.x release.
 
 ## License
 

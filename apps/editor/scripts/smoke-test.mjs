@@ -18,10 +18,13 @@ const DEMOS = [
     "drumhead",
     "elastic-pendulum",
     "springs",
+    "bridge",
     "raft",
     "density-column",
     "buoyancy",
     "rotation",
+    "bounce",
+    "break",
 ];
 
 const server = await preview({ base, logLevel: "error", preview: { port: 4179 } });

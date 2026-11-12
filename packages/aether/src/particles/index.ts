@@ -1,7 +1,14 @@
 export { Particle } from "./particle.js";
 export { ParticleWorld } from "./particle-world.js";
 export type { ParticleWorldOptions } from "./particle-world.js";
-export { GroundContacts, ParticleContact, ParticleContactResolver } from "./contacts/index.js";
+export {
+    GroundContacts,
+    ParticleCable,
+    ParticleContact,
+    ParticleContactResolver,
+    ParticleLink,
+    ParticleRod,
+} from "./contacts/index.js";
 export type { ParticleContactGenerator } from "./contacts/index.js";
 export {
     ParticleAnchoredSpring,

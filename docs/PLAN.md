@@ -670,6 +670,7 @@ Where the build goes beyond the sketch: `ParticleWorld.step` records `lastAccele
 - [x] `src/particles/contacts/contact-resolver.ts`: `ParticleContactResolver`
 - [x] `src/particles/contacts/ground-contacts.ts`: `GroundContacts`
 - [x] `ParticleWorld.step` becomes forces → integrate → generate → resolve, over a preallocated contact array
+- [x] Demos: *Bounce* (restitution, rebound ratios against `e²`, resting contact) and *Break* (a rack broken by a cue ball, with the resolver's iteration budget as a parameter), the first in the Collisions category
 
 **Covers:** the split between finding contacts and resolving them, and iteration, since resolving one contact disturbs its neighbors. Resolving one contact's interpenetration changes the penetration of every other contact that shares a particle, so the resolver adjusts those contacts by how far each particle moved before the next iteration, as the book's source does with `particleMovement`.
 
@@ -705,13 +706,15 @@ Where the build goes beyond the sketch:
 - `ParticleWorld` takes `ParticleWorldOptions`: `maxContacts` defaults to 256, and `resolverIterations` passes through to the resolver. The pool and the last step's count are readable as `contacts` and `contactCount`, for debug drawing, and the resolver is `contactResolver`.
 - `GroundContacts` reads its particle array each call, so passing `world.particles` follows additions and removals. It skips immovable particles, and its restitution defaults to 0.2.
 
+**Known limit: contacts are found once per step.** Resolving one contact can push a particle into something it had no contact with when the step began, and nothing corrects that until the next step. A stack of bouncing spheres shows it: when the bottom ball lifts off the ground, the ball above pushes it back into the ground with no ground contact to stop it, and the stack sinks and boils. The *Break* demo stays in one layer for this reason. Contact margins and generating contacts again inside the resolver are the usual fixes; Step 10's resolver and Phase 5's persistent manifolds address it. A related trap in user generators: two resting spheres that fall the same distance in a step stay exactly touching, so a generator that reports only overlaps misses their contact every other step. The demos' sphere generator counts pairs within 0.1 mm as touching.
+
 **Done when:** a particle on `GroundContacts` keeps near-zero velocity for 1,000 steps, and running out of `maxContacts` drops contacts without crashing. Pick contacts with a negative separating velocity *or* remaining penetration, or a slow overlap never gets pushed out.
 
 #### Step 7: Cables, rods and the bridge
 
-- [ ] `src/particles/contacts/cable.ts`: `ParticleCable`
-- [ ] `src/particles/contacts/rod.ts`: `ParticleRod`
-- [ ] Demo: *Bridge*
+- [x] `src/particles/contacts/cable.ts`: `ParticleCable`
+- [x] `src/particles/contacts/rod.ts`: `ParticleRod`
+- [x] Demo: *Bridge* (a rope bridge of rail cables and cross rods with optional hangers, a load that crosses it, and the resolver's iteration budget as a parameter)
 
 **Covers:** hard constraints written as contact generators, so structures need no new solver.
 
@@ -724,6 +727,15 @@ class ParticleRod implements ParticleContactGenerator {
   constructor(a: Particle, b: Particle, length: number)
 }
 ```
+
+Where the build goes beyond the sketch:
+
+- Both extend `ParticleLink` (`src/particles/contacts/link.ts`), an abstract generator holding `particleA`, `particleB` and `currentLength()`, which writes the contact along the line between the particles. Users can extend it for their own links.
+- A link's contact normal is the direction `particleA` is pushed: toward `particleB` when the link pulls them together, away from it when a rod pushes them apart. `ParticleContact.normal` is documented that way now, not as "from B toward A".
+- Constructors throw `RangeError` for the same particle at both ends, a non-positive or non-finite length, or a cable restitution outside [0, 1]. Cable restitution defaults to 0. A rod writes nothing for coincident particles, since there is no direction to push along, and nothing at exactly its length.
+- `maxLength`, `restitution` and `length` are public and mutable; the *Bridge* demo's slack slider sets `maxLength`.
+
+**What the bridge shows about the resolver.** A hanging chain of hard constraints is the worst case for worst-first resolution: each iteration fixes one link and disturbs its two neighbours, so error spreads along the chain one link per iteration. With 8 sections (about 23 contacts), the default budget of twice the contact count leaves the rail cables stretched by half a meter and the deck never settles. 2,000 iterations per step (about 90 per contact) holds rods to under 0.1 mm and settles a 150 kg load to within 2 mm per step. The demo substeps to at most 1/60 s so low physics rates stay stable. Step 10's sequential impulses with warm starting is the fix; the bridge's iteration readout is the baseline to compare against.
 
 **Done when:** a cable does nothing while slack, a rod keeps its length within tolerance under gravity, and the bridge sags and settles under a moving load.
 
@@ -827,6 +839,7 @@ class ParticleContact {
 - **The resting-contact correction uses the total acceleration.** The book's `getAcceleration()` is the particle's constant acceleration field (usually gravity) and ignores forces from generators. Aether records `lastAcceleration` from every force in the last step, so springs and buoyancy pressing a particle into a contact are corrected too.
 - **One resolver loop for velocity and penetration, as in the book's source.** The text of §7.3.1 recommends a velocity pass then a separate penetration pass; the source, and Aether, pick the contact with the lowest separating velocity among those closing *or* penetrating and resolve both at once.
 - **The resolver stops when nothing needs resolving.** The book's listing indexes past the array when no contact qualifies, and its source selects contacts with any positive penetration, so rounding residue or a contact between immovable particles can take every iteration. Aether exits the loop when nothing qualifies, zeroes the resolved contact's penetration, uses a 1e-9 tolerance and skips immovable contacts.
+- **Links validate their arguments and skip degenerate cases.** The book's cable and rod normalise the vector between the particles without checking it, so coincident particles give a NaN normal; Aether's rod writes no contact then. Constructors reject equal particles and non-positive lengths.
 - **The resolver is a seam.** The book's worst-first resolver is the first implementation; sequential impulses (Step 10) is not in the book, and when it arrives the resolution maths moves out of `ParticleContact` into the resolvers.
 - **Verlet and XPBD (Steps 8–9) are not in the book.** They come from Jakobsen and from Müller and Macklin.
 
