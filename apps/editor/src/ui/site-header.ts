@@ -2,7 +2,7 @@ import { css, html, LitElement, nothing, type PropertyDeclarations } from "lit";
 import { CATEGORIES, type DemoDefinition } from "../core/demo";
 import { formatHash } from "../core/route";
 import { ENGINE_VERSION, REPOSITORY_URL } from "../core/site";
-import { baseStyles, icons } from "./shared";
+import { baseStyles, icons, wordmark } from "./shared";
 
 const demoHref = (id: string) => formatHash({ view: "demo", id, query: new URLSearchParams() });
 
@@ -47,6 +47,23 @@ export class SiteHeader extends LitElement {
             .mark b {
                 font: 800 22px / 1 var(--sans);
                 letter-spacing: -0.03em;
+            }
+            .wordmark {
+                display: inline-flex;
+                align-items: baseline;
+            }
+            .wordmark svg {
+                width: 0.733em;
+                height: 0.98em;
+                margin-right: 0.03em;
+                overflow: visible;
+            }
+            .wordmark path {
+                fill: none;
+                stroke: currentColor;
+            }
+            .wordmark circle {
+                fill: var(--accent);
             }
             .mark span {
                 font-size: var(--text-small);
@@ -193,7 +210,7 @@ export class SiteHeader extends LitElement {
                     this.embedded
                         ? nothing
                         : html`<a class="mark" href=${demoHref("")}
-                              ><b>Aether</b><span>Physics engine demos</span></a
+                              ><b>${wordmark}</b><span>Physics engine demos</span></a
                           >`
                 }
                 <nav aria-label="Categories">

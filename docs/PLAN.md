@@ -175,6 +175,8 @@ The Lab doesn't make you choose between accuracy and real time. The tolerance se
 
 **Public surfaces.** The website and the demo app present Aether, the engine. Neither shows a roadmap or anything unbuilt. The Lab gets its own front page, at `/lab`, once S1 and V1 have shipped and there is something running to show; until then public surfaces don't mention it.
 
+**Logo.** The strut mark (rods drawn as an A, a slack cable, an orange particle at the apex) is the favicon of the site and the demo app and stands in for the A of the wordmark in the site nav, footer and demo header. DESIGN.md has the spec.
+
 **Architecture.**
 
 ```

@@ -1,5 +1,6 @@
 ---
 import { ENGINE_VERSION, REPOSITORY_URL, href } from "../site";
+import Wordmark from "./Wordmark.astro";
 
 interface Props {
     section: "home" | "demos" | "docs";
@@ -13,7 +14,7 @@ const links = [
 ---
 
 <header class="site-nav">
-    <a class="mark" href={href("/")} aria-label="Aether home"><b>Aether</b></a>
+    <a class="mark" href={href("/")} aria-label="Aether home"><Wordmark /></a>
     <nav aria-label="Site">
         {
             links.map((link) => (
@@ -47,9 +48,8 @@ const links = [
         color: inherit;
         text-decoration: none;
     }
-    .mark b {
+    .mark {
         font: 800 22px / 1 var(--sans);
-        letter-spacing: -0.03em;
     }
     nav {
         display: flex;

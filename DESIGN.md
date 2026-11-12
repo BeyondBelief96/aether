@@ -333,7 +333,7 @@ The same palette carries the scene-only neutrals, used in WebGL and never in CSS
 - **Headline** (750, clamp 28-40px, 1, -0.03em): the "All demos" index heading.
 - **Title** (750, clamp 26-34px, 1, -0.03em): demo names in the index grid; the landing's "Runs today" demo names use the same cut at a fixed 28px.
 - **Subhead** (700, 22px, 1.15, -0.02em): docs prose h2. Fact figures on the landing run at 700 20px.
-- **Wordmark** (800, 22px, -0.03em): "Aether" in the demo header and the site nav; the footer repeats it at 18px.
+- **Wordmark** (800, 22px, -0.03em): "Aether" in the demo header and the site nav, with the strut mark set as its A (see Logo); the footer repeats it at 18px.
 - **Lead** (400, 17px, 1.45): the one-line demo summary under the title (max 46ch), the hero line (42ch), section intros (44ch, 1.5) and docs prose (1.6, article max 68ch).
 - **Body** (400, 15px, 1.5): page default; nav tabs and data tabs at 600.
 - **Control** (600, 13px, 1.3): parameter names, instance names, button labels; section heads in readouts at 650.
@@ -388,6 +388,12 @@ The 3D scene is the exception by design: the specimen is lit. One shared stage g
 Square by default: every outlined control, the stage and the vector field use a 2px radius, and segmented controls share edges (collapsed 1px borders, rounded only at the outer ends). The only round shapes are slider thumbs (20px circles with a 2px ink ring) and the icon strokes. Icons are authored on a 16px grid with a single 1.6 round-capped stroke, shared by the demo app and the website. Active location is drawn with a flat 2px (nav) or 3px (data tabs) orange bar under the label, or, where the label is a text link (All demos when current, the docs sidebar), a 2px orange underline 6px below the text. Callouts are tagged with a 1px left rule in the series colour, scene tags with a 1px ink left rule.
 
 On the phone-width landing page the hero stage loses its radius and runs edge to edge inside the gutter.
+
+### Logo
+The mark is the **strut**: two rigid rods drawn as an A, a slack cable sagging between them as the crossbar, and one signal-orange particle pinned at the apex. It is a rod-and-cable rig the engine builds today. Drawn on a 32-unit grid: rods 3.4 stroke with a round join, cable 2.1 with round caps, particle radius 4.4. Rods and cable are ink; the particle is the only orange.
+- **Favicon** (`public/favicon.svg` in the site and the demo app): the mark alone on a transparent ground, ink and orange swapped for their dark values under `prefers-color-scheme: dark`.
+- **Wordmark:** the mark replaces the A of "Aether", sized in em (0.733em wide, 0.98em tall, sitting on the baseline) so the legs match the grotesk's cap height and the particle rises above it. The site's `Wordmark.astro` and the demo app's `wordmark` template in `ui/shared.ts` draw it; both carry `aria-label="Aether"`. The mark never sits beside a spelled-out "Aether", which would double the A.
+- The particle is orange in every use; the mark is never set in a single colour except where the medium forces it.
 
 ### Named Rules
 **The Square Control, Round Thumb Rule.** Controls are boxes with at most 2px corners; only the thing you drag is round.

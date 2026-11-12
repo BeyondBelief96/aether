@@ -1,4 +1,4 @@
-import { css, svg, type SVGTemplateResult } from "lit";
+import { css, html, svg, type SVGTemplateResult } from "lit";
 
 /** Base styles every component includes: labels, buttons, focus and numerals. */
 export const baseStyles = css`
@@ -110,3 +110,8 @@ export const icons = {
     external: icon(svg`<path d="M9.5 3h3.5v3.5M13 3 7.5 8.5M11.5 9.5V13H3V4.5h3.5" />`),
     grid: icon(svg`<path d="M3 3h4v4H3zM9 3h4v4H9zM3 9h4v4H3zM9 9h4v4H9z" />`),
 };
+
+/** The Aether wordmark: the strut mark stands in for the A. Sized by the surrounding font size. */
+export const wordmark = html`<span class="wordmark" role="img" aria-label="Aether"
+    >${svg`<svg viewBox="6.5 2.6 19 25.4" aria-hidden="true"><path d="M8.2 28 16 9.6 23.8 28" stroke-width="3.6" stroke-linejoin="round" /><path d="M11.2 20.6Q16 24.8 20.8 20.6" stroke-width="2.4" stroke-linecap="round" /><circle cx="16" cy="7" r="4.4" /></svg>`}ether</span
+>`;
