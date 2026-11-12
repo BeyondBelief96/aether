@@ -666,12 +666,12 @@ Where the build goes beyond the sketch: `ParticleWorld.step` records `lastAccele
 
 #### Step 6: Generators, the resolver and the ground
 
-- [ ] `src/particles/contacts/contact-generator.ts`: `ParticleContactGenerator`
-- [ ] `src/particles/contacts/contact-resolver.ts`: `ParticleContactResolver`
-- [ ] `src/particles/contacts/ground-contacts.ts`: `GroundContacts`
-- [ ] `ParticleWorld.step` becomes forces → integrate → generate → resolve, over a preallocated contact array
+- [x] `src/particles/contacts/contact-generator.ts`: `ParticleContactGenerator`
+- [x] `src/particles/contacts/contact-resolver.ts`: `ParticleContactResolver`
+- [x] `src/particles/contacts/ground-contacts.ts`: `GroundContacts`
+- [x] `ParticleWorld.step` becomes forces → integrate → generate → resolve, over a preallocated contact array
 
-**Covers:** the split between finding contacts and resolving them, and iteration, since resolving one contact disturbs its neighbors. Resolving one contact's interpenetration changes the penetration of every other contact that shares a particle, so the resolver adjusts those contacts by how far each particle moved before the next iteration, as the book's source does with `particleMovement`. `ParticleContact` needs to record that movement.
+**Covers:** the split between finding contacts and resolving them, and iteration, since resolving one contact disturbs its neighbors. Resolving one contact's interpenetration changes the penetration of every other contact that shares a particle, so the resolver adjusts those contacts by how far each particle moved before the next iteration, as the book's source does with `particleMovement`.
 
 This class is the first implementation behind the resolver seam. Keep its public surface to `resolveContacts`, so Step 10 can extract the interface without changing callers.
 
@@ -696,6 +696,14 @@ class ParticleWorld {
   constructor(options?: { maxContacts?: number; resolverIterations?: number })
 }
 ```
+
+Where the build goes beyond the sketch:
+
+- The resolver measures each particle's movement from its position before and after `resolve`, so `ParticleContact` stores nothing for it. It adjusts the penetration of every other contact sharing a moved particle and sets the resolved contact's own penetration to exactly zero, so rounding never leaves it selectable.
+- The resolver skips contacts whose particles are all immovable, treats closing speeds and penetrations under 1e-9 as resolved, and stops early once nothing qualifies.
+- `new ParticleContactResolver()` without `iterations` uses twice the contact count on each call. Its surface beyond `resolveContacts` is the read-only `iterations` and `iterationsUsed`.
+- `ParticleWorld` takes `ParticleWorldOptions`: `maxContacts` defaults to 256, and `resolverIterations` passes through to the resolver. The pool and the last step's count are readable as `contacts` and `contactCount`, for debug drawing, and the resolver is `contactResolver`.
+- `GroundContacts` reads its particle array each call, so passing `world.particles` follows additions and removals. It skips immovable particles, and its restitution defaults to 0.2.
 
 **Done when:** a particle on `GroundContacts` keeps near-zero velocity for 1,000 steps, and running out of `maxContacts` drops contacts without crashing. Pick contacts with a negative separating velocity *or* remaining penetration, or a slow overlap never gets pushed out.
 
@@ -768,7 +776,7 @@ class VerletSystem {
 - [ ] Extract `ParticleContactResolver` as an interface; Step 6's class becomes `WorstFirstContactResolver`
 - [ ] Move the resolution maths out of `ParticleContact` into `WorstFirstContactResolver`, so the contact is data both resolvers read
 - [ ] `src/particles/contacts/sequential-impulse-resolver.ts`: `SequentialImpulseResolver`: effective mass per contact, accumulated impulses clamped at zero, a restitution threshold, Baumgarte position correction, warm starting by contact `id`
-- [ ] `ParticleWorld.resolver`, switchable between steps; a resolver selector and step timings in the *Bridge* and *Rope and cloth* demos
+- [ ] `ParticleWorld.contactResolver`, typed by the extracted interface and switchable between steps; a resolver selector and step timings in the *Bridge* and *Rope and cloth* demos
 
 **Covers:** the seam's second implementation, and the first look at the solver family Phase 6 builds for rigid bodies. For particles the effective mass is just `1 / (wA + wB)`, so the algorithm is visible without the angular terms.
 
@@ -817,6 +825,8 @@ class ParticleContact {
 - **`ParticleAttraction` is not in the book.** It came out of the *Orbits* demo.
 - **Contacts name their particles** `particleA` and `particleB` instead of `particle[2]`, are pooled and filled with `set()`, and call the normal `normal` rather than `contactNormal`. The normal still points from the second particle toward the first, as in the book.
 - **The resting-contact correction uses the total acceleration.** The book's `getAcceleration()` is the particle's constant acceleration field (usually gravity) and ignores forces from generators. Aether records `lastAcceleration` from every force in the last step, so springs and buoyancy pressing a particle into a contact are corrected too.
+- **One resolver loop for velocity and penetration, as in the book's source.** The text of §7.3.1 recommends a velocity pass then a separate penetration pass; the source, and Aether, pick the contact with the lowest separating velocity among those closing *or* penetrating and resolve both at once.
+- **The resolver stops when nothing needs resolving.** The book's listing indexes past the array when no contact qualifies, and its source selects contacts with any positive penetration, so rounding residue or a contact between immovable particles can take every iteration. Aether exits the loop when nothing qualifies, zeroes the resolved contact's penetration, uses a 1e-9 tolerance and skips immovable contacts.
 - **The resolver is a seam.** The book's worst-first resolver is the first implementation; sequential impulses (Step 10) is not in the book, and when it arrives the resolution maths moves out of `ParticleContact` into the resolvers.
 - **Verlet and XPBD (Steps 8–9) are not in the book.** They come from Jakobsen and from Müller and Macklin.
 

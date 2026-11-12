@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Particle } from "../particle";
 import { ParticleWorld } from "../particle-world";
+import { GroundContacts } from "../contacts";
 import { ExplicitEuler, Rk4, SemiImplicitEuler, VelocityVerlet } from "../integrators";
 
 describe("ParticleWorld", () => {
@@ -191,4 +192,132 @@ describe("ParticleWorld", () => {
             expect(p.forceAccum).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
         },
     );
+
+    it.each([{ maxContacts: -1 }, { maxContacts: 1.5 }, { resolverIterations: -1 }])(
+        "rejects %o",
+        (options) => {
+            expect(() => new ParticleWorld(options)).toThrow(RangeError);
+        },
+    );
+
+    it("keeps a particle on GroundContacts still for 1,000 steps", () => {
+        const world = new ParticleWorld();
+        const ball = new Particle();
+        world.particles.push(ball);
+        world.contactGenerators.push(new GroundContacts(world.particles, 0, 0.5));
+
+        let maxSpeed = 0;
+        for (let i = 0; i < 1000; i++) {
+            world.step(1 / 60);
+            maxSpeed = Math.max(maxSpeed, ball.velocity.magnitude());
+        }
+
+        expect(maxSpeed).toBeLessThan(1e-9);
+        expect(ball.position.y).toBeCloseTo(0, 9);
+    });
+
+    it("bounces a dropped particle and lets it settle", () => {
+        const world = new ParticleWorld();
+        const ball = new Particle();
+        ball.damping = 1;
+        ball.position.set(0, 2, 0);
+        world.particles.push(ball);
+        world.contactGenerators.push(new GroundContacts(world.particles, 0, 0.5));
+
+        let rose = false;
+        for (let i = 0; i < 600; i++) {
+            const before = ball.velocity.y;
+            world.step(1 / 60);
+            if (before < -1 && ball.velocity.y > 1) rose = true;
+            expect(ball.position.y).toBeGreaterThanOrEqual(-1e-9);
+        }
+
+        expect(rose).toBe(true);
+        expect(Math.abs(ball.velocity.y)).toBeLessThan(1e-6);
+    });
+
+    it("records how many contacts the last step found", () => {
+        const world = new ParticleWorld();
+        const low = new Particle();
+        const high = new Particle();
+        low.position.set(0, -1, 0);
+        high.position.set(0, 5, 0);
+        world.particles.push(low, high);
+        world.contactGenerators.push(new GroundContacts(world.particles));
+
+        world.step(1 / 60);
+        expect(world.contactCount).toBe(1);
+        expect(world.contacts[0]!.particleA).toBe(low);
+    });
+
+    it("drops contacts past maxContacts without crashing", () => {
+        const world = new ParticleWorld({ maxContacts: 2 });
+        for (let i = 0; i < 5; i++) {
+            const p = new Particle();
+            p.position.set(i, -1, 0);
+            world.particles.push(p);
+        }
+        world.contactGenerators.push(
+            new GroundContacts(world.particles),
+            new GroundContacts(world.particles),
+        );
+
+        expect(() => world.step(1 / 60)).not.toThrow();
+        expect(world.contactCount).toBe(2);
+        expect(world.particles[0]!.position.y).toBeCloseTo(0);
+        expect(world.particles[4]!.position.y).toBeLessThan(0);
+    });
+
+    it("resolves with twice the contact count unless resolverIterations is given", () => {
+        const sink = (world: ParticleWorld) => {
+            for (let i = 0; i < 3; i++) {
+                const p = new Particle();
+                p.position.set(i, -1, 0);
+                world.particles.push(p);
+            }
+            world.contactGenerators.push(new GroundContacts(world.particles));
+            world.step(1 / 60);
+            return world;
+        };
+
+        const auto = sink(new ParticleWorld());
+        expect(auto.contactResolver.iterationsUsed).toBe(3);
+        for (const p of auto.particles) expect(p.position.y).toBeCloseTo(0);
+
+        const capped = sink(new ParticleWorld({ resolverIterations: 1 }));
+        expect(capped.contactResolver.iterationsUsed).toBe(1);
+        expect(capped.particles.filter((p) => p.position.y < -0.5)).toHaveLength(2);
+    });
+
+    it("names resolverIterations when rejecting it", () => {
+        expect(() => new ParticleWorld({ resolverIterations: -1 })).toThrow(/resolverIterations/);
+    });
+
+    it("resets the contact count and resolver iterations on a step with no contacts", () => {
+        const world = new ParticleWorld();
+        const ball = new Particle();
+        ball.position.set(0, -1, 0);
+        world.particles.push(ball);
+        world.contactGenerators.push(new GroundContacts(world.particles));
+        world.step(1 / 60);
+
+        ball.position.set(0, 10, 0);
+        world.step(1 / 60);
+        expect(world.contactCount).toBe(0);
+        expect(world.contactResolver.iterationsUsed).toBe(0);
+    });
+
+    it("clamps a generator that reports more contacts than fit", () => {
+        const world = new ParticleWorld({ maxContacts: 1 });
+        const ball = new Particle();
+        ball.position.set(0, -1, 0);
+        world.particles.push(ball);
+        const ground = new GroundContacts(world.particles);
+        world.contactGenerators.push({
+            addContacts: (out, start) => ground.addContacts(out, start) + 4,
+        });
+
+        expect(() => world.step(1 / 60)).not.toThrow();
+        expect(world.contactCount).toBe(1);
+    });
 });

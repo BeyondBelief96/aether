@@ -64,16 +64,10 @@ export class ParticleContact {
      * Separating contacts are left alone.
      */
     private resolveVelocity(dt: number): void {
-        // Find the velocity  in the direction of the contact
         const separatingVelocity = this.separatingVelocity();
 
-        // Check if it needs to be resolved
-        if (separatingVelocity > 0) {
-            // The contact is either separating or stationary, no impulse required.
-            return;
-        }
+        if (separatingVelocity > 0) return;
 
-        // Calculate the new separating velocity
         let newSepVelocity = -separatingVelocity * this.restitution;
 
         // Closing velocity built up by the last step's acceleration alone is not bounced
@@ -88,16 +82,11 @@ export class ParticleContact {
 
         const deltaVelocity = newSepVelocity - separatingVelocity;
 
-        // We apply the change in velocity to each object in proportion to
-        // its inverse mass (i.e., those with lower inverse mass [higher
-        // actual mass] get less change in velocity).
         let totalInverseMass = this.particleA.inverseMass;
         if (this.particleB) totalInverseMass += this.particleB.inverseMass;
 
-        // If all particles have infinite mass, then impulses have no effect
         if (totalInverseMass <= 0) return;
 
-        // Calculate the impulses to apply
         const impulsePerInverseMass = deltaVelocity / totalInverseMass;
         this.particleA.velocity.addScaled(
             this.normal,
