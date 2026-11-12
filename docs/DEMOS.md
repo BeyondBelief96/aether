@@ -62,7 +62,7 @@ Demos are grouped by what they simulate, not by which engine module or build pha
 
 | Category | Folder | What belongs there | Built | Planned (from `docs/PLAN.md`) |
 |---|---|---|---|---|
-| Particles | `particles/` | Point masses moving under forces: projectiles, swarms, fields | Orbits, Fireworks, Ballistics | |
+| Particles | `particles/` | Point masses moving under forces: projectiles, swarms, fields | Orbits, Fireworks, Ballistics, Integrators | |
 | Soft bodies | `soft-bodies/` | Particles joined by springs or constraints | Cloth, Drumhead, Elastic pendulum, Springs | Bridge, Rope and cloth tearing |
 | Fluids | `fluids/` | Buoyancy, drag through a medium, lift | Raft, Density column, Buoyancy | Sailing, Flight sim |
 | Rigid bodies | `rigid-bodies/` | Orientation, inertia, torque, a single body's motion | Rotation | Spinning bodies |
@@ -263,6 +263,10 @@ Each shot is one `Particle` in a shared `ParticleWorld`, ending at the ground, p
 ### Orbits
 
 Two stars on a circular binary orbit and a disk of dust around them. Each star is the source of one engine `ParticleAttraction` (softened inverse-square), shared by the other star and every grain; grains pull nothing, so the cost is two registrations per grain and two generators in total. Generators keep their parameters fixed, so a change of star mass re-registers new ones. The world is stepped twice per physics step. Changing the star mass mid-run leaves the dust on orbits sized for the old mass, which is why the disk breathes and spirals after a preset.
+
+### Integrators
+
+The same scene four times, one `ParticleWorld` per integrator, so `world.integrator` is the only difference between lanes. The spring scene is a 1 kg mass on a `ParticleAnchoredSpring`; the orbit scene is a planet around a fixed `ParticleAttraction` source, with μ chosen so every eccentricity takes 4 s. The chart plots each lane's energy over its starting energy. A lane stops once that ratio leaves 0 to 3, which on the orbit means the planet is no longer bound; the diverging step is undone, so everything drawn stays finite. The spring's rest length is more than √3 times its stretch, so a lane reaching 3× its energy never swings through its anchor. Readouts show each integrator's force evaluations per step and its measured step time. The simulation lives in `integrators-sim.ts`, tested on its own.
 
 ### Fireworks
 

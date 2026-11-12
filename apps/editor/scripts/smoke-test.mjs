@@ -13,6 +13,7 @@ const DEMOS = [
     "orbits",
     "fireworks",
     "ballistics",
+    "integrators",
     "cloth",
     "drumhead",
     "elastic-pendulum",

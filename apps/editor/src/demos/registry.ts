@@ -4,6 +4,7 @@ import { densityColumnDemo } from "./fluids/density-column";
 import { raftDemo } from "./fluids/raft";
 import { ballisticsDemo } from "./particles/ballistics";
 import { fireworksDemo } from "./particles/fireworks";
+import { integratorsDemo } from "./particles/integrators";
 import { orbitsDemo } from "./particles/orbits";
 import { rotationDemo } from "./rigid-bodies/rotation";
 import { clothDemo } from "./soft-bodies/cloth";
@@ -16,6 +17,7 @@ export const demos: readonly DemoDefinition[] = [
     orbitsDemo,
     fireworksDemo,
     ballisticsDemo,
+    integratorsDemo,
     clothDemo,
     drumheadDemo,
     elasticPendulumDemo,
