@@ -422,10 +422,13 @@ class ParticleWorld {
 
 #### Follow-up: the integrator seam
 
-- [ ] `src/particles/integrators/`: `ParticleIntegrator` and `ForceEvaluator`; `SemiImplicitEuler` (the default, moved out of `Particle.integrate`), `ExplicitEuler`, `VelocityVerlet`, `Rk4`
-- [ ] `ParticleWorld.integrator`, switchable between steps
-- [ ] `Particle.integrate` delegates to `SemiImplicitEuler`, so existing callers keep working
-- [ ] Demo: *Integrator shoot-out*, back on the engine: the same spring and orbit scenes under each integrator, with an energy chart; the *Orbits* and *Springs* demos get an integrator selector
+- [x] `src/particles/integrators/`: `ParticleIntegrator` and `ForceEvaluator`; `SemiImplicitEuler` (the default, moved out of `Particle.integrate`), `ExplicitEuler`, `VelocityVerlet`, `Rk4`
+- [x] `ParticleWorld.integrator`, switchable between steps
+- [x] `Particle.integrate` delegates to `SemiImplicitEuler`, so existing callers keep working
+- [x] An integrator selector in the *Orbits* and *Springs* demos (`apps/editor/src/demos/helpers/integrators.ts`)
+- [ ] Demo: *Integrator shoot-out*, back on the engine: the same spring and orbit scenes under each integrator, with an energy chart
+
+Where the build goes beyond the sketch: forces a caller adds with `addForce` before `ParticleWorld.step` are saved at the start of the step and restored on every evaluation, so they act as constant forces through every stage of a multistage integrator. Damping is applied once per step, after the integrator's update, for every integrator.
 
 **Covers:** the integrator as a seam, the first one in the engine. Multistage integrators evaluate forces several times per step, so `ForceEvaluator` reruns the force registry and gravity at a trial state: the integrator writes trial positions and velocities, calls `evaluate()`, reads `forceAccum`, and restores the state. That only works because force generators keep no per-call state (see [Seams](#seams)).
 

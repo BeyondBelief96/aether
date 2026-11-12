@@ -1,5 +1,8 @@
 import { ParticleForceRegistry } from "./forces/index.js";
 import { addGravityForce } from "./forces/gravity.js";
+import { SemiImplicitEuler } from "./integrators/semi-implicit-euler.js";
+import type { ForceEvaluator, ParticleIntegrator } from "./integrators/particle-integrator.js";
+import { ensureLength } from "./integrators/scratch.js";
 import { Vec3 } from "../math/index.js";
 import type { Particle } from "./particle.js";
 
@@ -10,10 +13,17 @@ export class ParticleWorld {
      * to take one out, so the generators registered on it are dropped too.
      */
     readonly particles: Particle[] = [];
-    /** Force generators applied to particles at the start of each step. */
+    /** Force generators applied to particles each time forces are evaluated. */
     readonly forceRegistry = new ParticleForceRegistry();
     /** Gravitational acceleration in m/s², scaled by each particle's `gravityScale`. */
     readonly gravity = new Vec3(0, -9.81, 0);
+    /** Integrator used by `step`. Can be replaced between steps. */
+    integrator: ParticleIntegrator = new SemiImplicitEuler();
+
+    /** Forces added to each particle before the current step, restored on every evaluation. */
+    private readonly appliedForces: Vec3[] = [];
+    private stepDt = 0;
+    private readonly forces: ForceEvaluator = { evaluate: () => this.evaluateForces() };
 
     /**
      * Removes `particle` and every generator registered on it. Generators on other particles
@@ -31,16 +41,34 @@ export class ParticleWorld {
     }
 
     /**
-     * Applies registered forces and gravity, then integrates every particle by one step.
+     * Advances every particle by one step with `integrator`, then clears the force accumulators.
+     *
+     * Forces added to a particle before the step are held constant through it. Registered
+     * generators and gravity are evaluated as often as the integrator needs.
      *
      * @param dt Step length in seconds.
      * @throws RangeError If `dt` is not positive and the world has particles.
      */
     step(dt: number): void {
-        this.forceRegistry.updateForces(dt);
-        for (const particle of this.particles) {
+        const { particles } = this;
+        if (particles.length > 0 && !(dt > 0)) {
+            throw new RangeError(`dt must be positive, got ${dt}`);
+        }
+        ensureLength(this.appliedForces, particles.length);
+        particles.forEach((particle, i) => this.appliedForces[i]!.copy(particle.forceAccum));
+        this.stepDt = dt;
+
+        this.integrator.step(particles, this.forces, dt);
+
+        for (const particle of particles) particle.clearAccumulator();
+    }
+
+    private evaluateForces(): void {
+        const { particles } = this;
+        particles.forEach((particle, i) => particle.forceAccum.copy(this.appliedForces[i]!));
+        this.forceRegistry.updateForces(this.stepDt);
+        for (const particle of particles) {
             addGravityForce(particle, this.gravity, particle.gravityScale);
-            particle.integrate(dt);
         }
     }
 }

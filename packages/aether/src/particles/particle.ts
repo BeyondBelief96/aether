@@ -1,4 +1,5 @@
 import { Vec3, type Vec3Like } from "../math/index.js";
+import { semiImplicitEulerStep } from "./integrators/semi-implicit-euler.js";
 
 /**
  * A point mass integrated with semi-implicit Euler.
@@ -57,7 +58,8 @@ export class Particle {
     }
 
     /**
-     * Advances the particle by one step and clears the force accumulator.
+     * Advances the particle by one step with semi-implicit Euler and clears the force accumulator.
+     * `ParticleWorld` uses its own `integrator` instead.
      *
      * Velocity is updated first and the new velocity moves the position. A particle with
      * `inverseMass = 0` does not move, whatever its velocity.
@@ -67,13 +69,7 @@ export class Particle {
      */
     integrate(dt: number): void {
         if (!(dt > 0)) throw new RangeError(`dt must be positive, got ${dt}`);
-
-        if (this.inverseMass > 0) {
-            this.velocity
-                .addScaled(this.forceAccum, this.inverseMass * dt)
-                .scale(Math.pow(this.damping, dt));
-            this.position.addScaled(this.velocity, dt);
-        }
+        semiImplicitEulerStep(this, dt);
         this.clearAccumulator();
     }
 }
