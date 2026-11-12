@@ -37,7 +37,7 @@ world.particles.push(ball);
 for (let i = 0; i < 60; i++) world.step(1 / 60); // one simulated second
 ```
 
-The package has the math library, a fixed-timestep loop, particles and force generators. The API can change in any 0.x release. See the [particles API guide](packages/aether/src/particles/README.md) and the [math API guide](packages/aether/src/math/README.md).
+The package has the math library, a fixed-timestep loop, particles and force generators. The API can change in any 0.x release.
 
 ## Running it
 
@@ -64,9 +64,9 @@ In the demo app: **Space** pauses, **.** steps once while paused, **R** resets, 
 packages/
   aether/             the npm package, aether-physics
     src/
-      math/           Vec3, Mat3, Mat4, Quat
-      engine/         game loop, Particle, ParticleWorld
-      forces/         force generators
+      math/           Vec3, Mat3x3, Mat3x4, Quaternion
+      loop/           fixed-timestep loop
+      particles/      Particle, ParticleWorld, force generators, contacts
 apps/
   editor/             the demo app, which uses the engine only through "aether-physics"
     src/
@@ -76,7 +76,7 @@ apps/
       ui/             Lit components (aether-editor is the app; aether-scene runs one demo bare)
   site/               the website (Astro): landing page, the demo app at /demos, docs at /docs
     src/content/docs/ documentation pages, in Markdown
-docs/                 build plan, demo guide, notes
+docs/                 build plan, resources, demo guide
 ```
 
 ## Rules

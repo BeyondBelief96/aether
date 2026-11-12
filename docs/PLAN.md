@@ -18,7 +18,7 @@ The work is split into three [tracks](#tracks): Track G builds the engine (Phase
 
 Each phase ends with something you can **see** (a demo) and something you can **trust** (tests). Every phase lists what to build in order, how to approach it, and what to read. The full reading list is in [RESOURCES.md](./RESOURCES.md). How to build a demo (templates, using the library from Three.js, per-demo controls and UI style) is in [DEMOS.md](./DEMOS.md).
 
-The class sketches below are starting points, not specifications. Signatures will change as you learn; record the decisions you make in the module READMEs and your phase notes.
+The class sketches below are starting points, not specifications. Signatures will change as you learn.
 
 **Keep this plan current.** It is the only record of where the engine stands and what comes next. Update it in the same change as the work: tick items as they land, add generators and demos that weren't planned, and note where the build departs from a sketch. The README, website and demo app have no roadmap: they show only what exists, so a feature reaches them when it ships.
 
@@ -722,7 +722,6 @@ class VerletSystem {
 #### Finishing up
 
 - [ ] Export from the `particles` barrels (`forces/`, `contacts/`, `verlet/`) and `src/index.ts`
-- [ ] Record the API decisions in each module's README, and replace the stub text
 
 ### Guidance
 
@@ -1029,7 +1028,6 @@ function polyhedronMassProperties(vertices: Vec3Like[], faces: number[][], densi
 #### Finishing up
 
 - [ ] Export from the `bodies` and `math` barrels and `src/index.ts`
-- [ ] Record the API decisions in the module READMEs
 
 ### Guidance
 
@@ -1183,7 +1181,7 @@ class Collider {
 
 - [ ] `src/collision/manifold.ts`: `Contact` and `Manifold`
 - [ ] `src/bodies/contacts/contact-manifold.ts`: `ContactManifold`, a `Manifold` that knows its two colliders
-- [ ] The normal convention and the sign of `penetration`, written in the module README
+- [ ] The normal convention and the sign of `penetration`, written in the JSDoc on `Manifold` and `Contact`
 
 **Introduces:** the shape of every result that follows. The normal points from B toward A. `penetration` is negative when there's a gap, which is what speculative contacts rely on later.
 
@@ -1384,7 +1382,6 @@ class DynamicTreeBroadphase implements Broadphase { /* wraps DynamicTree */ }
 #### Finishing up
 
 - [ ] Export from the `collision` and `bodies` barrels and `src/index.ts`
-- [ ] Record the API decisions in `src/collision/README.md`, and the collider and pipeline decisions in `src/bodies/contacts/README.md`
 
 ### Guidance
 
@@ -1713,7 +1710,6 @@ Refresh derived data in every substep at first. That's the simple, correct versi
 #### Finishing up
 
 - [ ] Export from the `bodies` barrels and `src/index.ts`
-- [ ] Record the API decisions in `src/bodies/solver/README.md`
 
 ### Guidance
 
@@ -2042,7 +2038,6 @@ class World {
 #### Finishing up
 
 - [ ] Export from the `bodies` barrels and `src/index.ts`
-- [ ] Record the API decisions in the module READMEs
 
 ### Guidance
 
