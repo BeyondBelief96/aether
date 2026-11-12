@@ -10,6 +10,8 @@ import {
 
 const _point = new Vec3();
 
+const positionNow = (particle: Particle): Vec3Like => particle.position;
+
 /**
  * A rope bridge built only from contact generators: two rails of particles joined along their
  * length by `ParticleCable`s and across by `ParticleRod`s, fixed at both ends, with optional
@@ -37,9 +39,10 @@ export interface BridgeOptions {
     /** Extra length of each rail cable over the section length, as a fraction. */
     readonly slack: number;
     readonly hangers: boolean;
-    /** Fixed resolver iterations, or `undefined` for twice the contact count. */
-    readonly iterations: number | undefined;
 }
+
+/** How close to its length a cable counts as taut, in meters. */
+const TAUT_TOLERANCE = 0.002;
 
 export class BridgeSim {
     /** Deck particles, rail 0 then rail 1, ordered along the span. The end particles are fixed. */
@@ -107,7 +110,7 @@ export class BridgeSim {
         }
 
         this.setSlack(options.slack);
-        this.world = new ParticleWorld({ resolverIterations: options.iterations });
+        this.world = new ParticleWorld();
         this.world.particles.push(...this.particles);
         this.syncGenerators();
     }
@@ -123,10 +126,6 @@ export class BridgeSim {
 
     setSlack(slack: number): void {
         for (const cable of this.railCables) cable.maxLength = this.spacing * (1 + slack);
-    }
-
-    setDamping(damping: number): void {
-        for (const particle of this.particles) particle.damping = damping;
     }
 
     setHangers(on: boolean): void {
@@ -151,15 +150,6 @@ export class BridgeSim {
         return this.loadPosition / this.spacing - this.loadSection();
     }
 
-    /** Largest difference between a rod's length and its rest length, in meters. */
-    rodError(): number {
-        let worst = 0;
-        for (const rod of this.rods) {
-            worst = Math.max(worst, Math.abs(rod.currentLength() - rod.length));
-        }
-        return worst;
-    }
-
     /** Largest distance any active cable is stretched past its length, in meters. */
     cableStretch(): number {
         let worst = 0;
@@ -169,12 +159,15 @@ export class BridgeSim {
         return worst;
     }
 
-    /** Active cables within `tolerance` meters of their length. */
-    tautCount(tolerance: number): number {
+    /** Whether `cable` is within `TAUT_TOLERANCE` of its length. */
+    isTaut(cable: ParticleCable): boolean {
+        return cable.currentLength() >= cable.maxLength - TAUT_TOLERANCE;
+    }
+
+    /** Number of active cables that are taut. */
+    tautCount(): number {
         let count = 0;
-        for (const cable of this.activeCables()) {
-            if (cable.currentLength() >= cable.maxLength - tolerance) count++;
-        }
+        for (const cable of this.activeCables()) if (this.isTaut(cable)) count++;
         return count;
     }
 
@@ -189,14 +182,13 @@ export class BridgeSim {
      *
      * @param positionOf Position to use for a deck particle, such as an interpolated one.
      */
-    loadPoint(out: Vec3, positionOf: (index: number) => Vec3Like = this.positionOf): Vec3 {
+    loadPoint(out: Vec3, positionOf: (particle: Particle) => Vec3Like = positionNow): Vec3 {
         const section = this.loadSection();
         const t = this.loadFraction();
         out.set(0, 0, 0);
         for (let rail = 0; rail < 2; rail++) {
-            const near = rail * (this.sections + 1) + section;
-            out.addScaled(positionOf(near), (1 - t) / 2);
-            out.addScaled(positionOf(near + 1), t / 2);
+            out.addScaled(positionOf(this.node(rail, section)), (1 - t) / 2);
+            out.addScaled(positionOf(this.node(rail, section + 1)), t / 2);
         }
         return out;
     }
@@ -252,8 +244,6 @@ export class BridgeSim {
     private addMass(particle: Particle, mass: number): void {
         if (particle.inverseMass > 0) particle.setMass(particle.mass + mass);
     }
-
-    private readonly positionOf = (index: number): Vec3Like => this.particles[index]!.position;
 
     private syncGenerators(): void {
         const generators: ParticleContactGenerator[] = this.world.contactGenerators;

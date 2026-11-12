@@ -32,8 +32,4 @@ export class ParticleCable extends ParticleLink {
     protected deviation(length: number): number {
         return length > this.maxLength ? length - this.maxLength : 0;
     }
-
-    protected contactRestitution(): number {
-        return this.restitution;
-    }
 }

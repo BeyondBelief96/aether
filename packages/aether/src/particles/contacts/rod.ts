@@ -4,11 +4,12 @@ import { ParticleLink } from "./link.js";
 /**
  * A rigid rod between two particles: a contact whenever they are not exactly `length` apart,
  * drawing them together when the rod is stretched and pushing them apart when it is compressed.
- * Rod contacts have no restitution.
  */
 export class ParticleRod extends ParticleLink {
     /** Length in meters the rod holds the particles at. */
     length: number;
+    /** Rod contacts are inelastic. */
+    readonly restitution = 0;
 
     /**
      * @param length Length in meters, greater than zero.
@@ -25,9 +26,5 @@ export class ParticleRod extends ParticleLink {
 
     protected deviation(length: number): number {
         return length - this.length;
-    }
-
-    protected contactRestitution(): number {
-        return 0;
     }
 }

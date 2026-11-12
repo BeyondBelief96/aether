@@ -9,21 +9,6 @@ import { preview } from "vite";
 
 const base = process.argv[2] ?? "/";
 const TIMEOUT_MS = 20_000;
-const DEMOS = [
-    "ballistics",
-    "fireworks",
-    "orbits",
-    "integrators",
-    "springs",
-    "elastic-pendulum",
-    "cloth",
-    "drumhead",
-    "raft",
-    "bounce",
-    "break",
-    "bridge",
-    "rotation",
-];
 
 const server = await preview({ base, logLevel: "error", preview: { port: 4179 } });
 const url = server.resolvedUrls?.local[0];
@@ -86,7 +71,19 @@ try {
         if (!painted) throw new Error("the canvas has no WebGL context");
     });
 
-    for (const id of DEMOS) {
+    /** Every demo the index lists, so new demos are covered without editing this script. */
+    let demoIds = [];
+    await check("the index lists the demos", async () => {
+        await page.goto(`${url}#/demos`);
+        await page.locator("demo-index h2", { hasText: "All demos" }).waitFor();
+        const hrefs = await page
+            .locator("demo-index li a")
+            .evaluateAll((links) => links.map((a) => a.getAttribute("href")));
+        demoIds = hrefs.map((href) => href.slice(2).split("?")[0]);
+        if (demoIds.length === 0) throw new Error("the index lists no demos");
+    });
+
+    for (const id of demoIds) {
         await check(`demo "${id}" loads with its parameters`, async () => {
             await open(`#/${id}`);
             const controls = await page.locator("axis-panel > *").count();
@@ -147,14 +144,6 @@ try {
         await page
             .locator("code-view pre:not(.imports)", { hasText: "new ParticleAnchoredSpring" })
             .waitFor();
-    });
-
-    await check("the index lists every demo", async () => {
-        await page.goto(`${url}#/demos`);
-        await page.locator("demo-index h2", { hasText: "All demos" }).waitFor();
-        const links = await page.locator("demo-index li a").count();
-        if (links !== DEMOS.length)
-            throw new Error(`expected ${DEMOS.length} demos, found ${links}`);
     });
 } finally {
     await browser.close();

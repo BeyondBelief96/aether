@@ -14,6 +14,8 @@ import { Particle, ParticleBuoyancy, ParticleSpring, ParticleWorld, Vec3 } from 
 import { defineDemo } from "../../core/demo";
 import { formatDegrees, formatNumber } from "../../core/format";
 import { number } from "../../core/params";
+import { StepBlend } from "../helpers/step-blend";
+import { Strut } from "../helpers/strut";
 import { substepsFor } from "../helpers/substeps";
 import { TapHandle } from "../helpers/tap-handle";
 
@@ -46,13 +48,11 @@ const LAKE_LENGTH = 7; // m
 
 const _a = new Vector3();
 const _b = new Vector3();
-const _up = new Vector3(0, 1, 0);
 const _c = new Vector3();
 const _basis = new Matrix4();
 const _normal = new Vec3();
 const _edgeX = new Vec3();
 const _edgeZ = new Vec3();
-const _blended = new Vec3();
 
 const params = {
     wood: number({
@@ -171,21 +171,19 @@ export const raftDemo = defineDemo({
         const unitBeam = new BoxGeometry(0.16, 1, 0.12);
         const wood = new MeshStandardMaterial({ color: palette.muted, roughness: 0.8 });
         const beamMaterial = new MeshStandardMaterial({ color: palette.ink, roughness: 0.7 });
-        const segments: [Mesh, Particle, Particle][] = [];
+        const segments: [Strut, Particle, Particle][] = [];
         for (let k = 0; k < LOGS; k++) {
             for (let i = 0; i + 1 < ALONG; i++) {
-                const mesh = new Mesh(unitLog, wood);
-                mesh.castShadow = true;
-                segments.push([mesh, logs[k]![i]!, logs[k]![i + 1]!]);
-                raft.add(mesh);
+                const strut = new Strut(unitLog, wood);
+                segments.push([strut, logs[k]![i]!, logs[k]![i + 1]!]);
+                raft.add(strut);
             }
         }
         for (let i = 0; i < ALONG; i += 2) {
             for (let k = 0; k + 1 < LOGS; k++) {
-                const mesh = new Mesh(unitBeam, beamMaterial);
-                mesh.castShadow = true;
-                segments.push([mesh, deck[k]![i]!, deck[k + 1]![i]!]);
-                raft.add(mesh);
+                const strut = new Strut(unitBeam, beamMaterial);
+                segments.push([strut, deck[k]![i]!, deck[k + 1]![i]!]);
+                raft.add(strut);
             }
         }
         const lake = new Mesh(
@@ -209,8 +207,8 @@ export const raftDemo = defineDemo({
         const crateList: Crate[] = [];
         const crateGeometry = new BoxGeometry(CRATE_SIZE, CRATE_SIZE, CRATE_SIZE);
         const crateMaterial = new MeshStandardMaterial({ color: palette.accent, roughness: 0.6 });
-        const previous = new Map<Particle, Vec3>();
-        for (const p of world.particles) previous.set(p, new Vec3().copy(p.position));
+        const blend = new StepBlend();
+        blend.remember(world.particles);
 
         const cellCorners = (cell: number): [Particle, Particle, Particle, Particle] => {
             const k = Math.floor(cell / (ALONG - 1));
@@ -242,7 +240,6 @@ export const raftDemo = defineDemo({
                 link(particle, corner, CRATE_RATE * current.crate),
             );
             world.particles.push(particle);
-            previous.set(particle, new Vec3().copy(particle.position));
             const mesh = new Mesh(crateGeometry, crateMaterial);
             mesh.castShadow = true;
             crates.add(mesh);
@@ -254,7 +251,7 @@ export const raftDemo = defineDemo({
             if (!crate) return;
             for (const [owner, spring] of crate.springs) world.forceRegistry.remove(owner, spring);
             world.remove(crate.particle);
-            previous.delete(crate.particle);
+            blend.forget(crate.particle);
             crates.remove(crate.mesh);
         };
 
@@ -307,7 +304,7 @@ export const raftDemo = defineDemo({
                 if (id === "unload") removeCrate();
             },
             step(dt) {
-                for (const p of world.particles) previous.get(p)?.copy(p.position);
+                blend.remember(world.particles);
                 const n = substepsFor(dt, MAX_SUBSTEP);
                 for (let i = 0; i < n; i++) {
                     world.step(dt / n);
@@ -319,16 +316,9 @@ export const raftDemo = defineDemo({
                 }
             },
             sync(alpha) {
-                const at = (p: Particle, out: Vector3) =>
-                    out.copy(_blended.copy(previous.get(p) ?? p.position).lerp(p.position, alpha));
-                for (const [mesh, from, to] of segments) {
-                    at(from, _a);
-                    at(to, _b);
-                    const length = _a.distanceTo(_b);
-                    mesh.position.addVectors(_a, _b).multiplyScalar(0.5);
-                    mesh.scale.set(1, length, 1);
-                    mesh.quaternion.setFromUnitVectors(_up, _b.sub(_a).normalize());
-                }
+                blend.blend(alpha);
+                const at = (p: Particle, out: Vector3) => out.copy(blend.positionOf(p));
+                for (const [strut, from, to] of segments) strut.place(at(from, _a), at(to, _b));
                 for (const crate of crateList) {
                     at(crate.particle, crate.mesh.position);
                     // Square to the deck cell it stands on.

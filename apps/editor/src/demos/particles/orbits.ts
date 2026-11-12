@@ -119,7 +119,6 @@ export const orbitsDemo = defineDemo({
             root.add(trail);
             return trail;
         });
-        const trailCounts = [0, 0];
 
         const positions = new BufferAttribute(new Float32Array(MAX_DUST * 3), 3);
         const colors = new BufferAttribute(new Float32Array(MAX_DUST * 3), 3);
@@ -184,7 +183,7 @@ export const orbitsDemo = defineDemo({
             }
             attach();
             remember();
-            trailCounts.fill(0);
+            for (const trail of trails) trail.setCount(0);
             sampleTime = 0;
             clearCharts();
         };
@@ -220,20 +219,7 @@ export const orbitsDemo = defineDemo({
                     plot("separation", [stars[0].position.distanceTo(stars[1].position)]);
                     sampleTime -= 1 / SAMPLES_PER_SECOND;
                 }
-                stars.forEach((star, i) => {
-                    const trail = trails[i]!;
-                    const count = trailCounts[i]!;
-                    if (count < TRAIL_POINTS) {
-                        trail.setPoint(count, star.position);
-                        trailCounts[i] = count + 1;
-                        trail.setCount(count + 1);
-                        return;
-                    }
-                    // Full: drop the oldest point and add the newest at the end.
-                    const attr = trail.geometry.getAttribute("position") as BufferAttribute;
-                    attr.array.copyWithin(0, 3);
-                    trail.setPoint(TRAIL_POINTS - 1, star.position);
-                });
+                stars.forEach((star, i) => trails[i]!.append(star.position));
             },
             sync(alpha) {
                 stars.forEach((star, i) => starMeshes[i]!.position.copy(star.position));

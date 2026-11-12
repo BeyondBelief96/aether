@@ -17,7 +17,7 @@ describe("BounceSim", () => {
     it("has no rebound ratio before the first peak after a bounce", () => {
         const sim = new BounceSim(OPTIONS);
         run(sim, 0.5, 60);
-        for (const ball of sim.balls) expect(sim.reboundRatio(ball)).toBeUndefined();
+        for (const ball of sim.balls) expect(ball.reboundRatio()).toBeUndefined();
     });
 
     it.each([0, 1, 2, 3])("rebounds ball %i close to e² at 240 Hz", (index) => {
@@ -25,7 +25,7 @@ describe("BounceSim", () => {
         const ball = sim.balls[index]!;
         while (ball.peaks === 0) sim.step(1 / 240);
         const e = OPTIONS.restitutions[index]!;
-        expect(sim.reboundRatio(ball)).toBeCloseTo(e * e, 1);
+        expect(ball.reboundRatio()).toBeCloseTo(e * e, 1);
     });
 
     it.each([15, 60, 240])("brings every ball to rest on the ground at %i Hz", (hz) => {
@@ -46,14 +46,14 @@ describe("BounceSim", () => {
             expect(ball!.bounces).toBe(1);
             expect(ball!.lastPeak).toBe(0);
             expect(sim.atRest(ball!)).toBe(true);
-            expect(sim.reboundRatio(ball!)).toBeUndefined();
+            expect(ball!.reboundRatio()).toBeUndefined();
         },
     );
 
     it("has no rebound ratio once a ball is at rest", () => {
         const sim = new BounceSim(OPTIONS);
         run(sim, 30, 60);
-        for (const ball of sim.balls) expect(sim.reboundRatio(ball)).toBeUndefined();
+        for (const ball of sim.balls) expect(ball.reboundRatio()).toBeUndefined();
     });
 
     it("drops again from a new height", () => {

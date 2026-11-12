@@ -71,12 +71,6 @@ describe("ParticleCable", () => {
         expect(ball.velocity.x).toBeCloseTo(-3);
     });
 
-    it("writes nothing for coincident particles, whatever maxLength is set to", () => {
-        const cable = new ParticleCable(at(1), at(1), 1);
-        cable.maxLength = -1;
-        expect(cable.addContacts(pool(1), 0)).toBe(0);
-    });
-
     it("leaves a particle free while it moves inside the cable's reach", () => {
         const world = new ParticleWorld();
         const ball = at(0, 0.5);

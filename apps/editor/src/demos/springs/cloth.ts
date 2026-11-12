@@ -10,11 +10,11 @@ import {
     Plane,
     Vector3,
 } from "three";
-import { Vec3 } from "aether-physics";
 import { defineDemo } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { choice, number } from "../../core/params";
 import { DragHandle } from "../helpers/drag-handle";
+import { StepBlend } from "../helpers/step-blend";
 import { substepsFor } from "../helpers/substeps";
 import { ClothSim, type PinMode } from "./cloth-sim";
 
@@ -32,7 +32,6 @@ const MAX_SUBSTEP = 1 / 240; // s; keeps the stiffest links stable at any physic
 const PIN_SIZE = 0.22; // m
 
 const _hit = new Vector3();
-const _blended = new Vec3();
 
 const params = {
     stiffness: number({
@@ -85,8 +84,7 @@ export const clothDemo = defineDemo({
         const cloth = new ClothSim({ size: SIZE, spacing: SPACING, mass: MASS, top: TOP });
         useWorld(cloth.world);
         const count = cloth.particles.length;
-        const previous = new Float32Array(count * 3);
-
+        const blend = new StepBlend();
         const positions = new BufferAttribute(new Float32Array(count * 3), 3);
         const surfaceGeometry = new BufferGeometry().setAttribute("position", positions);
         const indices: number[] = [];
@@ -130,14 +128,6 @@ export const clothDemo = defineDemo({
                 }),
         );
 
-        const remember = (): void => {
-            cloth.particles.forEach((p, i) => {
-                previous[i * 3] = p.position.x;
-                previous[i * 3 + 1] = p.position.y;
-                previous[i * 3 + 2] = p.position.z;
-            });
-        };
-
         const placePins = (): void => {
             const pinned = [...cloth.pinned];
             pinMeshes.forEach((mesh, slot) => {
@@ -151,7 +141,7 @@ export const clothDemo = defineDemo({
         cloth.setStiffness(current.stiffness);
         cloth.setDamping(current.damping);
         cloth.wind.speed = current.wind;
-        remember();
+        blend.reset(cloth.particles);
 
         return {
             update(next, changed) {
@@ -163,15 +153,14 @@ export const clothDemo = defineDemo({
             },
             step(stepDt) {
                 dt = stepDt;
-                remember();
+                blend.remember(cloth.particles);
                 cloth.step(stepDt, substepsFor(stepDt, MAX_SUBSTEP));
             },
             sync(alpha) {
+                blend.blend(alpha);
                 cloth.particles.forEach((p, i) => {
-                    _blended
-                        .set(previous[i * 3]!, previous[i * 3 + 1]!, previous[i * 3 + 2]!)
-                        .lerp(p.position, alpha);
-                    positions.setXYZ(i, _blended.x, _blended.y, _blended.z);
+                    const { x, y, z } = blend.positionOf(p);
+                    positions.setXYZ(i, x, y, z);
                 });
                 positions.needsUpdate = true;
                 surfaceGeometry.computeVertexNormals();

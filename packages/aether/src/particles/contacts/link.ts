@@ -10,6 +10,8 @@ const _normal = new Vec3();
  * the line between them whenever `deviation` reports the distance breaks its rule.
  */
 export abstract class ParticleLink implements ParticleContactGenerator {
+    /** Coefficient of restitution for the link's contact, in [0, 1]. */
+    abstract readonly restitution: number;
     /** First particle. */
     particleA: Particle;
     /** Second particle. */
@@ -45,7 +47,7 @@ export abstract class ParticleLink implements ParticleContactGenerator {
             this.particleB,
             normal,
             Math.abs(deviation),
-            this.contactRestitution(),
+            this.restitution,
         );
         return 1;
     }
@@ -55,7 +57,4 @@ export abstract class ParticleLink implements ParticleContactGenerator {
      * together, negative to push them apart, zero for no contact.
      */
     protected abstract deviation(length: number): number;
-
-    /** Coefficient of restitution for the link's contact, in [0, 1]. */
-    protected abstract contactRestitution(): number;
 }

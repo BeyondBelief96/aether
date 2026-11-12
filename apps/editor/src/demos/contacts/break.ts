@@ -1,14 +1,10 @@
 import { BoxGeometry, Mesh, MeshStandardMaterial, SphereGeometry } from "three";
-import { Vec3 } from "aether-physics";
-import { defineDemo, type SeriesIndex } from "../../core/demo";
+import { defineDemo } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { number } from "../../core/params";
-import {
-    applyResolver,
-    iterationsFor,
-    iterationsReadout,
-    resolverParams,
-} from "../helpers/resolver";
+import { kineticEnergy } from "../helpers/measure";
+import { ResolverBudget, resolverParams } from "../helpers/resolver";
+import { StepBlend } from "../helpers/step-blend";
 import { BreakSim, MAX_ROWS } from "./break-sim";
 
 /**
@@ -24,8 +20,6 @@ const HALF_LENGTH = 4; // m
 const HALF_WIDTH = 2; // m
 const CUSHION = 0.2; // m, thickness and height
 const OVERLAP_WARNING = 0.01; // m
-
-const _blended = new Vec3();
 
 const params = {
     speed: number({ label: "Cue speed", min: 2, max: 20, step: 0.5, default: 10, unit: " m/s" }),
@@ -65,8 +59,8 @@ export const breakDemo = defineDemo({
             rows: values.rows,
             restitution: values.restitution,
             damping: values.damping,
-            iterations: iterationsFor(values),
         });
+        const budget = new ResolverBudget(sim.world, values);
         useWorld(sim.world);
 
         const cushionMaterial = new MeshStandardMaterial({ color: palette.muted });
@@ -84,7 +78,7 @@ export const breakDemo = defineDemo({
         const cueMaterial = new MeshStandardMaterial({ color: palette.ink });
         const rackMaterials = palette.series.map((color) => new MeshStandardMaterial({ color }));
         const meshes: Mesh[] = [];
-        const previous: Vec3[] = [];
+        const blend = new StepBlend();
 
         /** Matches the meshes to the balls on the table and snaps them into place. */
         const syncMeshes = (): void => {
@@ -96,10 +90,9 @@ export const breakDemo = defineDemo({
                 const mesh = new Mesh(ballGeometry, material);
                 mesh.castShadow = true;
                 meshes.push(mesh);
-                previous.push(new Vec3());
                 root.add(mesh);
             }
-            sim.particles.forEach((p, i) => previous[i]!.copy(p.position));
+            blend.reset(sim.particles);
         };
 
         const shoot = (): void => {
@@ -114,21 +107,19 @@ export const breakDemo = defineDemo({
                 current = next;
                 if (changed.has("restitution")) sim.setRestitution(next.restitution);
                 if (changed.has("damping")) sim.setDamping(next.damping);
-                applyResolver(sim.world, next, changed);
+                budget.update(next, changed);
                 if (changed.has("rows")) shoot();
             },
             action(id) {
                 if (id === "break") shoot();
             },
             step(dt) {
-                sim.particles.forEach((p, i) => previous[i]!.copy(p.position));
+                blend.remember(sim.particles);
                 sim.step(dt);
             },
             sync(alpha) {
-                sim.particles.forEach((p, i) => {
-                    _blended.copy(previous[i]!).lerp(p.position, alpha);
-                    meshes[i]!.position.copy(_blended);
-                });
+                blend.blend(alpha);
+                sim.particles.forEach((p, i) => meshes[i]!.position.copy(blend.positionOf(p)));
             },
             readouts: () => {
                 const { world } = sim;
@@ -140,7 +131,7 @@ export const breakDemo = defineDemo({
                         rows: [
                             { label: "Contacts", value: String(world.contactCount) },
                             { label: "Peak contacts", value: String(sim.peakContacts) },
-                            iterationsReadout(world),
+                            budget.readout(),
                         ],
                     },
                     {
@@ -150,7 +141,7 @@ export const breakDemo = defineDemo({
                             { label: "Balls", value: String(sim.particles.length) },
                             {
                                 label: "Kinetic energy",
-                                value: `${formatNumber(sim.kineticEnergy(), 2)} J`,
+                                value: `${formatNumber(kineticEnergy(sim.particles), 2)} J`,
                             },
                             {
                                 label: "Deepest overlap",
@@ -161,7 +152,7 @@ export const breakDemo = defineDemo({
                     },
                 ];
             },
-            callouts: () => [{ at: meshes[0]!.position, text: "cue", color: 0 as SeriesIndex }],
+            callouts: () => [{ at: meshes[0]!.position, text: "cue", color: 0 }],
         };
     },
 });

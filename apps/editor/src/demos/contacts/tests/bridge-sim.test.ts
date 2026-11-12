@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Vec3 } from "aether-physics";
+import { kineticEnergy, worstRodError } from "../../helpers/measure";
+import { ParticleContactResolver, Vec3 } from "aether-physics";
 import { BridgeSim, type BridgeOptions } from "../bridge-sim";
 
 const OPTIONS: BridgeOptions = {
@@ -13,24 +14,25 @@ const OPTIONS: BridgeOptions = {
     damping: 0.5,
     slack: 0.05,
     hangers: false,
-    iterations: 2000,
 };
+
+/** A bridge resolved by `resolver`, which defaults to the demo's fixed budget. */
+function bridge(
+    options: Partial<BridgeOptions> = {},
+    resolver = new ParticleContactResolver(2000),
+): BridgeSim {
+    const sim = new BridgeSim({ ...OPTIONS, ...options });
+    sim.world.contactResolver = resolver;
+    return sim;
+}
 
 function run(sim: BridgeSim, seconds: number, dt = 1 / 60): void {
     for (let i = 0; i < seconds / dt; i++) sim.step(dt);
 }
 
-function kineticEnergy(sim: BridgeSim): number {
-    let energy = 0;
-    for (const p of sim.particles) {
-        if (p.inverseMass > 0) energy += 0.5 * p.mass * p.velocity.magnitudeSquared();
-    }
-    return energy;
-}
-
 describe("BridgeSim", () => {
     it("fixes the end particles and builds the links", () => {
-        const sim = new BridgeSim(OPTIONS);
+        const sim = bridge();
         expect(sim.particles).toHaveLength(18);
         expect(sim.node(0, 0).inverseMass).toBe(0);
         expect(sim.node(1, 8).inverseMass).toBe(0);
@@ -43,18 +45,18 @@ describe("BridgeSim", () => {
     });
 
     it("sags into a chain and settles, every rod at its length", () => {
-        const sim = new BridgeSim(OPTIONS);
+        const sim = bridge();
         run(sim, 15);
 
         // A chord of 10 m with 5% slack hangs about 1.4 m deep.
         expect(sim.sag()).toBeCloseTo(1.4, 1);
-        expect(sim.rodError()).toBeLessThan(1e-4);
+        expect(worstRodError(sim.rods)).toBeLessThan(1e-4);
         expect(sim.cableStretch()).toBeLessThan(1e-3);
-        expect(kineticEnergy(sim)).toBeLessThan(0.5);
+        expect(kineticEnergy(sim.particles)).toBeLessThan(0.5);
     });
 
     it("moves the lowest point toward a parked load, and settles under it", () => {
-        const sim = new BridgeSim(OPTIONS);
+        const sim = bridge();
         sim.loadMass = 100;
         sim.loadPosition = 2.5;
         run(sim, 20);
@@ -68,20 +70,20 @@ describe("BridgeSim", () => {
             if (sim.node(0, i).position.y < sim.node(0, lowest).position.y) lowest = i;
         }
         expect(lowest).toBeLessThan(4);
-        expect(sim.rodError()).toBeLessThan(1e-3);
+        expect(worstRodError(sim.rods)).toBeLessThan(1e-3);
         sim.particles.forEach((p, i) =>
             expect(p.position.distanceTo(before[i]!)).toBeLessThan(1e-3),
         );
     });
 
     it("carries a moving load across and back, keeping the rods at length", () => {
-        const sim = new BridgeSim(OPTIONS);
+        const sim = bridge();
         sim.loadMass = 100;
         sim.loadSpeed = 2;
         let worst = 0;
         for (let i = 0; i < 60 * 15; i++) {
             sim.step(1 / 60);
-            if (i > 120) worst = Math.max(worst, sim.rodError());
+            if (i > 120) worst = Math.max(worst, worstRodError(sim.rods));
             expect(sim.loadPosition).toBeGreaterThanOrEqual(0);
             expect(sim.loadPosition).toBeLessThanOrEqual(10);
         }
@@ -90,13 +92,13 @@ describe("BridgeSim", () => {
     });
 
     it("stretches when the resolver gets only twice the contact count", () => {
-        const sim = new BridgeSim({ ...OPTIONS, iterations: undefined });
+        const sim = bridge({}, new ParticleContactResolver());
         run(sim, 10);
         expect(sim.cableStretch()).toBeGreaterThan(0.05);
     });
 
     it("hangs the deck from the hangers, leaving the ones near the ends slack", () => {
-        const sim = new BridgeSim({ ...OPTIONS, hangers: true });
+        const sim = bridge({ hangers: true });
         run(sim, 10);
 
         expect(sim.world.contactGenerators).toEqual([
@@ -105,13 +107,13 @@ describe("BridgeSim", () => {
             ...sim.hangerCables,
         ]);
         expect(sim.sag()).toBeCloseTo(0.6, 2);
-        const taut = sim.tautCount(0.002);
+        const taut = sim.tautCount();
         expect(taut).toBeGreaterThan(0);
         expect(taut).toBeLessThan(sim.cableCount());
     });
 
     it("puts the load point between the particles around it", () => {
-        const sim = new BridgeSim(OPTIONS);
+        const sim = bridge();
         sim.loadPosition = 3.75; // section 3, halfway along
         const point = sim.loadPoint(new Vec3());
         expect(point.x).toBeCloseTo(-1.25);
@@ -121,7 +123,7 @@ describe("BridgeSim", () => {
     });
 
     it("lengthens the rail cables with slack", () => {
-        const sim = new BridgeSim(OPTIONS);
+        const sim = bridge();
         sim.setSlack(0.1);
         expect(sim.railCables[0]!.maxLength).toBeCloseTo(1.375);
     });

@@ -193,12 +193,9 @@ describe("ParticleWorld", () => {
         },
     );
 
-    it.each([{ maxContacts: -1 }, { maxContacts: 1.5 }, { resolverIterations: -1 }])(
-        "rejects %o",
-        (options) => {
-            expect(() => new ParticleWorld(options)).toThrow(RangeError);
-        },
-    );
+    it.each([{ maxContacts: -1 }, { maxContacts: 1.5 }])("rejects %o", (options) => {
+        expect(() => new ParticleWorld(options)).toThrow(RangeError);
+    });
 
     it("keeps a particle on GroundContacts still for 1,000 steps", () => {
         const world = new ParticleWorld();
@@ -268,25 +265,18 @@ describe("ParticleWorld", () => {
         expect(world.particles[4]!.position.y).toBeLessThan(0);
     });
 
-    it("resolves with twice the contact count unless resolverIterations is given", () => {
-        const sink = (world: ParticleWorld) => {
-            for (let i = 0; i < 3; i++) {
-                const p = new Particle();
-                p.position.set(i, -1, 0);
-                world.particles.push(p);
-            }
-            world.contactGenerators.push(new GroundContacts(world.particles));
-            world.step(1 / 60);
-            return world;
-        };
-
-        const auto = sink(new ParticleWorld());
-        expect(auto.contactResolver.iterationsUsed).toBe(3);
-        for (const p of auto.particles) expect(p.position.y).toBeCloseTo(0);
-
-        const capped = sink(new ParticleWorld({ resolverIterations: 1 }));
-        expect(capped.contactResolver.iterationsUsed).toBe(1);
-        expect(capped.particles.filter((p) => p.position.y < -0.5)).toHaveLength(2);
+    it("resolves with twice the contact count by default", () => {
+        const world = new ParticleWorld();
+        for (let i = 0; i < 3; i++) {
+            const p = new Particle();
+            p.position.set(i, -1, 0);
+            world.particles.push(p);
+        }
+        world.contactGenerators.push(new GroundContacts(world.particles));
+        world.step(1 / 60);
+        expect(world.contactResolver.iterationLimit).toBe(6);
+        expect(world.contactResolver.iterationsUsed).toBe(3);
+        for (const p of world.particles) expect(p.position.y).toBeCloseTo(0);
     });
 
     it("uses a resolver swapped in between steps", () => {
@@ -303,10 +293,6 @@ describe("ParticleWorld", () => {
         world.step(1 / 60);
         expect(resolver.iterationLimit).toBe(0);
         expect(ball.position.y).toBeLessThan(-0.5);
-    });
-
-    it("names resolverIterations when rejecting it", () => {
-        expect(() => new ParticleWorld({ resolverIterations: -1 })).toThrow(/resolverIterations/);
     });
 
     it("resets the contact count and resolver iterations on a step with no contacts", () => {

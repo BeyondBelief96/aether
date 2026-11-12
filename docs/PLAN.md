@@ -674,7 +674,7 @@ Where the build goes beyond the sketch: `ParticleWorld.step` records `lastAccele
 
 **Covers:** the split between finding contacts and resolving them, and iteration, since resolving one contact disturbs its neighbors. Resolving one contact's interpenetration changes the penetration of every other contact that shares a particle, so the resolver adjusts those contacts by how far each particle moved before the next iteration, as the book's source does with `particleMovement`.
 
-This class is the first implementation behind the resolver seam. Keep its public surface to `resolveContacts`, so Step 10 can extract the interface without changing callers.
+This class is the first implementation behind the resolver seam. Code that reaches it through `ParticleWorld.contactResolver` calls only `resolveContacts`, so Step 10 can extract the interface without changing callers; anything else on the class is read by whoever constructed it.
 
 ```ts
 interface ParticleContactGenerator {
@@ -694,7 +694,7 @@ class GroundContacts implements ParticleContactGenerator {
 class ParticleWorld {
   // ...Step 1 members
   readonly contactGenerators: ParticleContactGenerator[] = []
-  constructor(options?: { maxContacts?: number; resolverIterations?: number })
+  constructor(options?: { maxContacts?: number })
 }
 ```
 
@@ -702,8 +702,8 @@ Where the build goes beyond the sketch:
 
 - The resolver measures each particle's movement from its position before and after `resolve`, so `ParticleContact` stores nothing for it. It adjusts the penetration of every other contact sharing a moved particle and sets the resolved contact's own penetration to exactly zero, so rounding never leaves it selectable.
 - The resolver skips contacts whose particles are all immovable, treats closing speeds and penetrations under 1e-9 as resolved, and stops early once nothing qualifies.
-- `new ParticleContactResolver()` without `iterations` uses twice the contact count on each call. Its surface beyond `resolveContacts` is the read-only `iterations`, `iterationsUsed` and `iterationLimit` (the limit the last call allowed, so callers never repeat the default).
-- `ParticleWorld` takes `ParticleWorldOptions`: `maxContacts` defaults to 256, and `resolverIterations` passes through to the resolver. The pool and the last step's count are readable as `contacts` and `contactCount`, for debug drawing, and the resolver is `contactResolver`, which can be replaced between steps, as `integrator` can; that is how the demos change the iteration budget.
+- `new ParticleContactResolver()` without `iterations` uses twice the contact count on each call. Its surface beyond `resolveContacts` is the read-only `iterations`, `iterationsUsed` and `iterationLimit` (the limit the last call allowed, so callers never repeat the default; before the first call, `iterations` or 0). These are read from the resolver instance, not through the world: the demos' `ResolverBudget` keeps the resolver it installs and reads them there.
+- `ParticleWorld` takes `ParticleWorldOptions`: `maxContacts` defaults to 256. The world starts with a default `ParticleContactResolver`; a different budget is a different resolver assigned to `contactResolver`. The pool and the last step's count are readable as `contacts` and `contactCount`, for debug drawing, and the resolver is `contactResolver`, which can be replaced between steps, as `integrator` can; that is how the demos change the iteration budget.
 - `GroundContacts` reads its particle array each call, so passing `world.particles` follows additions and removals. It skips immovable particles, and its restitution defaults to 0.2.
 
 **Known limit: contacts are found once per step.** Resolving one contact can push a particle into something it had no contact with when the step began, and nothing corrects that until the next step. A stack of bouncing spheres shows it: when the bottom ball lifts off the ground, the ball above pushes it back into the ground with no ground contact to stop it, and the stack sinks and boils. The *Break* demo stays in one layer for this reason. Contact margins and generating contacts again inside the resolver are the usual fixes; Step 10's resolver and Phase 5's persistent manifolds address it. A related trap in user generators: two resting spheres that fall the same distance in a step stay exactly touching, so a generator that reports only overlaps misses their contact every other step. The demos' sphere generator counts pairs within 0.1 mm as touching.
@@ -715,6 +715,8 @@ Where the build goes beyond the sketch:
 - [x] `src/particles/contacts/cable.ts`: `ParticleCable`
 - [x] `src/particles/contacts/rod.ts`: `ParticleRod`
 - [x] Demo: *Bridge* (a rope bridge of rail cables and cross rods with optional hangers, a load that crosses it, and the resolver's iteration budget as a parameter)
+- [x] Demo: *Pendulums* (a rod and a cable pendulum kicked at the same speed: the cable goes slack between `√(2gL)` and `√(5gL)`, and the rod loops from `√(4gL)`)
+- [x] Demo: *Frames* (a tetrahedron, prism and cube built from rods alone, dropped spinning onto the ground; without bracing the prism and cube fold)
 
 **Covers:** hard constraints written as contact generators, so structures need no new solver.
 
@@ -730,7 +732,7 @@ class ParticleRod implements ParticleContactGenerator {
 
 Where the build goes beyond the sketch:
 
-- Both extend `ParticleLink` (`src/particles/contacts/link.ts`), an abstract generator holding `particleA`, `particleB` and `currentLength()`. It owns `addContacts`: each subclass supplies only `deviation(length)` (positive to pull together, negative to push apart, zero for no contact) and its restitution, and the base skips a full pool, coincident particles and NaN. It isn't exported yet; export it when users need their own links.
+- Both extend `ParticleLink` (`src/particles/contacts/link.ts`), an abstract generator holding `particleA`, `particleB` and `currentLength()`. It owns `addContacts`: each subclass supplies only `deviation(length)` (positive to pull together, negative to push apart, zero for no contact) and an abstract `restitution` (the cable's settable field; the rod's fixed 0), and the base skips a full pool, coincident particles and NaN. It isn't exported yet; export it when users need their own links.
 - A link's contact normal is the direction `particleA` is pushed: toward `particleB` when the link pulls them together, away from it when a rod pushes them apart. `ParticleContact.normal` is documented that way now, not as "from B toward A".
 - Constructors throw `RangeError` for the same particle at both ends, a non-positive or non-finite length, or a cable restitution outside [0, 1]. Cable restitution defaults to 0. A rod writes nothing for coincident particles, since there is no direction to push along, and nothing at exactly its length.
 - `maxLength`, `restitution` and `length` are public and mutable; the *Bridge* demo's slack slider sets `maxLength`.

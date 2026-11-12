@@ -10,17 +10,14 @@ import {
     Mesh,
     MeshStandardMaterial,
 } from "three";
-import { Vec3, type Particle } from "aether-physics";
-import { defineDemo, type SeriesIndex } from "../../core/demo";
+import { Vec3, type Particle, type Vec3Like } from "aether-physics";
+import { defineDemo } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { number, toggle } from "../../core/params";
 import type { ScenePalette } from "../../stage/palette";
-import {
-    applyResolver,
-    iterationsFor,
-    iterationsReadout,
-    resolverParams,
-} from "../helpers/resolver";
+import { worstRodError } from "../helpers/measure";
+import { ResolverBudget, resolverParams } from "../helpers/resolver";
+import { StepBlend } from "../helpers/step-blend";
 import { substepsFor } from "../helpers/substeps";
 import { BridgeSim } from "./bridge-sim";
 
@@ -41,15 +38,15 @@ const HANGER_DROP = 0.6; // m
 const NODE_MASS = 5; // kg
 const DAMPING = 0.5;
 const MAX_SUBSTEP = 1 / 60; // s; keeps a heavy load stable at low physics rates
-const TAUT_TOLERANCE = 0.002; // m
 const ERROR_WARNING = 0.01; // m
 const ABUTMENT = 1.2; // m
 const POST = 0.16; // m
 const LOAD_SIZE = { x: 0.8, y: 0.5, z: 1.1 }; // m, at 60 kg
 
-const _blended = new Vec3();
 const _point = new Vec3();
-const _corner = new Vec3();
+
+/** Enough iterations for the chain to hold its length. */
+const FIXED_BUDGET = { auto: false, iterations: 2000 };
 
 const params = {
     load: number({ label: "Load", min: 0, max: 150, step: 5, default: 60, unit: " kg" }),
@@ -59,58 +56,31 @@ const params = {
     ...resolverParams({ auto: false, min: 50, max: 4000, step: 50, default: 2000 }),
 };
 
-/**
- * Positions of every particle the bridge draws, deck then anchors, blended between the last two
- * steps. Anchors never move, so only the deck is blended.
- */
+/** Positions of every particle the bridge draws, deck then anchors, packed for a buffer. */
 class Points {
     readonly array: Float32Array;
-    private readonly deck: readonly Particle[];
-    private readonly previous: Float32Array;
+    private readonly all: readonly Particle[];
     private readonly index = new Map<Particle, number>();
 
-    constructor(deck: readonly Particle[], anchors: readonly Particle[]) {
-        this.deck = deck;
-        const all = [...deck, ...anchors];
+    constructor(all: readonly Particle[]) {
+        this.all = all;
         this.array = new Float32Array(all.length * 3);
-        this.previous = new Float32Array(deck.length * 3);
-        all.forEach((p, i) => {
-            this.index.set(p, i);
-            this.array[i * 3] = p.position.x;
-            this.array[i * 3 + 1] = p.position.y;
-            this.array[i * 3 + 2] = p.position.z;
-        });
-        this.remember();
+        all.forEach((p, i) => this.index.set(p, i));
     }
 
     indexOf(particle: Particle): number {
         return this.index.get(particle)!;
     }
 
-    /** Records the deck's positions before a step. */
-    remember(): void {
-        this.deck.forEach((p, i) => {
-            this.previous[i * 3] = p.position.x;
-            this.previous[i * 3 + 1] = p.position.y;
-            this.previous[i * 3 + 2] = p.position.z;
+    /** Copies each particle's position from `positionOf` into `array`. */
+    place(positionOf: (particle: Particle) => Vec3Like): void {
+        this.all.forEach((p, i) => {
+            const { x, y, z } = positionOf(p);
+            this.array[i * 3] = x;
+            this.array[i * 3 + 1] = y;
+            this.array[i * 3 + 2] = z;
         });
     }
-
-    blend(alpha: number): void {
-        this.deck.forEach((p, i) => {
-            const at = i * 3;
-            _blended
-                .set(this.previous[at]!, this.previous[at + 1]!, this.previous[at + 2]!)
-                .lerp(p.position, alpha);
-            this.array[at] = _blended.x;
-            this.array[at + 1] = _blended.y;
-            this.array[at + 2] = _blended.z;
-        });
-    }
-
-    /** The blended position of point `i`, in a shared scratch vector. */
-    at = (i: number): Vec3 =>
-        _corner.set(this.array[i * 3]!, this.array[i * 3 + 1]!, this.array[i * 3 + 2]!);
 }
 
 /** The deck surface: one quad per section between the rails, drawn straight from `points`. */
@@ -149,15 +119,12 @@ function buildDeck(sim: BridgeSim, points: Points, palette: ScenePalette) {
  * Every link as a line segment: rods in ink, then rail cables and hangers, each orange when
  * taut and grey when slack.
  */
-function buildLinks(sim: BridgeSim, points: Points, palette: ScenePalette) {
+function buildLinks(sim: BridgeSim, blend: StepBlend, palette: ScenePalette) {
     const { rods, railCables, hangerCables } = sim;
-    const ends = [...rods, ...railCables, ...hangerCables].map((link) => [
-        points.indexOf(link.particleA),
-        points.indexOf(link.particleB),
-    ]);
+    const links = [...rods, ...railCables, ...hangerCables];
     const cables = [...railCables, ...hangerCables];
-    const positions = new BufferAttribute(new Float32Array(ends.length * 6), 3);
-    const colors = new BufferAttribute(new Float32Array(ends.length * 6), 3);
+    const positions = new BufferAttribute(new Float32Array(links.length * 6), 3);
+    const colors = new BufferAttribute(new Float32Array(links.length * 6), 3);
     const geometry = new BufferGeometry()
         .setAttribute("position", positions)
         .setAttribute("color", colors);
@@ -176,15 +143,14 @@ function buildLinks(sim: BridgeSim, points: Points, palette: ScenePalette) {
     return {
         lines,
         place(): void {
-            ends.forEach(([a, b], i) => {
-                const pa = points.at(a!);
-                positions.setXYZ(i * 2, pa.x, pa.y, pa.z);
-                const pb = points.at(b!);
-                positions.setXYZ(i * 2 + 1, pb.x, pb.y, pb.z);
+            links.forEach((link, i) => {
+                const a = blend.positionOf(link.particleA);
+                positions.setXYZ(i * 2, a.x, a.y, a.z);
+                const b = blend.positionOf(link.particleB);
+                positions.setXYZ(i * 2 + 1, b.x, b.y, b.z);
             });
             cables.forEach((cable, i) => {
-                const taut = cable.currentLength() >= cable.maxLength - TAUT_TOLERANCE;
-                setColor(rods.length + i, taut ? tautColor : slackColor);
+                setColor(rods.length + i, sim.isTaut(cable) ? tautColor : slackColor);
             });
             positions.needsUpdate = true;
             colors.needsUpdate = true;
@@ -235,17 +201,17 @@ export const bridgeDemo = defineDemo({
         {
             label: "Rope bridge",
             note: "60 kg crossing",
-            values: { load: 60, speed: 1, hangers: false, auto: false, iterations: 2000 },
+            values: { load: 60, speed: 1, hangers: false, ...FIXED_BUDGET },
         },
         {
             label: "Hung deck",
             note: "Hanger cables",
-            values: { load: 60, speed: 1, hangers: true, auto: false, iterations: 2000 },
+            values: { load: 60, speed: 1, hangers: true, ...FIXED_BUDGET },
         },
         {
             label: "Heavy",
             note: "150 kg",
-            values: { load: 150, speed: 0.5, hangers: false, auto: false, iterations: 2000 },
+            values: { load: 150, speed: 0.5, hangers: false, ...FIXED_BUDGET },
         },
         {
             label: "Starved",
@@ -268,15 +234,17 @@ export const bridgeDemo = defineDemo({
             damping: DAMPING,
             slack: values.slack,
             hangers: values.hangers,
-            iterations: iterationsFor(values),
         });
+        const budget = new ResolverBudget(sim.world, values);
         sim.loadMass = values.load;
         sim.loadSpeed = values.speed;
         useWorld(sim.world);
 
-        const points = new Points(sim.particles, sim.anchors);
+        const blend = new StepBlend();
+        blend.reset(sim.particles);
+        const points = new Points([...sim.particles, ...sim.anchors]);
         const deck = buildDeck(sim, points, palette);
-        const links = buildLinks(sim, points, palette);
+        const links = buildLinks(sim, blend, palette);
         const { fixtures, gantry } = buildFixtures(palette);
         gantry.visible = values.hangers;
         const load = new Mesh(
@@ -290,7 +258,7 @@ export const bridgeDemo = defineDemo({
             load.visible = sim.loadMass > 0;
             if (!load.visible) return;
             const scale = Math.cbrt(sim.loadMass / 60);
-            sim.loadPoint(_point, points.at);
+            sim.loadPoint(_point, blend.positionOf);
             load.scale.setScalar(scale);
             load.position.set(_point.x, _point.y + (LOAD_SIZE.y * scale) / 2, _point.z);
         };
@@ -304,22 +272,23 @@ export const bridgeDemo = defineDemo({
                     sim.setHangers(next.hangers);
                     gantry.visible = next.hangers;
                 }
-                applyResolver(sim.world, next, changed);
+                budget.update(next, changed);
             },
             step(stepDt) {
                 dt = stepDt;
-                points.remember();
+                blend.remember(sim.particles);
                 const substeps = substepsFor(stepDt, MAX_SUBSTEP);
                 for (let i = 0; i < substeps; i++) sim.step(stepDt / substeps);
             },
             sync(alpha) {
-                points.blend(alpha);
+                blend.blend(alpha);
+                points.place(blend.positionOf);
                 deck.place();
                 links.place();
                 placeLoad();
             },
             readouts: () => {
-                const rodError = sim.rodError();
+                const rodError = worstRodError(sim.rods);
                 const stretch = Math.max(sim.cableStretch(), 0);
                 return [
                     {
@@ -328,7 +297,7 @@ export const bridgeDemo = defineDemo({
                         rows: [
                             {
                                 label: "Taut cables",
-                                value: `${sim.tautCount(TAUT_TOLERANCE)} of ${sim.cableCount()}`,
+                                value: `${sim.tautCount()} of ${sim.cableCount()}`,
                             },
                             { label: "Rods", value: String(sim.rods.length) },
                             { label: "Lowest point", value: `${formatNumber(sim.sag(), 2)} m` },
@@ -343,7 +312,7 @@ export const bridgeDemo = defineDemo({
                         color: 1,
                         rows: [
                             { label: "Contacts", value: String(sim.world.contactCount) },
-                            iterationsReadout(sim.world, false),
+                            budget.readout(false),
                             {
                                 label: "Worst rod error",
                                 value: `${formatNumber(rodError * 1000, 1)} mm`,
@@ -368,7 +337,7 @@ export const bridgeDemo = defineDemo({
                           {
                               at: load.position,
                               text: `${formatNumber(sim.loadMass, 0)} kg`,
-                              color: 1 as SeriesIndex,
+                              color: 1,
                           },
                       ]
                     : [],

@@ -64,11 +64,11 @@ Demos are grouped by the engine feature they are built on, in a few plain catego
 |---|---|---|---|---|
 | Particles | `particles/` | Point masses moving under forces: projectiles, swarms, fields | Ballistics, Fireworks, Orbits, Integrators | |
 | Springs | `springs/` | Particles joined by springs | Springs, Elastic pendulum, Cloth, Drumhead, Raft | Rope and cloth tearing |
-| Contacts | `contacts/` | Things that collide or are held by hard constraints: the ground, cables, rods, and later rigid-body collisions, friction and stacking | Bounce, Break, Bridge | Collision inspector, Broadphase heatmap, Restitution and friction lab, Solver comparison |
+| Contacts | `contacts/` | Things that collide or are held by hard constraints: the ground, cables, rods, and later rigid-body collisions, friction and stacking | Bounce, Break, Bridge, Pendulums, Frames | Collision inspector, Broadphase heatmap, Restitution and friction lab, Solver comparison |
 | Rigid bodies | `rigid-bodies/` | Orientation, inertia, torque, a single body's motion and the forces on it | Rotation | Spinning bodies, Sailing, Flight sim |
 | Joints (later) | `joints/` | Bodies held together by joints; islands and sleeping | | Newton's cradle, Chain bridge, Car, Ragdoll, Sleep visualizer |
 
-When a demo uses several features, put it under the one that makes it interesting: the raft floats on buoyancy, but it holds together with springs, so it goes in Springs; the bridge is cables and rods, so it goes in Contacts. Prefer one strong demo per idea over several variations of it. Add a category only when a new engine feature arrives that none of these describe, and keep the list short.
+When a demo uses several features, put it under the one that makes it interesting: the raft floats on buoyancy, but it holds together with springs, so it goes in Springs, and it is also the demo for `ParticleBuoyancy`; the bridge is cables and rods, so it goes in Contacts. Prefer one strong demo per idea over several variations of it. Add a category only when a new engine feature arrives that none of these describe, and keep the list short.
 
 ## 2. Checklist for a new demo
 
@@ -92,16 +92,15 @@ When a demo uses several features, put it under the one that makes it interestin
 ```ts
 // apps/editor/src/demos/springs/name.ts
 import { Mesh, MeshStandardMaterial, SphereGeometry } from "three";
-import { Particle, ParticleWorld, Vec3 } from "aether-physics";
+import { Particle, ParticleWorld } from "aether-physics";
 import { defineDemo } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { number } from "../../core/params";
+import { StepBlend } from "../helpers/step-blend";
 
 /** <The one idea this demo shows, and what to look at.> */
 
 const RADIUS = 0.4; // m
-
-const _blended = new Vec3();
 
 const params = {
     gravity: number({ label: "Gravity", min: 0, max: 20, step: 0.1, default: 9.81, unit: " m/s²" }),
@@ -123,7 +122,8 @@ export const nameDemo = defineDemo({
         const ball = new Particle();
         ball.position.set(0, 4, 0);
         world.particles.push(ball);
-        const previous = new Vec3().copy(ball.position);
+        const blend = new StepBlend();
+        blend.reset([ball]);
 
         const mesh = new Mesh(new SphereGeometry(RADIUS, 24, 16), new MeshStandardMaterial({ color: palette.accent }));
         root.add(mesh);
@@ -133,11 +133,12 @@ export const nameDemo = defineDemo({
                 world.gravity.set(0, -next.gravity, 0);
             },
             step(dt) {
-                previous.copy(ball.position);
+                blend.remember([ball]);
                 world.step(dt);
             },
             sync(alpha) {
-                mesh.position.copy(_blended.copy(previous).lerp(ball.position, alpha));
+                blend.blend(alpha);
+                mesh.position.copy(blend.positionOf(ball));
             },
             readouts: () => [
                 { title: "Ball", rows: [{ label: "Height", value: `${formatNumber(ball.position.y, 2)} m` }] },
@@ -216,7 +217,7 @@ Watch the component order when calling `set`: Aether is `new Quaternion(w, x, y,
 
 ### Interpolation
 
-Save the previous state at the top of `step` and blend in `sync`: `Vec3.lerp` for positions, `Quaternion.slerpQuaternions` for orientations. A demo with no time evolution can set meshes directly in `update`.
+Save the previous state at the top of `step` and blend in `sync`. For particles, `StepBlend` does both: `remember` the particles at the top of `step`, `blend(alpha)` in `sync`, then read each with `positionOf`, passing an `out` vector when two positions are needed at once. Orientations use `Quaternion.slerpQuaternions`. A demo with no time evolution can set meshes directly in `update`.
 
 ### Substepping
 
@@ -229,11 +230,14 @@ In `apps/editor/src/demos/helpers/`:
 | Helper | Use |
 |---|---|
 | `VectorArrow` | An arrow whose length is a vector's magnitude, drawn over meshes |
-| `Polyline` | A line rewritten in place without allocating, for trails |
+| `Polyline` | A line rewritten in place without allocating. `append` adds a point and drops the oldest when full, for trails |
+| `Strut` | A mesh stretched between two points, for rods, cables, logs and beams. Give it a geometry one unit long along y, centred, and call `place(a, b)` |
 | `SpringCoil` | A helix between two points with a fixed number of turns |
 | `DragHandle` | Lets the user drag an object. Your callback receives the pointer's world-space ray; an optional second callback runs on release. Turns orbiting off during the drag. Call `dispose()` in `dispose` |
 | `substepsFor` | How many substeps keep each one under a maximum length. Stiff demos substep by it so every physics rate the transport offers stays stable |
-| `resolverParams`, `applyResolver`, `iterationsReadout` | The contact resolver's iteration budget as an *Auto iterations* toggle and an *Iterations* slider, a resolver swapped into the world when either changes, and a "used of limit" readout |
+| `resolverParams`, `ResolverBudget` | The contact resolver's iteration budget as an *Auto iterations* toggle and an *Iterations* slider. `ResolverBudget` installs a resolver for those values, swaps in a new one when either changes, and gives a "used of limit" readout from the resolver it holds |
+| `StepBlend` | Particle positions blended between the last two steps. `remember` before a step, `blend(alpha)` in `sync`, read with `positionOf`; `reset` snaps, `forget` drops a removed particle |
+| `worstRodError`, `kineticEnergy` | The largest rod length error, and the kinetic energy of the movable particles, for readouts |
 | `TapHandle` | Calls back with the hit when the user presses on an object, without also turning the camera. For strikes and placing things. Call `dispose()` in `dispose` |
 | `disposeObject` | Frees the GPU resources under an object. The session already calls it on `root` |
 
@@ -300,6 +304,14 @@ One particle on a `ParticleAnchoredSpring` under gravity. The spring's frequency
 A rope bridge built only from contact generators: two rails of 9 particles each, fixed at both ends, joined along each rail by a `ParticleCable` and across the deck by a `ParticleRod`. *Hangers* adds a cable from a fixed anchor above each deck particle, 0.6 m longer than the drop to the deck, so the hangers near the ends stay slack. The load is not a particle: each step `bridge-sim.ts` adds its mass to the four deck particles around it, split by how far along the section it is, so gravity pulls harder there. Cables are drawn in the accent colour when within 2 mm of their length and grey when slack.
 
 A hanging chain needs far more resolver iterations than the default of twice the contact count, which lets single cables stretch by up to 0.4 m and the deck hang about a meter deeper while the load crosses (*Starved*). The default is 2,000 per step, which keeps every cable within about a millimetre. The resolver parameters come from `helpers/resolver.ts`, shared with *Break*; the readout doesn't flag the budget as exhausted, because a chain always uses all of it. The world is substepped to 1/60 s so a heavy load stays stable at low physics rates.
+
+### Pendulums
+
+Two bobs on fixed pivots side by side, one on a `ParticleRod` and one on a `ParticleCable`, both kicked sideways from hanging at the *Kick* speed. A rod contact can push as well as pull, so the rod keeps its bob on the circle; a cable contact only pulls, so once the bob is above level and too slow for gravity alone to bend its path (`v² < −gL cos θ`), the cable would have to push; instead it goes slack and its bob falls inside the circle until the cable snaps taut again, losing energy unless *Cable restitution* is raised. The readouts give the three kick speeds that matter for `L = 1.5 m`: `√(2gL)` to swing past level, `√(4gL)` for a rod to carry its bob over the top, and `√(5gL)` for a cable to stay taut over the top. *Rod loops* sits between the last two. Each bob leaves a trail of its last two seconds, and the cable is grey while slack. The world is substepped to 1 ms, which holds the rod's swing to within a few percent of its energy over several seconds; at 1/60 s, contact projection costs it about 40 % in 4 s.
+
+### Frames
+
+Shapes made of particles and `ParticleRod`s only, dropped with a spin about a tilted axis onto `GroundContacts` held one corner radius (8 cm) above the floor. A frame of `n` corners needs `3n − 6` rods to be rigid: the tetrahedron has 6 of 6, the prism 9 edges and 3 face diagonals, the cube 12 edges and one diagonal on each of its 6 faces. *Bracing rods* removes the diagonals, and the prism and cube fold flat when they land; the readout shows the rod count against `3n − 6`. Changing the shape rebuilds the frame inside the same world (`FrameSim.setShape`), so the session keeps one world. Impacts stretch a rod by several centimetres for a step or two; once landed, every rod is back within about a millimetre. The ground has no friction, so a frame keeps spinning about the vertical once it settles. The world is substepped to 1/120 s.
 
 ### Raft
 

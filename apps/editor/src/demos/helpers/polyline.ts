@@ -29,4 +29,16 @@ export class Polyline extends Line<BufferGeometry, Material> {
     setCount(count: number): void {
         this.geometry.setDrawRange(0, count);
     }
+
+    /** Adds `point` after the last drawn point, dropping the oldest when full. For trails. */
+    append(point: Vec3Like): void {
+        const count = this.geometry.drawRange.count;
+        if (count < this.capacity) {
+            this.setPoint(count, point);
+            this.setCount(count + 1);
+            return;
+        }
+        this.#positions.array.copyWithin(0, 3);
+        this.setPoint(this.capacity - 1, point);
+    }
 }

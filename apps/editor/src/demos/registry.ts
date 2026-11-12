@@ -2,6 +2,8 @@ import type { DemoDefinition } from "../core/demo";
 import { bounceDemo } from "./contacts/bounce";
 import { breakDemo } from "./contacts/break";
 import { bridgeDemo } from "./contacts/bridge";
+import { frameDemo } from "./contacts/frame";
+import { pendulumsDemo } from "./contacts/pendulums";
 import { ballisticsDemo } from "./particles/ballistics";
 import { fireworksDemo } from "./particles/fireworks";
 import { integratorsDemo } from "./particles/integrators";
@@ -27,6 +29,8 @@ export const demos: readonly DemoDefinition[] = [
     bounceDemo,
     breakDemo,
     bridgeDemo,
+    pendulumsDemo,
+    frameDemo,
     rotationDemo,
 ] as readonly DemoDefinition[];
 

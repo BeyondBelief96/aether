@@ -124,6 +124,11 @@ describe("ParticleContactResolver", () => {
         expect(resolver.iterationLimit).toBe(4);
     });
 
+    it("reports its fixed limit before the first call, or 0 without one", () => {
+        expect(new ParticleContactResolver(7).iterationLimit).toBe(7);
+        expect(new ParticleContactResolver().iterationLimit).toBe(0);
+    });
+
     it("reports a fixed limit whatever the contact count", () => {
         const resolver = new ParticleContactResolver(7);
         resolver.resolveContacts([], 0, DT);

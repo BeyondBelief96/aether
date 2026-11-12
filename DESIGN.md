@@ -305,7 +305,7 @@ Data colours live in `stage/palette.ts` and are written to `--series-1..4` and `
 The same palette carries the scene-only neutrals, used in WebGL and never in CSS.
 - **Scene Muted** (scene-muted; dark: scene-muted-dark): secondary bodies, fixtures, and inactive lines. It sits closer to the ground than Muted Graphite in both themes, so fixtures recede under scene light.
 - **Grid Major / Minor** (grid-major, grid-minor; each with a dark variant): the 120 m floor grid, 1 m divisions.
-- The palette's `liquid` (#6f9ed6, dark #3d6ea8) tints translucent water in the buoyancy demo; it is a material, not a series.
+- The palette's `liquid` (#6f9ed6, dark #3d6ea8) tints translucent water in the Raft demo; it is a material, not a series.
 
 ### Named Rules
 **The One Signal Rule.** Orange means press this, you are here, or focus is here. Selection is never orange; it is ink inversion.

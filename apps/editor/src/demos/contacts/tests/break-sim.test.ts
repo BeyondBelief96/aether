@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Particle, ParticleContact, type Vec3Like } from "aether-physics";
+import { kineticEnergy } from "../../helpers/measure";
+import { Particle, ParticleContact, ParticleContactResolver, type Vec3Like } from "aether-physics";
 import { BreakSim, Cushions, MAX_ROWS, SphereContacts, type BreakOptions } from "../break-sim";
 
 const OPTIONS: BreakOptions = {
@@ -9,7 +10,6 @@ const OPTIONS: BreakOptions = {
     rows: 5,
     restitution: 0.95,
     damping: 0.6,
-    iterations: undefined,
 };
 
 function at(x: number, y: number, z: number): Particle {
@@ -29,8 +29,9 @@ function pool(size: number): ParticleContact[] {
     return Array.from({ length: size }, () => new ParticleContact());
 }
 
-function broken(options = OPTIONS, seconds = 6, hz = 60): BreakSim {
+function broken(options = OPTIONS, seconds = 6, hz = 60, iterations?: number): BreakSim {
     const sim = new BreakSim(options);
+    sim.world.contactResolver = new ParticleContactResolver(iterations);
     sim.shoot(12, 0.02);
     for (let i = 0; i < seconds * hz; i++) sim.step(1 / hz);
     return sim;
@@ -106,11 +107,11 @@ describe("BreakSim", () => {
             expect(Math.abs(position.z)).toBeLessThan(halfWidth - radius + 0.01);
         }
         expect(sim.deepestOverlap()).toBeLessThan(0.01);
-        expect(sim.kineticEnergy()).toBeLessThan(0.5);
+        expect(kineticEnergy(sim.particles)).toBeLessThan(0.5);
     });
 
     it("leaves balls fused together with a starved resolver", () => {
-        expect(broken({ ...OPTIONS, iterations: 10 }).deepestOverlap()).toBeGreaterThan(0.05);
+        expect(broken(OPTIONS, 6, 60, 10).deepestOverlap()).toBeGreaterThan(0.05);
     });
 
     it("gives balls added by a re-rack the current damping", () => {
@@ -125,7 +126,7 @@ describe("BreakSim", () => {
         sim.rack(3);
         expect(sim.particles).toHaveLength(7);
         expect(sim.world.particles).toHaveLength(7);
-        expect(sim.kineticEnergy()).toBe(0);
+        expect(kineticEnergy(sim.particles)).toBe(0);
         expect(sim.peakContacts).toBe(0);
     });
 

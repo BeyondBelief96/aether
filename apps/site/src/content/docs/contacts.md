@@ -15,6 +15,6 @@ Particle contacts: contact generators, the ground plane, cables, rods and the co
 - Resting contact
 - The ParticleContactGenerator interface and the contact pool
 - GroundContacts
-- Cables and rods: ParticleCable, ParticleRod and the ParticleLink base class
+- Cables and rods: ParticleCable and ParticleRod
 - The contact resolver and its iteration count
 - Writing a custom generator

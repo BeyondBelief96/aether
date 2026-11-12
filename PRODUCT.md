@@ -63,7 +63,7 @@ The website (`apps/site`, Astro) carries the landing page at `/`, the demo app a
 
 ## Evidence on Hand
 
-- The demos: Ballistics, Fireworks, Orbits, Integrators, Springs, Elastic pendulum, Cloth, Drumhead, Raft, Bounce, Break, Bridge, Rotation.
+- The demos: Ballistics, Fireworks, Orbits, Integrators, Springs, Elastic pendulum, Cloth, Drumhead, Raft, Bounce, Break, Bridge, Pendulums, Frames, Rotation.
 - Unit tests for the engine and the demo app's helpers (Vitest), plus a browser smoke test that loads every demo.
 - API guides in the engine and math READMEs.
 - None yet: users, testimonials, benchmarks, performance comparisons with other engines, or download figures. Future work must not invent them.

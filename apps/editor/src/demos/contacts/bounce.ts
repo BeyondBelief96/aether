@@ -1,9 +1,9 @@
 import { LineBasicMaterial, Mesh, MeshStandardMaterial, SphereGeometry } from "three";
-import { Vec3 } from "aether-physics";
 import { defineDemo, type SeriesIndex } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { number } from "../../core/params";
 import { Polyline } from "../helpers/polyline";
+import { StepBlend } from "../helpers/step-blend";
 import { BounceSim } from "./bounce-sim";
 
 /**
@@ -17,8 +17,6 @@ const RADIUS = 0.3; // m
 const SPACING = 1.6; // m
 const MARK_WIDTH = 0.9; // m
 const SAMPLES_PER_SECOND = 30;
-
-const _blended = new Vec3();
 
 const restitution = (index: number, value: number) =>
     number({
@@ -109,8 +107,12 @@ export const bounceDemo = defineDemo({
             const mark = new Polyline(2, new LineBasicMaterial({ color: palette.series[i] }));
             mark.setCount(2);
             root.add(mesh, mark);
-            return { ball, mesh, mark, previous: new Vec3().copy(ball.particle.position) };
+            return { ball, mesh, mark };
         });
+
+        const particles = sim.balls.map((ball) => ball.particle);
+        const blend = new StepBlend();
+        blend.reset(particles);
 
         const placeMark = (entry: (typeof balls)[number]): void => {
             const { x } = entry.ball.particle.position;
@@ -121,7 +123,7 @@ export const bounceDemo = defineDemo({
 
         const drop = (): void => {
             sim.drop(current.height);
-            for (const entry of balls) entry.previous.copy(entry.ball.particle.position);
+            blend.reset(particles);
             sampleTime = 0;
             clearCharts();
         };
@@ -139,7 +141,7 @@ export const bounceDemo = defineDemo({
                 if (id === "drop") drop();
             },
             step(dt) {
-                for (const entry of balls) entry.previous.copy(entry.ball.particle.position);
+                blend.remember(particles);
                 sim.step(dt);
                 sampleTime += dt;
                 while (sampleTime >= 1 / SAMPLES_PER_SECOND) {
@@ -149,16 +151,16 @@ export const bounceDemo = defineDemo({
                 }
             },
             sync(alpha) {
+                blend.blend(alpha);
                 for (const entry of balls) {
-                    _blended.copy(entry.previous).lerp(entry.ball.particle.position, alpha);
-                    entry.mesh.position.copy(_blended);
+                    entry.mesh.position.copy(blend.positionOf(entry.ball.particle));
                     placeMark(entry);
                 }
             },
             readouts: () =>
                 sim.balls.map((ball, i) => {
                     const e = ball.ground.restitution;
-                    const ratio = sim.reboundRatio(ball);
+                    const ratio = ball.reboundRatio();
                     return {
                         title: `Ball ${i + 1}`,
                         color: i as SeriesIndex,

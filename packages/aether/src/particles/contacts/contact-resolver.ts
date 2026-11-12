@@ -28,6 +28,7 @@ export class ParticleContactResolver {
             throw new RangeError(`iterations must be a non-negative integer, got ${iterations}`);
         }
         this.iterations = iterations;
+        this.limit = iterations ?? 0;
     }
 
     /** Iterations the last `resolveContacts` used. */
@@ -35,7 +36,10 @@ export class ParticleContactResolver {
         return this.used;
     }
 
-    /** Most iterations the last `resolveContacts` allowed: `iterations`, or twice its count. */
+    /**
+     * Most iterations the last `resolveContacts` allowed: `iterations`, or twice its count. Before
+     * the first call, `iterations`, or 0 without it.
+     */
     get iterationLimit(): number {
         return this.limit;
     }

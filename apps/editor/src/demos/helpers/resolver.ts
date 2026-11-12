@@ -29,32 +29,45 @@ interface ResolverValues {
     readonly iterations: number;
 }
 
-/** Fixed iterations for `values`, or `undefined` for the resolver's default. */
-export function iterationsFor(values: ResolverValues): number | undefined {
-    return values.auto ? undefined : values.iterations;
-}
-
-/** Gives `world` a resolver for `values` if either resolver parameter changed. */
-export function applyResolver(
-    world: ParticleWorld,
-    values: ResolverValues,
-    changed: ReadonlySet<string>,
-): void {
-    if (!changed.has("auto") && !changed.has("iterations")) return;
-    world.contactResolver = new ParticleContactResolver(iterationsFor(values));
-}
-
 /**
- * "used of limit" for the last step's resolve.
- *
- * @param warnAtLimit Whether running out of iterations is flagged. Off for scenes that always
- *   use the whole budget.
+ * Keeps a world's resolver matched to the `resolverParams` values, and reports the iterations
+ * the installed resolver used.
  */
-export function iterationsReadout(world: ParticleWorld, warnAtLimit = true): Readout {
-    const { iterationsUsed, iterationLimit } = world.contactResolver;
-    return {
-        label: "Iterations",
-        value: `${iterationsUsed} of ${iterationLimit}`,
-        warn: warnAtLimit && iterationLimit > 0 && iterationsUsed >= iterationLimit,
-    };
+export class ResolverBudget {
+    private readonly world: ParticleWorld;
+    private resolver: ParticleContactResolver;
+
+    constructor(world: ParticleWorld, values: ResolverValues) {
+        this.world = world;
+        this.resolver = install(world, values);
+    }
+
+    /** Installs a new resolver if either resolver parameter changed. */
+    update(values: ResolverValues, changed: ReadonlySet<string>): void {
+        if (changed.has("auto") || changed.has("iterations")) {
+            this.resolver = install(this.world, values);
+        }
+    }
+
+    /**
+     * "used of limit" for the last step's resolve.
+     *
+     * @param warnAtLimit Whether running out of iterations is flagged. Off for scenes that always
+     *   use the whole budget.
+     */
+    readout(warnAtLimit = true): Readout {
+        const { iterationsUsed, iterationLimit } = this.resolver;
+        return {
+            label: "Iterations",
+            value: `${iterationsUsed} of ${iterationLimit}`,
+            warn: warnAtLimit && iterationLimit > 0 && iterationsUsed >= iterationLimit,
+        };
+    }
+}
+
+/** Gives `world` a new resolver for `values` and returns it. */
+function install(world: ParticleWorld, values: ResolverValues): ParticleContactResolver {
+    const resolver = new ParticleContactResolver(values.auto ? undefined : values.iterations);
+    world.contactResolver = resolver;
+    return resolver;
 }

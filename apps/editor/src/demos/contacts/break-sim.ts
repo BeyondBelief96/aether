@@ -118,8 +118,6 @@ export interface BreakOptions {
     readonly restitution: number;
     /** Fraction of velocity each ball keeps per second, in [0, 1]. */
     readonly damping: number;
-    /** Fixed resolver iterations, or `undefined` for twice the contact count. */
-    readonly iterations: number | undefined;
 }
 
 /** Where the rack's apex sits, as a fraction of the half-length past the centre. */
@@ -157,10 +155,7 @@ export class BreakSim {
         this.halfWidth = options.halfWidth;
         this.rows = options.rows;
         this.damping = options.damping;
-        this.world = new ParticleWorld({
-            maxContacts: MAX_CONTACTS,
-            resolverIterations: options.iterations,
-        });
+        this.world = new ParticleWorld({ maxContacts: MAX_CONTACTS });
         this.table = new GroundContacts(this.particles, options.radius, 0);
         this.cushions = new Cushions(
             this.particles,
@@ -242,13 +237,6 @@ export class BreakSim {
     step(dt: number): void {
         this.world.step(dt);
         this.peak = Math.max(this.peak, this.world.contactCount);
-    }
-
-    /** Total kinetic energy, in joules. */
-    kineticEnergy(): number {
-        let energy = 0;
-        for (const p of this.particles) energy += 0.5 * p.mass * p.velocity.magnitudeSquared();
-        return energy;
     }
 
     /** Largest overlap between two balls, measured from their positions, in meters. */
