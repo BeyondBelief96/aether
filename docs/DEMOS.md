@@ -58,7 +58,7 @@ The rules that keep this working:
 
 ### Where a demo goes
 
-Demos are grouped by what they simulate, not by which engine module or build phase they use. The categories are fixed in `CATEGORIES` in `core/demo.ts` and cover the whole roadmap; the app only shows a category once it has a demo, so adding the first demo to `joints/` makes the Joints tab appear. Each category's demos live in `demos/<category id>/`.
+Demos are grouped by what they simulate, not by which engine module or build phase they use. The categories are listed in `CATEGORIES` in `core/demo.ts`, and a category is added there when its first demo ships. Each category's demos live in `demos/<category id>/`.
 
 | Category | Folder | What belongs there | Built | Planned (from `docs/PLAN.md`) |
 |---|---|---|---|---|
@@ -234,6 +234,7 @@ In `apps/editor/src/demos/helpers/`:
 | `SpringCoil` | A helix between two points with a fixed number of turns |
 | `DragHandle` | Lets the user drag an object. Your callback receives the pointer's world-space ray; an optional second callback runs on release. Turns orbiting off during the drag. Call `dispose()` in `dispose` |
 | `substepsFor` | How many substeps keep each one under a maximum length. Stiff demos substep by it so every physics rate the transport offers stays stable |
+| `resolverParams`, `applyResolver`, `iterationsReadout` | The contact resolver's iteration budget as an *Auto iterations* toggle and an *Iterations* slider, a resolver swapped into the world when either changes, and a "used of limit" readout |
 | `TapHandle` | Calls back with the hit when the user presses on an object, without also turning the camera. For strikes and placing things. Call `dispose()` in `dispose` |
 | `disposeObject` | Frees the GPU resources under an object. The session already calls it on `root` |
 
@@ -299,7 +300,7 @@ One particle on a `ParticleAnchoredSpring` under gravity. The spring's frequency
 
 A rope bridge built only from contact generators: two rails of 9 particles each, fixed at both ends, joined along each rail by a `ParticleCable` and across the deck by a `ParticleRod`. *Hangers* adds a cable from a fixed anchor above each deck particle, 0.6 m longer than the drop to the deck, so the hangers near the ends stay slack. The load is not a particle: each step `bridge-sim.ts` adds its mass to the four deck particles around it, split by how far along the section it is, so gravity pulls harder there. Cables are drawn in the accent colour when within 2 mm of their length and grey when slack.
 
-A hanging chain needs far more resolver iterations than the default of twice the contact count, which leaves the cables stretched by half a meter (*Starved*). The default is 2,000 per step. Changing *Auto iterations* or *Iterations* builds a new world around the same particles, as in *Break*. The world is substepped to 1/60 s so a heavy load stays stable at low physics rates.
+A hanging chain needs far more resolver iterations than the default of twice the contact count, which lets single cables stretch by up to 0.4 m and the deck hang about a meter deeper while the load crosses (*Starved*). The default is 2,000 per step, which keeps every cable within about a millimetre. The resolver parameters come from `helpers/resolver.ts`, shared with *Break*; the readout doesn't flag the budget as exhausted, because a chain always uses all of it. The world is substepped to 1/60 s so a heavy load stays stable at low physics rates.
 
 ### Density column
 
@@ -317,5 +318,5 @@ Four particles side by side, each with its own `GroundContacts` (height = radius
 
 A rack of touching balls and a cue ball on a table: `GroundContacts` for the top, and two generators in `break-sim.ts` for the cushions and the ball pairs (brute force, every pair). Ball pairs within 0.1 mm count as touching; racked balls start exactly touching and fall the same distance each step, so without the margin their contacts would never be generated. A square hit on a perfect rack of frictionless balls sends nearly all the energy to the back corners, so the default aim is 1° off centre.
 
-The resolver's iteration count can't change on a live world, so changing *Auto iterations* or *Iterations* builds a new world around the same particles and registers it with `useWorld`. With a fixed budget below the contact count, the resolver spends it on the most negative separating velocities, which every step are the balls pressing into the table, so overlapping pairs that are already separating are never pushed apart (*Starved*). The readouts show the iterations used against the limit and the deepest overlap between any two balls.
+Changing *Auto iterations* or *Iterations* gives the world a new `ParticleContactResolver` between steps (`helpers/resolver.ts`). With a fixed budget below the contact count, the resolver spends it on the most negative separating velocities, which every step are the balls pressing into the table, so overlapping pairs that are already separating are never pushed apart (*Starved*). The readouts show the iterations used against the limit and the deepest overlap between any two balls.
 

@@ -14,7 +14,6 @@ export {
     ParticleDrag,
     ParticleForceRegistry,
     ParticleGravity,
-    ParticleLink,
     ParticleRod,
     ParticleSpring,
     ParticleWorld,

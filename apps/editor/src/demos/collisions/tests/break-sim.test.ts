@@ -113,17 +113,11 @@ describe("BreakSim", () => {
         expect(broken({ ...OPTIONS, iterations: 10 }).deepestOverlap()).toBeGreaterThan(0.05);
     });
 
-    it("keeps balls, positions and the integrator when the iterations change", () => {
-        const sim = broken(OPTIONS, 0.5);
-        const before = sim.particles.map((p) => p.position.clone());
-        const integrator = sim.world.integrator;
-        const world = sim.setIterations(10);
-
-        expect(world).toBe(sim.world);
-        expect(world.integrator).toBe(integrator);
-        expect(world.particles).toEqual(sim.particles);
-        expect(sim.iterations).toBe(10);
-        sim.particles.forEach((p, i) => expectVec(p.position, before[i]!));
+    it("gives balls added by a re-rack the current damping", () => {
+        const sim = new BreakSim({ ...OPTIONS, rows: 1 });
+        sim.setDamping(0.3);
+        sim.rack(4);
+        for (const p of sim.particles) expect(p.damping).toBe(0.3);
     });
 
     it("re-racks with a different number of rows", () => {

@@ -2,7 +2,13 @@ import { BoxGeometry, Mesh, MeshStandardMaterial, SphereGeometry } from "three";
 import { Vec3 } from "aether-physics";
 import { defineDemo, type SeriesIndex } from "../../core/demo";
 import { formatNumber } from "../../core/format";
-import { number, toggle } from "../../core/params";
+import { number } from "../../core/params";
+import {
+    applyResolver,
+    iterationsFor,
+    iterationsReadout,
+    resolverParams,
+} from "../helpers/resolver";
 import { BreakSim, MAX_ROWS } from "./break-sim";
 
 /**
@@ -27,22 +33,14 @@ const params = {
     restitution: number({ label: "Restitution", min: 0, max: 1, step: 0.01, default: 0.95 }),
     damping: number({ label: "Rolling damping", min: 0.1, max: 1, step: 0.01, default: 0.6 }),
     rows: number({ label: "Rack rows", min: 1, max: MAX_ROWS, step: 1, default: 5 }),
-    auto: toggle({ label: "Auto iterations", default: true }),
-    iterations: number({
-        label: "Iterations",
-        min: 1,
-        max: 200,
-        step: 1,
-        default: 20,
-        hidden: (values) => values.auto === true,
-    }),
+    ...resolverParams({ auto: true, min: 1, max: 200, step: 1, default: 20 }),
 };
 
 export const breakDemo = defineDemo({
     id: "break",
     title: "Break",
     category: "collisions",
-    summary: "A cue ball fired into a rack of fifteen, resolved one contact at a time.",
+    summary: "A cue ball fired into a rack of balls, resolved one contact at a time.",
     hint: "Try Starved. The resolver runs out of iterations and balls stay fused together.",
     params,
     presets: [
@@ -60,7 +58,6 @@ export const breakDemo = defineDemo({
     source: "apps/editor/src/demos/collisions/break.ts",
     create({ root, palette, values, useWorld }) {
         let current = values;
-        const iterationsFor = (v: typeof values) => (v.auto ? undefined : v.iterations);
         const sim = new BreakSim({
             radius: RADIUS,
             halfLength: HALF_LENGTH,
@@ -94,7 +91,8 @@ export const breakDemo = defineDemo({
             while (meshes.length > sim.particles.length) root.remove(meshes.pop()!);
             while (meshes.length < sim.particles.length) {
                 const i = meshes.length;
-                const material = i === 0 ? cueMaterial : rackMaterials[(i - 1) % 4]!;
+                const material =
+                    i === 0 ? cueMaterial : rackMaterials[(i - 1) % rackMaterials.length]!;
                 const mesh = new Mesh(ballGeometry, material);
                 mesh.castShadow = true;
                 meshes.push(mesh);
@@ -116,9 +114,7 @@ export const breakDemo = defineDemo({
                 current = next;
                 if (changed.has("restitution")) sim.setRestitution(next.restitution);
                 if (changed.has("damping")) sim.setDamping(next.damping);
-                if (changed.has("auto") || changed.has("iterations")) {
-                    useWorld(sim.setIterations(iterationsFor(next)));
-                }
+                applyResolver(sim.world, next, changed);
                 if (changed.has("rows")) shoot();
             },
             action(id) {
@@ -136,8 +132,6 @@ export const breakDemo = defineDemo({
             },
             readouts: () => {
                 const { world } = sim;
-                const resolver = world.contactResolver;
-                const limit = resolver.iterations ?? 2 * world.contactCount;
                 const overlap = sim.deepestOverlap();
                 return [
                     {
@@ -146,11 +140,7 @@ export const breakDemo = defineDemo({
                         rows: [
                             { label: "Contacts", value: String(world.contactCount) },
                             { label: "Peak contacts", value: String(sim.peakContacts) },
-                            {
-                                label: "Iterations",
-                                value: `${resolver.iterationsUsed} of ${limit}`,
-                                warn: resolver.iterationsUsed >= limit && limit > 0,
-                            },
+                            iterationsReadout(world),
                         ],
                     },
                     {

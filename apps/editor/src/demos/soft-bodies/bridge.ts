@@ -14,6 +14,13 @@ import { Vec3, type Particle } from "aether-physics";
 import { defineDemo, type SeriesIndex } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { number, toggle } from "../../core/params";
+import type { ScenePalette } from "../../stage/palette";
+import {
+    applyResolver,
+    iterationsFor,
+    iterationsReadout,
+    resolverParams,
+} from "../helpers/resolver";
 import { substepsFor } from "../helpers/substeps";
 import { BridgeSim } from "./bridge-sim";
 
@@ -41,22 +48,181 @@ const POST = 0.16; // m
 const LOAD_SIZE = { x: 0.8, y: 0.5, z: 1.1 }; // m, at 60 kg
 
 const _blended = new Vec3();
+const _point = new Vec3();
+const _corner = new Vec3();
 
 const params = {
     load: number({ label: "Load", min: 0, max: 150, step: 5, default: 60, unit: " kg" }),
     speed: number({ label: "Load speed", min: 0, max: 3, step: 0.1, default: 1, unit: " m/s" }),
     slack: number({ label: "Cable slack", min: 0.01, max: 0.15, step: 0.01, default: 0.05 }),
     hangers: toggle({ label: "Hangers", default: false }),
-    auto: toggle({ label: "Auto iterations", default: false }),
-    iterations: number({
-        label: "Iterations",
-        min: 50,
-        max: 4000,
-        step: 50,
-        default: 2000,
-        hidden: (values) => values.auto === true,
-    }),
+    ...resolverParams({ auto: false, min: 50, max: 4000, step: 50, default: 2000 }),
 };
+
+/**
+ * Positions of every particle the bridge draws, deck then anchors, blended between the last two
+ * steps. Anchors never move, so only the deck is blended.
+ */
+class Points {
+    readonly array: Float32Array;
+    private readonly deck: readonly Particle[];
+    private readonly previous: Float32Array;
+    private readonly index = new Map<Particle, number>();
+
+    constructor(deck: readonly Particle[], anchors: readonly Particle[]) {
+        this.deck = deck;
+        const all = [...deck, ...anchors];
+        this.array = new Float32Array(all.length * 3);
+        this.previous = new Float32Array(deck.length * 3);
+        all.forEach((p, i) => {
+            this.index.set(p, i);
+            this.array[i * 3] = p.position.x;
+            this.array[i * 3 + 1] = p.position.y;
+            this.array[i * 3 + 2] = p.position.z;
+        });
+        this.remember();
+    }
+
+    indexOf(particle: Particle): number {
+        return this.index.get(particle)!;
+    }
+
+    /** Records the deck's positions before a step. */
+    remember(): void {
+        this.deck.forEach((p, i) => {
+            this.previous[i * 3] = p.position.x;
+            this.previous[i * 3 + 1] = p.position.y;
+            this.previous[i * 3 + 2] = p.position.z;
+        });
+    }
+
+    blend(alpha: number): void {
+        this.deck.forEach((p, i) => {
+            const at = i * 3;
+            _blended
+                .set(this.previous[at]!, this.previous[at + 1]!, this.previous[at + 2]!)
+                .lerp(p.position, alpha);
+            this.array[at] = _blended.x;
+            this.array[at + 1] = _blended.y;
+            this.array[at + 2] = _blended.z;
+        });
+    }
+
+    /** The blended position of point `i`, in a shared scratch vector. */
+    at = (i: number): Vec3 =>
+        _corner.set(this.array[i * 3]!, this.array[i * 3 + 1]!, this.array[i * 3 + 2]!);
+}
+
+/** The deck surface: one quad per section between the rails, drawn straight from `points`. */
+function buildDeck(sim: BridgeSim, points: Points, palette: ScenePalette) {
+    const positions = new BufferAttribute(points.array, 3);
+    const geometry = new BufferGeometry().setAttribute("position", positions);
+    const indices: number[] = [];
+    for (let i = 0; i < SECTIONS; i++) {
+        const a = points.indexOf(sim.node(0, i));
+        const b = points.indexOf(sim.node(1, i));
+        const c = points.indexOf(sim.node(0, i + 1));
+        const d = points.indexOf(sim.node(1, i + 1));
+        indices.push(a, b, c, c, b, d);
+    }
+    geometry.setIndex(indices);
+    const mesh = new Mesh(
+        geometry,
+        new MeshStandardMaterial({
+            color: palette.muted,
+            side: DoubleSide,
+            transparent: true,
+            opacity: 0.55,
+        }),
+    );
+    mesh.frustumCulled = false;
+    return {
+        mesh,
+        place(): void {
+            positions.needsUpdate = true;
+            geometry.computeVertexNormals();
+        },
+    };
+}
+
+/**
+ * Every link as a line segment: rods in ink, then rail cables and hangers, each orange when
+ * taut and grey when slack.
+ */
+function buildLinks(sim: BridgeSim, points: Points, palette: ScenePalette) {
+    const { rods, railCables, hangerCables } = sim;
+    const ends = [...rods, ...railCables, ...hangerCables].map((link) => [
+        points.indexOf(link.particleA),
+        points.indexOf(link.particleB),
+    ]);
+    const cables = [...railCables, ...hangerCables];
+    const positions = new BufferAttribute(new Float32Array(ends.length * 6), 3);
+    const colors = new BufferAttribute(new Float32Array(ends.length * 6), 3);
+    const geometry = new BufferGeometry()
+        .setAttribute("position", positions)
+        .setAttribute("color", colors);
+    const lines = new LineSegments(geometry, new LineBasicMaterial({ vertexColors: true }));
+    lines.frustumCulled = false;
+
+    const rodColor = new Color(palette.ink);
+    const tautColor = new Color(palette.accent);
+    const slackColor = new Color(palette.muted);
+    const setColor = (link: number, color: Color): void => {
+        colors.setXYZ(link * 2, color.r, color.g, color.b);
+        colors.setXYZ(link * 2 + 1, color.r, color.g, color.b);
+    };
+    rods.forEach((_, i) => setColor(i, rodColor));
+
+    return {
+        lines,
+        place(): void {
+            ends.forEach(([a, b], i) => {
+                const pa = points.at(a!);
+                positions.setXYZ(i * 2, pa.x, pa.y, pa.z);
+                const pb = points.at(b!);
+                positions.setXYZ(i * 2 + 1, pb.x, pb.y, pb.z);
+            });
+            cables.forEach((cable, i) => {
+                const taut = cable.currentLength() >= cable.maxLength - TAUT_TOLERANCE;
+                setColor(rods.length + i, taut ? tautColor : slackColor);
+            });
+            positions.needsUpdate = true;
+            colors.needsUpdate = true;
+            const shown = rods.length + railCables.length + (sim.hangers ? hangerCables.length : 0);
+            geometry.setDrawRange(0, shown * 2);
+        },
+    };
+}
+
+/** Abutments under the fixed ends, and the gantry that carries the hanger anchors. */
+function buildFixtures(palette: ScenePalette) {
+    const material = new MeshStandardMaterial({ color: palette.muted });
+    const fixtures = new Group();
+    const abutmentGeometry = new BoxGeometry(ABUTMENT, DECK_HEIGHT, WIDTH + 0.6);
+    for (const sign of [-1, 1]) {
+        const abutment = new Mesh(abutmentGeometry, material);
+        abutment.position.set(sign * (SPAN / 2 + ABUTMENT / 2), DECK_HEIGHT / 2, 0);
+        abutment.receiveShadow = true;
+        fixtures.add(abutment);
+    }
+
+    const gantry = new Group();
+    const top = DECK_HEIGHT + HANGER_HEIGHT;
+    const postGeometry = new BoxGeometry(POST, HANGER_HEIGHT, POST);
+    const beamGeometry = new BoxGeometry(SPAN + POST, POST, POST);
+    for (const z of [-WIDTH / 2, WIDTH / 2]) {
+        for (const sign of [-1, 1]) {
+            const post = new Mesh(postGeometry, material);
+            post.position.set(sign * (SPAN / 2), (top + DECK_HEIGHT) / 2, z);
+            gantry.add(post);
+        }
+        const beam = new Mesh(beamGeometry, material);
+        beam.position.set(0, top + POST / 2, z);
+        gantry.add(beam);
+    }
+    fixtures.add(gantry);
+    return { fixtures, gantry };
+}
 
 export const bridgeDemo = defineDemo({
     id: "bridge",
@@ -91,7 +257,6 @@ export const bridgeDemo = defineDemo({
     source: "apps/editor/src/demos/soft-bodies/bridge.ts",
     create({ root, palette, values, useWorld }) {
         let dt = 1 / 60;
-        const iterationsFor = (v: typeof values) => (v.auto ? undefined : v.iterations);
         const sim = new BridgeSim({
             sections: SECTIONS,
             span: SPAN,
@@ -109,149 +274,26 @@ export const bridgeDemo = defineDemo({
         sim.loadSpeed = values.speed;
         useWorld(sim.world);
 
-        const { particles, rods, railCables, hangerCables } = sim;
-        const count = particles.length;
-        const previous = new Float32Array(count * 3);
-        const blended = new Float32Array(count * 3);
-
-        // Deck surface, one quad per section between the rails.
-        const deckPositions = new BufferAttribute(new Float32Array(count * 3), 3);
-        const deckGeometry = new BufferGeometry().setAttribute("position", deckPositions);
-        const indices: number[] = [];
-        for (let i = 0; i < SECTIONS; i++) {
-            const a = i;
-            const b = SECTIONS + 1 + i;
-            indices.push(a, b, a + 1, a + 1, b, b + 1);
-        }
-        deckGeometry.setIndex(indices);
-        const deck = new Mesh(
-            deckGeometry,
-            new MeshStandardMaterial({
-                color: palette.muted,
-                side: DoubleSide,
-                transparent: true,
-                opacity: 0.55,
-            }),
-        );
-        deck.frustumCulled = false;
-
-        // Every link as a line segment: rods, then rail cables, then hangers. Each end is a deck
-        // particle's index, or -1 for a hanger anchor, which never moves.
-        const links = [...rods, ...railCables, ...hangerCables].map((link) => ({
-            a: link.particleA,
-            b: link.particleB,
-            ia: particles.indexOf(link.particleA),
-            ib: particles.indexOf(link.particleB),
-        }));
-        const cables = [...railCables, ...hangerCables];
-        const linkPositions = new BufferAttribute(new Float32Array(links.length * 6), 3);
-        const linkColors = new BufferAttribute(new Float32Array(links.length * 6), 3);
-        const linkGeometry = new BufferGeometry()
-            .setAttribute("position", linkPositions)
-            .setAttribute("color", linkColors);
-        const lines = new LineSegments(linkGeometry, new LineBasicMaterial({ vertexColors: true }));
-        lines.frustumCulled = false;
-        const rodColor = new Color(palette.ink);
-        const tautColor = new Color(palette.accent);
-        const slackColor = new Color(palette.muted);
-        const setColor = (link: number, color: Color): void => {
-            linkColors.setXYZ(link * 2, color.r, color.g, color.b);
-            linkColors.setXYZ(link * 2 + 1, color.r, color.g, color.b);
-        };
-        rods.forEach((_, i) => setColor(i, rodColor));
-        root.add(deck, lines);
-
-        // Abutments under the fixed ends.
-        const fixtureMaterial = new MeshStandardMaterial({ color: palette.muted });
-        const abutmentGeometry = new BoxGeometry(ABUTMENT, DECK_HEIGHT, WIDTH + 0.6);
-        for (const sign of [-1, 1]) {
-            const abutment = new Mesh(abutmentGeometry, fixtureMaterial);
-            abutment.position.set(sign * (SPAN / 2 + ABUTMENT / 2), DECK_HEIGHT / 2, 0);
-            abutment.receiveShadow = true;
-            root.add(abutment);
-        }
-
-        // Gantry carrying the hanger anchors, shown while the hangers are on.
-        const gantry = new Group();
-        const top = DECK_HEIGHT + HANGER_HEIGHT;
-        const postGeometry = new BoxGeometry(POST, top - DECK_HEIGHT, POST);
-        const beamGeometry = new BoxGeometry(SPAN + POST, POST, POST);
-        for (const z of [-WIDTH / 2, WIDTH / 2]) {
-            for (const sign of [-1, 1]) {
-                const post = new Mesh(postGeometry, fixtureMaterial);
-                post.position.set(sign * (SPAN / 2), (top + DECK_HEIGHT) / 2, z);
-                gantry.add(post);
-            }
-            const beam = new Mesh(beamGeometry, fixtureMaterial);
-            beam.position.set(0, top + POST / 2, z);
-            gantry.add(beam);
-        }
-        root.add(gantry);
-
-        const loadMesh = new Mesh(
+        const points = new Points(sim.particles, sim.anchors);
+        const deck = buildDeck(sim, points, palette);
+        const links = buildLinks(sim, points, palette);
+        const { fixtures, gantry } = buildFixtures(palette);
+        gantry.visible = values.hangers;
+        const load = new Mesh(
             new BoxGeometry(LOAD_SIZE.x, LOAD_SIZE.y, LOAD_SIZE.z),
             new MeshStandardMaterial({ color: palette.series[1] }),
         );
-        loadMesh.castShadow = true;
-        root.add(loadMesh);
-
-        const remember = (): void => {
-            particles.forEach((p, i) => {
-                previous[i * 3] = p.position.x;
-                previous[i * 3 + 1] = p.position.y;
-                previous[i * 3 + 2] = p.position.z;
-            });
-        };
-
-        /** Writes the blended position of deck particle `index`, or `particle`'s own if -1. */
-        const placeEnd = (vertex: number, index: number, particle: Particle): void => {
-            if (index === -1) {
-                const { x, y, z } = particle.position;
-                linkPositions.setXYZ(vertex, x, y, z);
-            } else {
-                linkPositions.setXYZ(
-                    vertex,
-                    blended[index * 3]!,
-                    blended[index * 3 + 1]!,
-                    blended[index * 3 + 2]!,
-                );
-            }
-        };
-
-        const placeLinks = (): void => {
-            links.forEach(({ a, b, ia, ib }, i) => {
-                placeEnd(i * 2, ia, a);
-                placeEnd(i * 2 + 1, ib, b);
-            });
-            cables.forEach((cable, i) => {
-                const taut = cable.currentLength() >= cable.maxLength - TAUT_TOLERANCE;
-                setColor(rods.length + i, taut ? tautColor : slackColor);
-            });
-            linkPositions.needsUpdate = true;
-            linkColors.needsUpdate = true;
-            const shown = rods.length + railCables.length + (sim.hangers ? hangerCables.length : 0);
-            linkGeometry.setDrawRange(0, shown * 2);
-        };
+        load.castShadow = true;
+        root.add(deck.mesh, links.lines, fixtures, load);
 
         const placeLoad = (): void => {
-            loadMesh.visible = sim.loadMass > 0;
-            if (!loadMesh.visible) return;
-            const section = sim.loadSection();
-            const t = sim.loadFraction();
-            let x = 0;
-            let y = 0;
-            for (let rail = 0; rail < 2; rail++) {
-                const near = rail * (SECTIONS + 1) + section;
-                x += (blended[near * 3]! * (1 - t) + blended[(near + 1) * 3]! * t) / 2;
-                y += (blended[near * 3 + 1]! * (1 - t) + blended[(near + 1) * 3 + 1]! * t) / 2;
-            }
+            load.visible = sim.loadMass > 0;
+            if (!load.visible) return;
             const scale = Math.cbrt(sim.loadMass / 60);
-            loadMesh.scale.setScalar(scale);
-            loadMesh.position.set(x, y + (LOAD_SIZE.y * scale) / 2, 0);
+            sim.loadPoint(_point, points.at);
+            load.scale.setScalar(scale);
+            load.position.set(_point.x, _point.y + (LOAD_SIZE.y * scale) / 2, _point.z);
         };
-
-        gantry.visible = values.hangers;
-        remember();
 
         return {
             update(next, changed) {
@@ -262,34 +304,21 @@ export const bridgeDemo = defineDemo({
                     sim.setHangers(next.hangers);
                     gantry.visible = next.hangers;
                 }
-                if (changed.has("auto") || changed.has("iterations")) {
-                    useWorld(sim.setIterations(iterationsFor(next)));
-                }
+                applyResolver(sim.world, next, changed);
             },
             step(stepDt) {
                 dt = stepDt;
-                remember();
+                points.remember();
                 const substeps = substepsFor(stepDt, MAX_SUBSTEP);
                 for (let i = 0; i < substeps; i++) sim.step(stepDt / substeps);
             },
             sync(alpha) {
-                particles.forEach((p, i) => {
-                    _blended
-                        .set(previous[i * 3]!, previous[i * 3 + 1]!, previous[i * 3 + 2]!)
-                        .lerp(p.position, alpha);
-                    blended[i * 3] = _blended.x;
-                    blended[i * 3 + 1] = _blended.y;
-                    blended[i * 3 + 2] = _blended.z;
-                    deckPositions.setXYZ(i, _blended.x, _blended.y, _blended.z);
-                });
-                deckPositions.needsUpdate = true;
-                deckGeometry.computeVertexNormals();
-                placeLinks();
+                points.blend(alpha);
+                deck.place();
+                links.place();
                 placeLoad();
             },
             readouts: () => {
-                const resolver = sim.world.contactResolver;
-                const limit = resolver.iterations ?? 2 * sim.world.contactCount;
                 const rodError = sim.rodError();
                 const stretch = Math.max(sim.cableStretch(), 0);
                 return [
@@ -301,7 +330,7 @@ export const bridgeDemo = defineDemo({
                                 label: "Taut cables",
                                 value: `${sim.tautCount(TAUT_TOLERANCE)} of ${sim.cableCount()}`,
                             },
-                            { label: "Rods", value: String(rods.length) },
+                            { label: "Rods", value: String(sim.rods.length) },
                             { label: "Lowest point", value: `${formatNumber(sim.sag(), 2)} m` },
                             {
                                 label: "Under the load",
@@ -314,10 +343,7 @@ export const bridgeDemo = defineDemo({
                         color: 1,
                         rows: [
                             { label: "Contacts", value: String(sim.world.contactCount) },
-                            {
-                                label: "Iterations",
-                                value: `${resolver.iterationsUsed} of ${limit}`,
-                            },
+                            iterationsReadout(sim.world, false),
                             {
                                 label: "Worst rod error",
                                 value: `${formatNumber(rodError * 1000, 1)} mm`,
@@ -340,7 +366,7 @@ export const bridgeDemo = defineDemo({
                 sim.loadMass > 0
                     ? [
                           {
-                              at: loadMesh.position,
+                              at: load.position,
                               text: `${formatNumber(sim.loadMass, 0)} kg`,
                               color: 1 as SeriesIndex,
                           },

@@ -13,6 +13,7 @@ export class ParticleContactResolver {
     /** Maximum contacts resolved per call, or `undefined` for twice the contact count. */
     readonly iterations: number | undefined;
     private used = 0;
+    private limit = 0;
     /** Each particle's position before a resolve, then how far the resolve moved it. */
     private readonly movementA = new Vec3();
     private readonly movementB = new Vec3();
@@ -34,6 +35,11 @@ export class ParticleContactResolver {
         return this.used;
     }
 
+    /** Most iterations the last `resolveContacts` allowed: `iterations`, or twice its count. */
+    get iterationLimit(): number {
+        return this.limit;
+    }
+
     /**
      * Resolves velocity and interpenetration for `contacts[0..count)`. Stops early once no contact
      * that can move is closing or penetrating.
@@ -43,9 +49,9 @@ export class ParticleContactResolver {
      * @param dt Duration of the step in seconds.
      */
     resolveContacts(contacts: readonly ParticleContact[], count: number, dt: number): void {
-        const limit = this.iterations ?? 2 * count;
+        this.limit = this.iterations ?? 2 * count;
         this.used = 0;
-        while (this.used < limit) {
+        while (this.used < this.limit) {
             const worst = findWorst(contacts, count);
             if (!worst) return;
 

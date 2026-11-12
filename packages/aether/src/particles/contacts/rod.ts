@@ -1,5 +1,4 @@
 import type { Particle } from "../particle.js";
-import type { ParticleContact } from "./contact.js";
 import { ParticleLink } from "./link.js";
 
 /**
@@ -24,14 +23,11 @@ export class ParticleRod extends ParticleLink {
         this.length = length;
     }
 
-    addContacts(out: readonly ParticleContact[], start: number): number {
-        if (start >= out.length) return 0;
-        const current = this.currentLength();
-        // Coincident particles give no direction to push along.
-        if (!(current > 0) || current === this.length) return 0;
-        const stretched = current > this.length;
-        const penetration = Math.abs(current - this.length);
-        this.writeContact(out[start]!, current, penetration, 0, stretched);
-        return 1;
+    protected deviation(length: number): number {
+        return length - this.length;
+    }
+
+    protected contactRestitution(): number {
+        return 0;
     }
 }

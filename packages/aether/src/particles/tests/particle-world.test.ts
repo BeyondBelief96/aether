@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Particle } from "../particle";
 import { ParticleWorld } from "../particle-world";
-import { GroundContacts } from "../contacts";
+import { GroundContacts, ParticleContactResolver } from "../contacts";
 import { ExplicitEuler, Rk4, SemiImplicitEuler, VelocityVerlet } from "../integrators";
 
 describe("ParticleWorld", () => {
@@ -287,6 +287,22 @@ describe("ParticleWorld", () => {
         const capped = sink(new ParticleWorld({ resolverIterations: 1 }));
         expect(capped.contactResolver.iterationsUsed).toBe(1);
         expect(capped.particles.filter((p) => p.position.y < -0.5)).toHaveLength(2);
+    });
+
+    it("uses a resolver swapped in between steps", () => {
+        const world = new ParticleWorld();
+        const ball = new Particle();
+        ball.position.set(0, -1, 0);
+        world.particles.push(ball);
+        world.contactGenerators.push(new GroundContacts(world.particles));
+        world.step(1 / 60);
+
+        const resolver = new ParticleContactResolver(0);
+        world.contactResolver = resolver;
+        ball.position.set(0, -1, 0);
+        world.step(1 / 60);
+        expect(resolver.iterationLimit).toBe(0);
+        expect(ball.position.y).toBeLessThan(-0.5);
     });
 
     it("names resolverIterations when rejecting it", () => {

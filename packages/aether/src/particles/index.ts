@@ -6,7 +6,6 @@ export {
     ParticleCable,
     ParticleContact,
     ParticleContactResolver,
-    ParticleLink,
     ParticleRod,
 } from "./contacts/index.js";
 export type { ParticleContactGenerator } from "./contacts/index.js";

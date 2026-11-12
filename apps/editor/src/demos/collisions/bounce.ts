@@ -103,11 +103,9 @@ export const bounceDemo = defineDemo({
         useWorld(sim.world);
         const heights = sim.balls.map(() => 0);
 
+        const sphere = new SphereGeometry(RADIUS, 32, 16);
         const balls = sim.balls.map((ball, i) => {
-            const mesh = new Mesh(
-                new SphereGeometry(RADIUS, 32, 16),
-                new MeshStandardMaterial({ color: palette.series[i] }),
-            );
+            const mesh = new Mesh(sphere, new MeshStandardMaterial({ color: palette.series[i] }));
             const mark = new Polyline(2, new LineBasicMaterial({ color: palette.series[i] }));
             mark.setCount(2);
             root.add(mesh, mark);

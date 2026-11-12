@@ -34,8 +34,8 @@ export class ParticleWorld {
     integrator: ParticleIntegrator = new SemiImplicitEuler();
     /** Contact generators run in order after integration each step. */
     readonly contactGenerators: ParticleContactGenerator[] = [];
-    /** Resolves the contacts found each step. */
-    readonly contactResolver: ParticleContactResolver;
+    /** Resolves the contacts found each step. Can be replaced between steps. */
+    contactResolver: ParticleContactResolver;
     /** Contact pool. The first `contactCount` entries hold the last step's contacts. */
     readonly contacts: readonly ParticleContact[];
 

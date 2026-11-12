@@ -1,5 +1,4 @@
 import type { Particle } from "../particle.js";
-import type { ParticleContact } from "./contact.js";
 import { ParticleLink } from "./link.js";
 
 /**
@@ -30,11 +29,11 @@ export class ParticleCable extends ParticleLink {
         this.restitution = restitution;
     }
 
-    addContacts(out: readonly ParticleContact[], start: number): number {
-        if (start >= out.length) return 0;
-        const length = this.currentLength();
-        if (!(length > this.maxLength)) return 0;
-        this.writeContact(out[start]!, length, length - this.maxLength, this.restitution, true);
-        return 1;
+    protected deviation(length: number): number {
+        return length > this.maxLength ? length - this.maxLength : 0;
+    }
+
+    protected contactRestitution(): number {
+        return this.restitution;
     }
 }

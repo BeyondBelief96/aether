@@ -93,12 +93,14 @@ export class Cushions implements ParticleContactGenerator {
     }
 
     addContacts(out: readonly ParticleContact[], start: number): number {
-        const limits = { x: this.halfLength - this.radius, z: this.halfWidth - this.radius };
+        const limitX = this.halfLength - this.radius;
+        const limitZ = this.halfWidth - this.radius;
         let index = start;
         for (const particle of this.particles) {
             for (const { axis, sign, normal } of CUSHIONS) {
                 if (index >= out.length) return index - start;
-                const depth = -limits[axis] - sign * particle.position[axis];
+                const limit = axis === "x" ? limitX : limitZ;
+                const depth = -limit - sign * particle.position[axis];
                 if (!(depth > 0)) continue;
                 out[index++]!.set(particle, null, normal, depth, this.restitution);
             }
@@ -141,12 +143,12 @@ export class BreakSim {
     readonly radius: number;
     readonly halfLength: number;
     readonly halfWidth: number;
-    world: ParticleWorld;
-    private readonly generators: readonly ParticleContactGenerator[];
+    readonly world: ParticleWorld;
     private readonly table: GroundContacts;
     private readonly cushions: Cushions;
     private readonly pairs: SphereContacts;
     private rows: number;
+    private damping: number;
     private peak = 0;
 
     constructor(options: BreakOptions) {
@@ -154,6 +156,11 @@ export class BreakSim {
         this.halfLength = options.halfLength;
         this.halfWidth = options.halfWidth;
         this.rows = options.rows;
+        this.damping = options.damping;
+        this.world = new ParticleWorld({
+            maxContacts: MAX_CONTACTS,
+            resolverIterations: options.iterations,
+        });
         this.table = new GroundContacts(this.particles, options.radius, 0);
         this.cushions = new Cushions(
             this.particles,
@@ -163,29 +170,13 @@ export class BreakSim {
             options.restitution,
         );
         this.pairs = new SphereContacts(this.particles, options.radius, options.restitution);
-        this.generators = [this.table, this.cushions, this.pairs];
-        this.world = this.buildWorld(options.iterations);
+        this.world.contactGenerators.push(this.table, this.cushions, this.pairs);
         this.rack(options.rows);
-        this.setDamping(options.damping);
-    }
-
-    /** Fixed resolver iterations, or `undefined` for twice the contact count. */
-    get iterations(): number | undefined {
-        return this.world.contactResolver.iterations;
     }
 
     /** Most contacts found in one step since the last rack. */
     get peakContacts(): number {
         return this.peak;
-    }
-
-    /** Replaces the world with one using `iterations`, keeping every ball where it is. */
-    setIterations(iterations: number | undefined): ParticleWorld {
-        const integrator = this.world.integrator;
-        this.world = this.buildWorld(iterations);
-        this.world.integrator = integrator;
-        this.world.particles.push(...this.particles);
-        return this.world;
     }
 
     setRestitution(restitution: number): void {
@@ -194,6 +185,7 @@ export class BreakSim {
     }
 
     setDamping(damping: number): void {
+        this.damping = damping;
         for (const particle of this.particles) particle.damping = damping;
     }
 
@@ -209,11 +201,10 @@ export class BreakSim {
         }
         this.rows = rows;
         const count = ballCount(rows);
-        const damping = this.particles[0]?.damping ?? 1;
         while (this.particles.length > count) this.world.remove(this.particles.pop()!);
         while (this.particles.length < count) {
             const particle = new Particle();
-            particle.damping = damping;
+            particle.damping = this.damping;
             this.particles.push(particle);
             this.world.particles.push(particle);
         }
@@ -273,14 +264,5 @@ export class BreakSim {
             }
         }
         return deepest;
-    }
-
-    private buildWorld(iterations: number | undefined): ParticleWorld {
-        const world = new ParticleWorld({
-            maxContacts: MAX_CONTACTS,
-            resolverIterations: iterations,
-        });
-        world.contactGenerators.push(...this.generators);
-        return world;
     }
 }

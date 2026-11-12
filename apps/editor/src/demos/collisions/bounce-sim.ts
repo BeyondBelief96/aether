@@ -16,10 +16,14 @@ export interface BounceBall {
     lastPeak: number;
     /** Height of the ball's bottom at the peak before `lastPeak`, in meters. */
     previousPeak: number;
-    /** Number of times the ball has left the ground. */
+    /** Number of times the ball has hit the ground. */
     bounces: number;
     /** Number of peaks reached after a bounce. */
     peaks: number;
+    /** Whether the ball was moving up at the end of the last step. */
+    rising: boolean;
+    /** Whether the ball was above the ground at the end of the last step. */
+    airborne: boolean;
 }
 
 export interface BounceOptions {
@@ -34,7 +38,6 @@ export class BounceSim {
     readonly world = new ParticleWorld();
     readonly balls: BounceBall[];
     readonly radius: number;
-    private wasRising: boolean[];
 
     constructor(options: BounceOptions) {
         this.radius = options.radius;
@@ -47,9 +50,17 @@ export class BounceSim {
             const ground = new GroundContacts([particle], options.radius, restitution);
             this.world.particles.push(particle);
             this.world.contactGenerators.push(ground);
-            return { particle, ground, lastPeak: 0, previousPeak: 0, bounces: 0, peaks: 0 };
+            return {
+                particle,
+                ground,
+                lastPeak: 0,
+                previousPeak: 0,
+                bounces: 0,
+                peaks: 0,
+                rising: false,
+                airborne: true,
+            };
         });
-        this.wasRising = this.balls.map(() => false);
         this.drop(options.height);
     }
 
@@ -63,8 +74,9 @@ export class BounceSim {
             ball.previousPeak = height;
             ball.bounces = 0;
             ball.peaks = 0;
+            ball.rising = false;
+            ball.airborne = height >= REST_HEIGHT;
         }
-        this.wasRising.fill(false);
     }
 
     setRestitution(index: number, restitution: number): void {
@@ -77,16 +89,23 @@ export class BounceSim {
 
     step(dt: number): void {
         this.world.step(dt);
-        this.balls.forEach((ball, i) => {
+        for (const ball of this.balls) {
+            const height = this.heightOf(ball);
             const rising = ball.particle.velocity.y > 0;
-            if (rising && !this.wasRising[i]) ball.bounces++;
-            if (!rising && this.wasRising[i]) {
+            const airborne = height >= REST_HEIGHT;
+            if (ball.airborne && !airborne) ball.bounces++;
+            if (!rising && ball.rising) {
                 ball.previousPeak = ball.lastPeak;
-                ball.lastPeak = this.heightOf(ball);
+                ball.lastPeak = height;
                 ball.peaks++;
+            } else if (!rising && !airborne && ball.lastPeak >= REST_HEIGHT) {
+                // Landed without rebounding: the ball's last peak is the ground.
+                ball.previousPeak = ball.lastPeak;
+                ball.lastPeak = 0;
             }
-            this.wasRising[i] = rising;
-        });
+            ball.rising = rising;
+            ball.airborne = airborne;
+        }
     }
 
     /** Height of the ball's bottom above the ground, in meters. */
@@ -96,7 +115,9 @@ export class BounceSim {
 
     /** `lastPeak / previousPeak`, or `undefined` before the first rebound peak or once at rest. */
     reboundRatio(ball: BounceBall): number | undefined {
-        if (ball.peaks === 0 || ball.previousPeak < REST_HEIGHT) return undefined;
+        if (ball.peaks === 0 || ball.previousPeak < REST_HEIGHT || ball.lastPeak < REST_HEIGHT) {
+            return undefined;
+        }
         return ball.lastPeak / ball.previousPeak;
     }
 

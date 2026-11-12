@@ -1,16 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { pool } from "./helpers";
 import { Particle, ParticleWorld } from "../..";
-import { ParticleContact } from "..";
 import { ParticleRod } from "../rod";
 
 function at(x: number, y = 0): Particle {
     const p = new Particle();
     p.position.set(x, y, 0);
     return p;
-}
-
-function pool(size: number): ParticleContact[] {
-    return Array.from({ length: size }, () => new ParticleContact());
 }
 
 describe("ParticleRod", () => {

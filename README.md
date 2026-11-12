@@ -42,14 +42,17 @@ Contact generators find contacts after each step, and the world resolves them:
 ```ts
 import { GroundContacts, ParticleCable } from 'aether-physics';
 
-// Bounce off the plane y = 0 with restitution 0.5, then come to rest on it.
+// Every particle bounces off the plane y = 0 with restitution 0.5, then comes to rest on it.
 world.contactGenerators.push(new GroundContacts(world.particles, 0, 0.5));
 
-// Tie the ball to a fixed hook: slack within 4 m, taut past it.
+// A second ball swings from a fixed hook on a 3 m cable, which goes slack if it flies inward.
 const hook = new Particle();
-hook.inverseMass = 0;
-hook.position.set(0, 12, 0);
-world.contactGenerators.push(new ParticleCable(hook, ball, 4));
+hook.inverseMass = 0; // immovable
+hook.position.set(0, 8, 0);
+const bob = new Particle();
+bob.position.set(3, 8, 0);
+world.particles.push(bob);
+world.contactGenerators.push(new ParticleCable(hook, bob, 3));
 ```
 
 The package has the math library, a fixed-timestep loop, particles, force generators and particle contacts. The API can change in any 0.x release.

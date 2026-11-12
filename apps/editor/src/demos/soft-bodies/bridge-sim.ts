@@ -1,10 +1,14 @@
 import {
     Particle,
+    Vec3,
     ParticleCable,
     ParticleRod,
     ParticleWorld,
     type ParticleContactGenerator,
+    type Vec3Like,
 } from "aether-physics";
+
+const _point = new Vec3();
 
 /**
  * A rope bridge built only from contact generators: two rails of particles joined along their
@@ -46,9 +50,11 @@ export class BridgeSim {
     readonly railCables: ParticleCable[] = [];
     /** Cables from fixed anchors overhead down to each movable deck particle. */
     readonly hangerCables: ParticleCable[] = [];
+    /** Fixed particles the hangers hang from, in the same order as `hangerCables`. */
+    readonly anchors: Particle[] = [];
     readonly sections: number;
     readonly span: number;
-    world: ParticleWorld;
+    readonly world: ParticleWorld;
     /** Load in kilograms. */
     loadMass = 0;
     /** Speed of the load along the span in m/s. Zero parks it. */
@@ -93,6 +99,7 @@ export class BridgeSim {
                 const anchor = new Particle();
                 anchor.inverseMass = 0;
                 anchor.position.copy(deck.position).y += options.hangerHeight;
+                this.anchors.push(anchor);
                 this.hangerCables.push(
                     new ParticleCable(anchor, deck, options.hangerHeight + options.hangerDrop),
                 );
@@ -100,7 +107,9 @@ export class BridgeSim {
         }
 
         this.setSlack(options.slack);
-        this.world = this.buildWorld(options.iterations);
+        this.world = new ParticleWorld({ resolverIterations: options.iterations });
+        this.world.particles.push(...this.particles);
+        this.syncGenerators();
     }
 
     /** The deck particle at section `i` on rail `rail` (0 or 1). */
@@ -122,16 +131,7 @@ export class BridgeSim {
 
     setHangers(on: boolean): void {
         this.hangersOn = on;
-        this.world.contactGenerators.length = 0;
-        this.world.contactGenerators.push(...this.generators());
-    }
-
-    /** Replaces the world with one using `iterations`, keeping every particle where it is. */
-    setIterations(iterations: number | undefined): ParticleWorld {
-        const integrator = this.world.integrator;
-        this.world = this.buildWorld(iterations);
-        this.world.integrator = integrator;
-        return this.world;
+        this.syncGenerators();
     }
 
     /** Moves the load, spreads its mass over the deck particles around it and steps the world. */
@@ -183,17 +183,27 @@ export class BridgeSim {
         return this.railCables.length + (this.hangersOn ? this.hangerCables.length : 0);
     }
 
-    /** How far the deck under the load sits below the fixed ends, in meters. */
-    dropUnderLoad(): number {
+    /**
+     * The point on the deck's centre line under the load, interpolated between the particles
+     * around it.
+     *
+     * @param positionOf Position to use for a deck particle, such as an interpolated one.
+     */
+    loadPoint(out: Vec3, positionOf: (index: number) => Vec3Like = this.positionOf): Vec3 {
         const section = this.loadSection();
         const t = this.loadFraction();
-        let height = 0;
+        out.set(0, 0, 0);
         for (let rail = 0; rail < 2; rail++) {
-            const y0 = this.node(rail, section).position.y;
-            const y1 = this.node(rail, section + 1).position.y;
-            height += (y0 + (y1 - y0) * t) / 2;
+            const near = rail * (this.sections + 1) + section;
+            out.addScaled(positionOf(near), (1 - t) / 2);
+            out.addScaled(positionOf(near + 1), t / 2);
         }
-        return this.particles[0]!.position.y - height;
+        return out;
+    }
+
+    /** How far the deck under the load sits below the fixed ends, in meters. */
+    dropUnderLoad(): number {
+        return this.particles[0]!.position.y - this.loadPoint(_point).y;
     }
 
     /** Lowest point of the deck below the fixed ends, in meters. */
@@ -243,14 +253,12 @@ export class BridgeSim {
         if (particle.inverseMass > 0) particle.setMass(particle.mass + mass);
     }
 
-    private generators(): ParticleContactGenerator[] {
-        return [...this.rods, ...this.railCables, ...(this.hangersOn ? this.hangerCables : [])];
-    }
+    private readonly positionOf = (index: number): Vec3Like => this.particles[index]!.position;
 
-    private buildWorld(iterations: number | undefined): ParticleWorld {
-        const world = new ParticleWorld({ resolverIterations: iterations });
-        world.particles.push(...this.particles);
-        world.contactGenerators.push(...this.generators());
-        return world;
+    private syncGenerators(): void {
+        const generators: ParticleContactGenerator[] = this.world.contactGenerators;
+        generators.length = 0;
+        generators.push(...this.rods, ...this.railCables);
+        if (this.hangersOn) generators.push(...this.hangerCables);
     }
 }

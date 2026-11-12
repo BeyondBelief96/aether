@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { pool } from "./helpers";
 import { Particle, ParticleWorld } from "../..";
-import { ParticleContact } from "..";
 import { ParticleCable } from "../cable";
 
 function at(x: number, y = 0): Particle {
@@ -13,10 +13,6 @@ function anchor(x: number, y: number): Particle {
     const p = at(x, y);
     p.inverseMass = 0;
     return p;
-}
-
-function pool(size: number): ParticleContact[] {
-    return Array.from({ length: size }, () => new ParticleContact());
 }
 
 describe("ParticleCable", () => {
@@ -58,6 +54,27 @@ describe("ParticleCable", () => {
         expect(cable.addContacts(out, 2)).toBe(0);
         expect(cable.addContacts(out, 1)).toBe(1);
         expect(out[1]!.penetration).toBeCloseTo(1);
+    });
+
+    it("snaps taut with its restitution", () => {
+        const world = new ParticleWorld();
+        world.gravity.set(0, 0, 0);
+        const ball = at(1.95);
+        ball.velocity.set(6, 0, 0);
+        ball.damping = 1;
+        world.particles.push(ball);
+        world.contactGenerators.push(new ParticleCable(anchor(0, 0), ball, 2, 0.5));
+
+        world.step(1 / 60);
+
+        expect(ball.position.x).toBeCloseTo(2);
+        expect(ball.velocity.x).toBeCloseTo(-3);
+    });
+
+    it("writes nothing for coincident particles, whatever maxLength is set to", () => {
+        const cable = new ParticleCable(at(1), at(1), 1);
+        cable.maxLength = -1;
+        expect(cable.addContacts(pool(1), 0)).toBe(0);
     });
 
     it("leaves a particle free while it moves inside the cable's reach", () => {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Vec3 } from "aether-physics";
 import { BridgeSim, type BridgeOptions } from "../bridge-sim";
 
 const OPTIONS: BridgeOptions = {
@@ -37,7 +38,8 @@ describe("BridgeSim", () => {
         expect(sim.rods).toHaveLength(7);
         expect(sim.railCables).toHaveLength(16);
         expect(sim.hangerCables).toHaveLength(14);
-        expect(sim.world.contactGenerators).toHaveLength(23);
+        expect(sim.anchors).toHaveLength(14);
+        expect(sim.world.contactGenerators).toEqual([...sim.rods, ...sim.railCables]);
     });
 
     it("sags into a chain and settles, every rod at its length", () => {
@@ -97,23 +99,25 @@ describe("BridgeSim", () => {
         const sim = new BridgeSim({ ...OPTIONS, hangers: true });
         run(sim, 10);
 
-        expect(sim.world.contactGenerators).toHaveLength(37);
+        expect(sim.world.contactGenerators).toEqual([
+            ...sim.rods,
+            ...sim.railCables,
+            ...sim.hangerCables,
+        ]);
         expect(sim.sag()).toBeCloseTo(0.6, 2);
         const taut = sim.tautCount(0.002);
         expect(taut).toBeGreaterThan(0);
         expect(taut).toBeLessThan(sim.cableCount());
     });
 
-    it("swaps the world for new iterations and keeps the deck where it is", () => {
+    it("puts the load point between the particles around it", () => {
         const sim = new BridgeSim(OPTIONS);
-        run(sim, 1);
-        const y = sim.node(0, 4).position.y;
-        const world = sim.setIterations(undefined);
-
-        expect(world).toBe(sim.world);
-        expect(world.contactResolver.iterations).toBeUndefined();
-        expect(world.particles).toEqual(sim.particles);
-        expect(sim.node(0, 4).position.y).toBe(y);
+        sim.loadPosition = 3.75; // section 3, halfway along
+        const point = sim.loadPoint(new Vec3());
+        expect(point.x).toBeCloseTo(-1.25);
+        expect(point.y).toBeCloseTo(4);
+        expect(point.z).toBeCloseTo(0);
+        expect(sim.dropUnderLoad()).toBeCloseTo(0);
     });
 
     it("lengthens the rail cables with slack", () => {

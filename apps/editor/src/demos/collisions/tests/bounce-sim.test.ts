@@ -37,6 +37,25 @@ describe("BounceSim", () => {
         }
     });
 
+    it.each([15, 60, 240])(
+        "lands a ball with no restitution and leaves it at rest at %i Hz",
+        (hz) => {
+            const sim = new BounceSim({ ...OPTIONS, restitutions: [0] });
+            const [ball] = sim.balls;
+            run(sim, 2, hz);
+            expect(ball!.bounces).toBe(1);
+            expect(ball!.lastPeak).toBe(0);
+            expect(sim.atRest(ball!)).toBe(true);
+            expect(sim.reboundRatio(ball!)).toBeUndefined();
+        },
+    );
+
+    it("has no rebound ratio once a ball is at rest", () => {
+        const sim = new BounceSim(OPTIONS);
+        run(sim, 30, 60);
+        for (const ball of sim.balls) expect(sim.reboundRatio(ball)).toBeUndefined();
+    });
+
     it("drops again from a new height", () => {
         const sim = new BounceSim(OPTIONS);
         run(sim, 5, 60);

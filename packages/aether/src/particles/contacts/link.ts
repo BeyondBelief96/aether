@@ -6,8 +6,8 @@ import type { ParticleContactGenerator } from "./contact-generator.js";
 const _normal = new Vec3();
 
 /**
- * A constraint between two particles written as a contact generator: it reports a contact when
- * the distance between them breaks its rule, and the contact resolver restores it.
+ * A constraint between two particles written as a contact generator: it writes a contact along
+ * the line between them whenever `deviation` reports the distance breaks its rule.
  */
 export abstract class ParticleLink implements ParticleContactGenerator {
     /** First particle. */
@@ -29,29 +29,33 @@ export abstract class ParticleLink implements ParticleContactGenerator {
         return this.particleA.position.distanceTo(this.particleB.position);
     }
 
-    abstract addContacts(out: readonly ParticleContact[], start: number): number;
-
-    /**
-     * Writes a contact along the line between the particles.
-     *
-     * @param contact Pooled contact to overwrite.
-     * @param length Current distance between the particles, greater than zero.
-     * @param penetration How far the link is from its rule, in meters.
-     * @param restitution Coefficient of restitution, in [0, 1].
-     * @param pull Whether resolving the contact draws the particles together; otherwise it
-     *   pushes them apart.
-     */
-    protected writeContact(
-        contact: ParticleContact,
-        length: number,
-        penetration: number,
-        restitution: number,
-        pull: boolean,
-    ): void {
+    /** Writes nothing for coincident particles, which give no direction to push along. */
+    addContacts(out: readonly ParticleContact[], start: number): number {
+        if (start >= out.length) return 0;
+        const length = this.currentLength();
+        if (!(length > 0)) return 0;
+        const deviation = this.deviation(length);
+        if (deviation === 0 || Number.isNaN(deviation)) return 0;
         const normal = _normal
             .copy(this.particleB.position)
             .subtract(this.particleA.position)
-            .scale((pull ? 1 : -1) / length);
-        contact.set(this.particleA, this.particleB, normal, penetration, restitution);
+            .scale(Math.sign(deviation) / length);
+        out[start]!.set(
+            this.particleA,
+            this.particleB,
+            normal,
+            Math.abs(deviation),
+            this.contactRestitution(),
+        );
+        return 1;
     }
+
+    /**
+     * How far the link is from its rule at `length`, in meters: positive to draw the particles
+     * together, negative to push them apart, zero for no contact.
+     */
+    protected abstract deviation(length: number): number;
+
+    /** Coefficient of restitution for the link's contact, in [0, 1]. */
+    protected abstract contactRestitution(): number;
 }

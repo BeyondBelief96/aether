@@ -121,6 +121,13 @@ describe("ParticleContactResolver", () => {
         resolver.resolveContacts([ground, between], 2, DT);
         expect(resolver.iterations).toBeUndefined();
         expect(resolver.iterationsUsed).toBe(4);
+        expect(resolver.iterationLimit).toBe(4);
+    });
+
+    it("reports a fixed limit whatever the contact count", () => {
+        const resolver = new ParticleContactResolver(7);
+        resolver.resolveContacts([], 0, DT);
+        expect(resolver.iterationLimit).toBe(7);
     });
 
     it("resets iterationsUsed when called with no contacts", () => {
