@@ -10,21 +10,19 @@ import { preview } from "vite";
 const base = process.argv[2] ?? "/";
 const TIMEOUT_MS = 20_000;
 const DEMOS = [
-    "orbits",
-    "fireworks",
     "ballistics",
+    "fireworks",
+    "orbits",
     "integrators",
+    "springs",
+    "elastic-pendulum",
     "cloth",
     "drumhead",
-    "elastic-pendulum",
-    "springs",
-    "bridge",
     "raft",
-    "density-column",
-    "buoyancy",
-    "rotation",
     "bounce",
     "break",
+    "bridge",
+    "rotation",
 ];
 
 const server = await preview({ base, logLevel: "error", preview: { port: 4179 } });
@@ -110,9 +108,9 @@ try {
     });
 
     await check("parameters load from the URL", async () => {
-        await open("#/buoyancy?density=1420");
+        await open("#/bounce?gravity=1.62");
         await page
-            .locator("instance-bar .preset[aria-pressed=true]", { hasText: "Honey" })
+            .locator("instance-bar .preset[aria-pressed=true]", { hasText: "Moon" })
             .waitFor();
     });
 

@@ -39,7 +39,7 @@ const params = {
 export const breakDemo = defineDemo({
     id: "break",
     title: "Break",
-    category: "collisions",
+    category: "contacts",
     summary: "A cue ball fired into a rack of balls, resolved one contact at a time.",
     hint: "Try Starved. The resolver runs out of iterations and balls stay fused together.",
     params,
@@ -55,7 +55,7 @@ export const breakDemo = defineDemo({
     ],
     actions: [{ id: "break", label: "Break", key: "b" }],
     camera: { position: { x: -5.5, y: 7, z: 6.5 }, target: { x: 0.3, y: 0, z: 0 } },
-    source: "apps/editor/src/demos/collisions/break.ts",
+    source: "apps/editor/src/demos/contacts/break.ts",
     create({ root, palette, values, useWorld }) {
         let current = values;
         const sim = new BreakSim({

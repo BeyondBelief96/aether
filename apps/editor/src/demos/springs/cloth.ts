@@ -59,7 +59,7 @@ const params = {
 export const clothDemo = defineDemo({
     id: "cloth",
     title: "Cloth",
-    category: "soft-bodies",
+    category: "springs",
     summary: "A sheet of 324 particles and 2,380 springs, out in the wind.",
     hint: "Choose One pin, then drag it around.",
     params,
@@ -78,7 +78,7 @@ export const clothDemo = defineDemo({
         { label: "Loose", note: "Soft, one pin", values: { wind: 3, pins: "one", stiffness: 150 } },
     ],
     camera: { position: { x: 5.5, y: 5, z: 11 }, target: { x: 0, y: 3.6, z: 1 } },
-    source: "apps/editor/src/demos/soft-bodies/cloth.ts",
+    source: "apps/editor/src/demos/springs/cloth.ts",
     create({ root, view, palette, values, useWorld }) {
         let current = values;
         let dt = 1 / 60;

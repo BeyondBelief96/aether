@@ -51,7 +51,7 @@ const KEYS = ["e0", "e1", "e2", "e3"] as const;
 export const bounceDemo = defineDemo({
     id: "bounce",
     title: "Bounce",
-    category: "collisions",
+    category: "contacts",
     summary: "Four balls with four restitutions, dropped onto the ground together.",
     hint: "Raise the physics rate. Each rebound gets closer to e² of the one before.",
     params,
@@ -89,7 +89,7 @@ export const bounceDemo = defineDemo({
         },
     ],
     camera: { position: { x: 0, y: 3, z: 8 }, target: { x: 0, y: 2.2, z: 0 } },
-    source: "apps/editor/src/demos/collisions/bounce.ts",
+    source: "apps/editor/src/demos/contacts/bounce.ts",
     create({ root, palette, values, plot, clearCharts, useWorld }) {
         let current = values;
         let sampleTime = 0;

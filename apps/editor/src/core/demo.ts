@@ -4,15 +4,14 @@ import type { ParamSchema, ParamValues } from "./params";
 import type { ScenePalette } from "../stage/palette";
 
 /**
- * Demo categories, grouped by what the demo simulates, in the order the app lists them. Each
- * category's demos live in `demos/<id>/`.
+ * Demo categories, one per engine feature a demo is built on, in the order the app lists them.
+ * Each category's demos live in `demos/<id>/`.
  */
 export const CATEGORIES = [
     { id: "particles", label: "Particles" },
-    { id: "soft-bodies", label: "Soft bodies" },
-    { id: "fluids", label: "Fluids" },
+    { id: "springs", label: "Springs" },
+    { id: "contacts", label: "Contacts" },
     { id: "rigid-bodies", label: "Rigid bodies" },
-    { id: "collisions", label: "Collisions" },
 ] as const;
 
 export type CategoryId = (typeof CATEGORIES)[number]["id"];

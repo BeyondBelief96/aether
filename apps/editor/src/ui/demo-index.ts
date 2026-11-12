@@ -45,7 +45,7 @@ export class DemoIndex extends LitElement {
             }
             ul {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
                 margin: 0;
                 padding: 0;
                 list-style: none;

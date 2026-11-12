@@ -58,7 +58,7 @@ const params = {
 export const drumheadDemo = defineDemo({
     id: "drumhead",
     title: "Drumhead",
-    category: "soft-bodies",
+    category: "springs",
     summary: "A drum skin of 1,200 particles, held taut by the springs between them.",
     hint: "Strike near the rim, then in the middle. They ring differently.",
     params,
@@ -87,7 +87,7 @@ export const drumheadDemo = defineDemo({
         },
     ],
     camera: { position: { x: 0, y: 13, z: 11 }, target: { x: 0, y: 1.2, z: 0.4 } },
-    source: "apps/editor/src/demos/soft-bodies/drumhead.ts",
+    source: "apps/editor/src/demos/springs/drumhead.ts",
     create({ root, view, palette, values, plot, useWorld }) {
         let current = values;
         let sampleTime = 0;

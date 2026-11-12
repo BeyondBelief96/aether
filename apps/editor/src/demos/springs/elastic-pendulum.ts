@@ -66,7 +66,7 @@ const params = {
 export const elasticPendulumDemo = defineDemo({
     id: "elastic-pendulum",
     title: "Elastic pendulum",
-    category: "soft-bodies",
+    category: "springs",
     summary: "A weight on a spring that can't decide whether to bounce or swing.",
     hint: "Watch the chart. The energy trades sides every few seconds.",
     params,
@@ -107,7 +107,7 @@ export const elasticPendulumDemo = defineDemo({
         },
     ],
     camera: { position: { x: 4, y: 7, z: 13 }, target: { x: 0, y: 5.2, z: 0 } },
-    source: "apps/editor/src/demos/soft-bodies/elastic-pendulum.ts",
+    source: "apps/editor/src/demos/springs/elastic-pendulum.ts",
     create({ root, view, palette, values, plot, clearCharts, useWorld }) {
         let current = values;
         let sampleTime = 0;

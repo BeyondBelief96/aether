@@ -227,7 +227,7 @@ function buildFixtures(palette: ScenePalette) {
 export const bridgeDemo = defineDemo({
     id: "bridge",
     title: "Bridge",
-    category: "soft-bodies",
+    category: "contacts",
     summary: "A rope bridge of cables and rods, with a load crossing it.",
     hint: "Try Starved. Twice the contact count is too few iterations for a chain, and the deck stretches.",
     params,
@@ -254,7 +254,7 @@ export const bridgeDemo = defineDemo({
         },
     ],
     camera: { position: { x: 4, y: 6.5, z: 11 }, target: { x: 0, y: 3, z: 0 } },
-    source: "apps/editor/src/demos/soft-bodies/bridge.ts",
+    source: "apps/editor/src/demos/contacts/bridge.ts",
     create({ root, palette, values, useWorld }) {
         let dt = 1 / 60;
         const sim = new BridgeSim({

@@ -78,7 +78,7 @@ interface Crate {
 export const raftDemo = defineDemo({
     id: "raft",
     title: "Raft",
-    category: "fluids",
+    category: "springs",
     summary: "Five logs, 70 particles, and as much cargo as you dare.",
     hint: "Stack crates on one corner and watch it tip.",
     params,
@@ -94,7 +94,7 @@ export const raftDemo = defineDemo({
     ],
     camera: { position: { x: 5.2, y: 4.4, z: 7.4 }, target: { x: 0, y: -0.5, z: 0 } },
     hz: 120,
-    source: "apps/editor/src/demos/fluids/raft.ts",
+    source: "apps/editor/src/demos/springs/raft.ts",
     create({ root, view, palette, values, useWorld }) {
         let current = values;
         const world = useWorld(new ParticleWorld());

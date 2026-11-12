@@ -58,18 +58,17 @@ The rules that keep this working:
 
 ### Where a demo goes
 
-Demos are grouped by what they simulate, not by which engine module or build phase they use. The categories are listed in `CATEGORIES` in `core/demo.ts`, and a category is added there when its first demo ships. Each category's demos live in `demos/<category id>/`.
+Demos are grouped by the engine feature they are built on, in a few plain categories, so a visitor can tell where to look from the name alone. A demo's name says what is on screen (*Cloth*, *Bridge*), not the concept it teaches. The categories are listed in `CATEGORIES` in `core/demo.ts`, and a category is added there when its first demo ships. Each category's demos live in `demos/<category id>/`.
 
 | Category | Folder | What belongs there | Built | Planned (from `docs/PLAN.md`) |
 |---|---|---|---|---|
-| Particles | `particles/` | Point masses moving under forces: projectiles, swarms, fields | Orbits, Fireworks, Ballistics, Integrators | |
-| Soft bodies | `soft-bodies/` | Particles joined by springs or constraints | Cloth, Drumhead, Elastic pendulum, Springs, Bridge | Rope and cloth tearing |
-| Fluids | `fluids/` | Buoyancy, drag through a medium, lift | Raft, Density column, Buoyancy | Sailing, Flight sim |
-| Rigid bodies | `rigid-bodies/` | Orientation, inertia, torque, a single body's motion | Rotation | Spinning bodies |
-| Collisions | `collisions/` | Detection, contacts, restitution, friction, stacking | Bounce, Break | Collision inspector, Broadphase heatmap, Restitution and friction lab, Solver comparison |
-| Joints | `joints/` | Bodies held together by joints; islands and sleeping | | Newton's cradle, Chain bridge, Car, Ragdoll, Sleep visualizer |
+| Particles | `particles/` | Point masses moving under forces: projectiles, swarms, fields | Ballistics, Fireworks, Orbits, Integrators | |
+| Springs | `springs/` | Particles joined by springs | Springs, Elastic pendulum, Cloth, Drumhead, Raft | Rope and cloth tearing |
+| Contacts | `contacts/` | Things that collide or are held by hard constraints: the ground, cables, rods, and later rigid-body collisions, friction and stacking | Bounce, Break, Bridge | Collision inspector, Broadphase heatmap, Restitution and friction lab, Solver comparison |
+| Rigid bodies | `rigid-bodies/` | Orientation, inertia, torque, a single body's motion and the forces on it | Rotation | Spinning bodies, Sailing, Flight sim |
+| Joints (later) | `joints/` | Bodies held together by joints; islands and sleeping | | Newton's cradle, Chain bridge, Car, Ragdoll, Sleep visualizer |
 
-When a demo could fit two categories, put it where its most interesting thing happens: a sailing boat is about the water, so it goes in Fluids even though the boat is a rigid body. Add a category only when a new kind of simulation arrives that none of these describe; insert it in `CATEGORIES` where it falls in the roadmap.
+When a demo uses several features, put it under the one that makes it interesting: the raft floats on buoyancy, but it holds together with springs, so it goes in Springs; the bridge is cables and rods, so it goes in Contacts. Prefer one strong demo per idea over several variations of it. Add a category only when a new engine feature arrives that none of these describe, and keep the list short.
 
 ## 2. Checklist for a new demo
 
@@ -78,7 +77,7 @@ When a demo could fit two categories, put it where its most interesting thing ha
 3. Declare the parameters that matter, with units and ranges that stay stable. Add up to four presets that show the demo's range, and a `hint` that names one thing to try.
 4. Build the scene under `ctx.root`; simulate in `step`; draw in `sync`.
 5. Add readouts for the numbers that prove the physics is right, and callouts for the few that belong next to a body.
-6. If the simulation is non-trivial, move it into a Three.js-free module beside the demo and test it (see `soft-bodies/cloth-sim.ts`).
+6. If the simulation is non-trivial, move it into a Three.js-free module beside the demo and test it (see `springs/cloth-sim.ts`).
 7. Add the demo's id to `DEMOS` in `apps/editor/scripts/smoke-test.mjs`. `demos/tests/stability.test.ts` picks up every registered demo on its own and fails if any preset goes non-finite at any physics rate; if yours does, substep with `substepsFor`.
 8. Tick it off in `docs/PLAN.md`.
 9. Check it by hand:
@@ -91,7 +90,7 @@ When a demo could fit two categories, put it where its most interesting thing ha
 ## 3. Demo file template
 
 ```ts
-// apps/editor/src/demos/soft-bodies/name.ts
+// apps/editor/src/demos/springs/name.ts
 import { Mesh, MeshStandardMaterial, SphereGeometry } from "three";
 import { Particle, ParticleWorld, Vec3 } from "aether-physics";
 import { defineDemo } from "../../core/demo";
@@ -111,13 +110,13 @@ const params = {
 export const nameDemo = defineDemo({
     id: "name", // used in URLs; keep it stable
     title: "Name",
-    category: "soft-bodies",
+    category: "springs",
     summary: "One or two sentences: what is on screen.",
     hint: "One thing to try.",
     params,
     presets: [{ label: "Moon", note: "1.62 m/s²", values: { gravity: 1.62 } }],
     camera: { position: { x: 6, y: 5, z: 8 }, target: { x: 0, y: 1, z: 0 } },
-    source: "apps/editor/src/demos/soft-bodies/name.ts",
+    source: "apps/editor/src/demos/springs/name.ts",
     create({ root, palette, values }) {
         const world = new ParticleWorld();
         world.gravity.set(0, -values.gravity, 0);
@@ -286,7 +285,7 @@ Rockets climb until their upward speed falls to 3 m/s, then burst. Sparks share 
 
 ### Cloth
 
-An 18 × 18 grid of particles with structural and shear links, each link a `ParticleSpring` on both ends. `WindForce` in `soft-bodies/cloth-sim.ts` is a user-written `ParticleForceGenerator`, registered alongside the springs like any built-in generator. The world is substepped so no substep is longer than 1/240 s, whatever the physics rate; at 1000 N/m and 0.05 kg per particle that keeps `ω·h` well under the stability limit. `cloth-sim.test.ts` checks the cloth stays bounded across the stiffness range.
+An 18 × 18 grid of particles with structural and shear links, each link a `ParticleSpring` on both ends. `WindForce` in `springs/cloth-sim.ts` is a user-written `ParticleForceGenerator`, registered alongside the springs like any built-in generator. The world is substepped so no substep is longer than 1/240 s, whatever the physics rate; at 1000 N/m and 0.05 kg per particle that keeps `ω·h` well under the stability limit. `cloth-sim.test.ts` checks the cloth stays bounded across the stiffness range.
 
 ### Drumhead
 
@@ -301,10 +300,6 @@ One particle on a `ParticleAnchoredSpring` under gravity. The spring's frequency
 A rope bridge built only from contact generators: two rails of 9 particles each, fixed at both ends, joined along each rail by a `ParticleCable` and across the deck by a `ParticleRod`. *Hangers* adds a cable from a fixed anchor above each deck particle, 0.6 m longer than the drop to the deck, so the hangers near the ends stay slack. The load is not a particle: each step `bridge-sim.ts` adds its mass to the four deck particles around it, split by how far along the section it is, so gravity pulls harder there. Cables are drawn in the accent colour when within 2 mm of their length and grey when slack.
 
 A hanging chain needs far more resolver iterations than the default of twice the contact count, which lets single cables stretch by up to 0.4 m and the deck hang about a meter deeper while the load crosses (*Starved*). The default is 2,000 per step, which keeps every cable within about a millimetre. The resolver parameters come from `helpers/resolver.ts`, shared with *Break*; the readout doesn't flag the budget as exhausted, because a chain always uses all of it. The world is substepped to 1/60 s so a heavy load stays stable at low physics rates.
-
-### Density column
-
-Three liquid layers and four upright prisms. Pressure from stacked liquids adds, so each object has three `ParticleBuoyancy` generators: one at the top surface with the top layer's density, and one at each lower surface with the difference between that layer and the one above it. An object inside the middle layer then gets the top density plus the difference, which is the middle density. The density sliders' ranges don't overlap, so no difference is negative. Prisms keep the generator's linear submerged fraction exact.
 
 ### Raft
 

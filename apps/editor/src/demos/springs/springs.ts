@@ -120,7 +120,7 @@ class Body {
 export const springsDemo = defineDemo({
     id: "springs",
     title: "Springs",
-    category: "soft-bodies",
+    category: "springs",
     summary: "Three ways to hang a weight: on an anchor, in a pair, on a bungee.",
     hint: "Grab the left block and swing it.",
     params,
@@ -143,7 +143,7 @@ export const springsDemo = defineDemo({
         },
     ],
     camera: { position: { x: -4.6, y: 5.6, z: 14 }, target: { x: -4.6, y: 4.6, z: 0 } },
-    source: "apps/editor/src/demos/soft-bodies/springs.ts",
+    source: "apps/editor/src/demos/springs/springs.ts",
     create({ root, view, palette, values, useWorld }) {
         let current = values;
         let dt = 1 / 60;

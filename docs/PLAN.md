@@ -613,7 +613,7 @@ class ParticleBungee implements ParticleForceGenerator {
 #### Step 4: Buoyancy
 
 - [x] `src/forces/particle-buoyancy.ts`: `ParticleBuoyancy`
-- [x] Demos: *Buoyancy*, *Density column*, *Raft*
+- [x] Demo: *Raft* (*Buoyancy* and *Density column* were built too, then cut as too close to *Raft*)
 
 **Covers:** a force that depends on position, with three regimes: out of the water, partly submerged and fully submerged.
 
@@ -624,7 +624,7 @@ class ParticleBuoyancy implements ParticleForceGenerator {
 }
 ```
 
-Where the build goes beyond the sketch: the constructor takes positional arguments and throws a `RangeError` on a non-positive `maxDepth`, a non-finite `waterHeight` or any negative value. Layered liquids need nothing new: register one generator per surface, with the top layer's density at the top surface and the density difference at each surface below (the *Density column* demo).
+Where the build goes beyond the sketch: the constructor takes positional arguments and throws a `RangeError` on a non-positive `maxDepth`, a non-finite `waterHeight` or any negative value. Layered liquids need nothing new: register one generator per surface, with the top layer's density at the top surface and the density difference at each surface below (the cut *Density column* demo did this).
 
 **Done when:** the force is zero above the surface, `ρ · volume · g` at full submersion, and linear in between.
 
@@ -670,7 +670,7 @@ Where the build goes beyond the sketch: `ParticleWorld.step` records `lastAccele
 - [x] `src/particles/contacts/contact-resolver.ts`: `ParticleContactResolver`
 - [x] `src/particles/contacts/ground-contacts.ts`: `GroundContacts`
 - [x] `ParticleWorld.step` becomes forces → integrate → generate → resolve, over a preallocated contact array
-- [x] Demos: *Bounce* (restitution, rebound ratios against `e²`, resting contact) and *Break* (a rack broken by a cue ball, with the resolver's iteration budget as a parameter), the first in the Collisions category
+- [x] Demos: *Bounce* (restitution, rebound ratios against `e²`, resting contact) and *Break* (a rack broken by a cue ball, with the resolver's iteration budget as a parameter), the first in the Contacts category
 
 **Covers:** the split between finding contacts and resolving them, and iteration, since resolving one contact disturbs its neighbors. Resolving one contact's interpenetration changes the penetration of every other contact that shares a particle, so the resolver adjusts those contacts by how far each particle moved before the next iteration, as the book's source does with `particleMovement`.
 
