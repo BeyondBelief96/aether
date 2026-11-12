@@ -138,9 +138,9 @@ export const densityColumnDemo = defineDemo({
     ],
     camera: { position: { x: 0, y: 5.4, z: 13 }, target: { x: 0, y: 3.6, z: 0 } },
     source: "apps/editor/src/demos/fluids/density-column.ts",
-    create({ root, view, palette, values }) {
+    create({ root, view, palette, values, useWorld }) {
         let current = values;
-        const world = new ParticleWorld();
+        const world = useWorld(new ParticleWorld());
         world.gravity.set(0, -GRAVITY, 0);
         const left = -TANK_WIDTH / 2 + 1.2;
         const gap = (TANK_WIDTH - 2.4) / (SHAPES.length - 1);

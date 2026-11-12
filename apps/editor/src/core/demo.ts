@@ -1,5 +1,5 @@
 import type { Camera, Group } from "three";
-import type { Vec3Like } from "aether-physics";
+import type { ParticleWorld, Vec3Like } from "aether-physics";
 import type { ParamSchema, ParamValues } from "./params";
 import type { ScenePalette } from "../stage/palette";
 
@@ -99,6 +99,11 @@ export interface DemoContext<S extends ParamSchema> {
     plot(chartId: string, values: readonly number[]): void;
     /** Empties every chart. */
     clearCharts(): void;
+    /**
+     * Registers a world so the app's integrator setting applies to it, now and whenever the
+     * setting changes. Returns `world`. A demo that sets its own integrators doesn't call it.
+     */
+    useWorld(world: ParticleWorld): ParticleWorld;
 }
 
 /** A running demo. */

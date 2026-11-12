@@ -423,7 +423,8 @@ The transport's Smooth toggle: an 18px square with a 1px ink outline and 2px rad
 ### Inputs / Fields
 - **Axis slider:** caption at left and live mono value at right, a 2px track in hairline with an ink fill to the value, a 20px paper thumb ringed in 2px ink, and mono min/max beneath. Hover and drag fill the thumb orange; drag scales it to 1.15.
 - **Vector field:** three 34px outlined cells labelled X, Y, Z in 700 11px mono, values right-aligned in mono with an orange caret; focus-within draws the orange ring on the cell.
-- **Select:** 36px outlined, mono value, an authored chevron at the right, captioned by an uppercase mono label.
+- **Select:** 36px outlined, mono value, an authored chevron at the right, captioned by an uppercase mono label. A select of names (the transport's Integrator) sets its value in 500 13px grotesk instead, since words are never mono. Disabled, the select and its caption drop to 40% opacity and a tooltip says why.
+- **Transport strip:** Pause, step and reset, then Physics, Speed, Integrator and Smooth, then loop stats at the right. The settings apply to every demo and persist when switching demos. Groups wrap on narrow screens, so nothing scrolls sideways.
 
 ### Navigation
 - **Header:** wordmark and muted subtitle, category tabs in 600 15px grotesk (muted, ink on hover and when current, with a 2px orange bar), then All demos, GitHub and the mono package version at the right, closed by an ink rule. A second row lists the current category's demos in 13px with the same current bar. Tabs scroll horizontally on narrow screens.

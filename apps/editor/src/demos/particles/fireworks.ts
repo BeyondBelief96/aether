@@ -94,10 +94,10 @@ export const fireworksDemo = defineDemo({
     actions: [{ id: "launch", label: "Launch", key: "l" }],
     camera: { position: { x: 6, y: 14, z: 50 }, target: { x: 2, y: 17, z: 0 } },
     source: "apps/editor/src/demos/particles/fireworks.ts",
-    create({ root, palette, values }) {
+    create({ root, palette, values, useWorld }) {
         let current = values;
         const rand = random(7);
-        const world = new ParticleWorld();
+        const world = useWorld(new ParticleWorld());
         let drag = new ParticleDrag(current.drag, 0);
         const rockets: Spark[] = [];
         const sparks: Spark[] = [];

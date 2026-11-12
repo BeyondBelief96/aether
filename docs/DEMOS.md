@@ -185,6 +185,17 @@ Colours in all three refer to series by index (`color: 0` to `3`), so a readout,
 
 Import everything from `"aether-physics"`, never from engine files. The workspace links the package, and the `aether-source` export condition resolves it to the TypeScript source, so demos use the engine exactly as an outside user would. Anything a demo needs has to be exported from `packages/aether/src/index.ts`.
 
+### Worlds and the integrator setting
+
+The transport strip's Integrator applies to every demo. Register each `ParticleWorld` the demo builds with `ctx.useWorld`, which sets the chosen integrator on it now and whenever the setting changes:
+
+```ts
+create({ root, values, useWorld }) {
+    const world = useWorld(new ParticleWorld());
+```
+
+A world built inside a helper registers the same way (`useWorld(cloth.world)`). A demo with no world, or one that sets its own integrators like *Integrators*, doesn't call it, and the select is disabled while it is open. `demos/tests/stability.test.ts` checks that every other demo registers its worlds and runs under every integrator without throwing.
+
 ### Engine types into Three.js
 
 The engine's `Vec3` and `Quaternion` have plain `x`, `y`, `z` (and `w`) fields, so Three.js's `copy` accepts them directly:

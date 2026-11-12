@@ -95,9 +95,9 @@ export const raftDemo = defineDemo({
     camera: { position: { x: 5.2, y: 4.4, z: 7.4 }, target: { x: 0, y: -0.5, z: 0 } },
     hz: 120,
     source: "apps/editor/src/demos/fluids/raft.ts",
-    create({ root, view, palette, values }) {
+    create({ root, view, palette, values, useWorld }) {
         let current = values;
-        const world = new ParticleWorld();
+        const world = useWorld(new ParticleWorld());
         world.gravity.set(0, -GRAVITY, 0);
         let seed = 7;
         const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;

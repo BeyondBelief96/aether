@@ -252,8 +252,7 @@ export class AetherScene extends LitElement {
 
     protected override render() {
         return html`<canvas role="img" aria-label=${this.label}></canvas> ${this.tags.map(
-                (t) =>
-                    html`<span class="tag" aria-hidden="true">${t.text}</span>`,
+                (t) => html`<span class="tag" aria-hidden="true">${t.text}</span>`,
             )}`;
     }
 }

@@ -1,13 +1,16 @@
 import { css, html, LitElement, type PropertyDeclarations } from "lit";
+import { INTEGRATORS, type IntegratorChoice } from "../core/integrators";
 import { PHYSICS_RATES as RATES, type LoopStats } from "../core/session";
 import { baseStyles, icons } from "./shared";
 
 const SCALES = [0.1, 0.25, 0.5, 1, 2] as const;
 
 /**
- * Pause, single step and reset, the world's physics rate and time scale, and loop statistics.
+ * Pause, single step and reset, the world's physics rate, time scale and integrator, and loop
+ * statistics.
  *
- * Events: `toggle-pause`, `step-once`, `reset`, `hz-change` (number), `time-scale-change` (number).
+ * Events: `toggle-pause`, `step-once`, `reset`, `hz-change` (number), `time-scale-change`
+ * (number), `interpolate-change` (boolean), `integrator-change` (`IntegratorChoice`).
  */
 export class TransportBar extends LitElement {
     static override properties: PropertyDeclarations = {
@@ -15,6 +18,8 @@ export class TransportBar extends LitElement {
         hz: { type: Number },
         timeScale: { type: Number },
         interpolate: { type: Boolean },
+        integrator: { type: String },
+        integratorDisabled: { type: Boolean, attribute: "integrator-disabled" },
         stats: { attribute: false },
     };
 
@@ -22,6 +27,9 @@ export class TransportBar extends LitElement {
     declare hz: number;
     declare timeScale: number;
     declare interpolate: boolean;
+    declare integrator: IntegratorChoice;
+    /** The open demo has no world the integrator applies to, or sets its own. */
+    declare integratorDisabled: boolean;
     declare stats: LoopStats;
 
     static override styles = [
@@ -38,6 +46,7 @@ export class TransportBar extends LitElement {
             .group {
                 display: flex;
                 align-items: center;
+                flex-wrap: wrap;
                 gap: var(--u);
             }
             .btn.play {
@@ -64,6 +73,17 @@ export class TransportBar extends LitElement {
             select option {
                 background: var(--paper);
                 color: var(--ink);
+            }
+            /* A select of names: words are set in the grotesk, numbers stay mono. */
+            select.words {
+                font: 500 var(--text-small) / 1 var(--sans);
+            }
+            select:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
+            label:has(select:disabled) .label {
+                opacity: 0.4;
             }
             .check {
                 gap: 8px;
@@ -128,6 +148,8 @@ export class TransportBar extends LitElement {
         this.hz = 60;
         this.timeScale = 1;
         this.interpolate = true;
+        this.integrator = "semi-implicit";
+        this.integratorDisabled = false;
         this.stats = { fps: 0, stepsPerFrame: 0, simTime: 0, droppedTime: false };
     }
 
@@ -185,6 +207,22 @@ export class TransportBar extends LitElement {
                         @change=${(e: Event) => this.#emit("time-scale-change", Number((e.target as HTMLSelectElement).value))}
                     >
                         ${SCALES.map((k) => html`<option value=${k} ?selected=${k === this.timeScale}>${k}×</option>`)}
+                    </select>
+                </label>
+                <label
+                    title=${
+                        this.integratorDisabled
+                            ? "This demo has no particles to integrate, or sets its own integrators."
+                            : "How the engine advances particles each step."
+                    }
+                >
+                    <span class="label">Integrator</span>
+                    <select
+                        class="words"
+                        ?disabled=${this.integratorDisabled}
+                        @change=${(e: Event) => this.#emit("integrator-change", (e.target as HTMLSelectElement).value)}
+                    >
+                        ${INTEGRATORS.map(({ value, label }) => html`<option value=${value} ?selected=${value === this.integrator}>${label}</option>`)}
                     </select>
                 </label>
                 <label

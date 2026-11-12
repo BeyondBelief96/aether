@@ -13,7 +13,6 @@ import { Particle, ParticleAttraction, ParticleWorld } from "aether-physics";
 import { defineDemo } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { number } from "../../core/params";
-import { integratorParam, makeIntegrator } from "../helpers/integrators";
 import { Polyline } from "../helpers/polyline";
 
 /**
@@ -52,7 +51,6 @@ const params = {
     mass: number({ label: "Star mass", min: 0.25, max: 4, step: 0.05, default: 1, unit: "×" }),
     dust: number({ label: "Dust", min: 200, max: MAX_DUST, step: 50, default: 1200 }),
     drag: number({ label: "Drag", min: 0, max: 0.2, step: 0.005, default: 0, digits: 3 }),
-    integrator: integratorParam(),
 };
 
 export const orbitsDemo = defineDemo({
@@ -84,12 +82,11 @@ export const orbitsDemo = defineDemo({
     ],
     camera: { position: { x: -5, y: 13, z: 21 }, target: { x: -5, y: HEIGHT - 1, z: 0 } },
     source: "apps/editor/src/demos/particles/orbits.ts",
-    create({ root, palette, values, plot, clearCharts }) {
+    create({ root, palette, values, plot, clearCharts, useWorld }) {
         let current = values;
         let sampleTime = 0;
-        const world = new ParticleWorld();
+        const world = useWorld(new ParticleWorld());
         world.gravity.set(0, 0, 0);
-        world.integrator = makeIntegrator(current.integrator);
         const rand = random(11);
 
         const stars = [new Particle(), new Particle()] as const;
@@ -214,8 +211,6 @@ export const orbitsDemo = defineDemo({
                 }
                 if (changed.has("mass")) attach();
                 if (changed.has("drag")) for (const p of dust) p.damping = 1 - current.drag;
-                if (changed.has("integrator"))
-                    world.integrator = makeIntegrator(current.integrator);
             },
             step(dt) {
                 remember();

@@ -11,7 +11,7 @@ import { Vec3 } from "aether-physics";
 import { defineDemo, type SeriesIndex } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { choice, number } from "../../core/params";
-import { makeIntegrator, type IntegratorChoice } from "../helpers/integrators";
+import { makeIntegrator, type IntegratorChoice } from "../../core/integrators";
 import { Polyline } from "../helpers/polyline";
 import { SpringCoil } from "../helpers/spring-coil";
 import { disposeObject } from "../helpers/three";

@@ -1,16 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { Group, Line, Mesh, PerspectiveCamera, Vector3 } from "three";
+import type { ParticleWorld } from "aether-physics";
 import type { DemoDefinition, DemoInstance } from "../../core/demo";
 import { defaults, type ParamSchema, type ParamValues } from "../../core/params";
 import { PHYSICS_RATES } from "../../core/session";
 import { LIGHT } from "../../stage/palette";
+import { INTEGRATORS, makeIntegrator, type IntegratorChoice } from "../../core/integrators";
 import { demos } from "../registry";
 
 const SECONDS = 4;
 const _world = new Vector3();
 
-function start(demo: DemoDefinition, values: ParamValues<ParamSchema>) {
+function start(
+    demo: DemoDefinition,
+    values: ParamValues<ParamSchema>,
+    integrator: IntegratorChoice = "semi-implicit",
+) {
     const root = new Group();
+    const worlds: ParticleWorld[] = [];
     const element = { addEventListener() {}, removeEventListener() {}, style: {} };
     const instance = demo.create({
         root,
@@ -24,8 +31,13 @@ function start(demo: DemoDefinition, values: ParamValues<ParamSchema>) {
         set() {},
         plot() {},
         clearCharts() {},
+        useWorld(world) {
+            world.integrator = makeIntegrator(integrator);
+            worlds.push(world);
+            return world;
+        },
     }) as DemoInstance<ParamSchema>;
-    return { root, instance };
+    return { root, instance, worlds };
 }
 
 function run(instance: DemoInstance<ParamSchema>, hz: number, seconds: number): void {
@@ -85,6 +97,39 @@ describe("raft", () => {
             }
             run(instance, hz, 4);
             expect(finite(root)).toBe(true);
+        });
+    }
+});
+
+/** Demos with no world the app's integrator setting applies to. */
+const OWN_INTEGRATORS = new Set(["rotation", "integrators"]);
+
+describe("the integrator setting", () => {
+    for (const demo of demos) {
+        if (OWN_INTEGRATORS.has(demo.id)) continue;
+        it(`${demo.id} registers its worlds`, () => {
+            const { worlds, instance } = start(
+                demo,
+                defaults(demo.params) as ParamValues<ParamSchema>,
+                "rk4",
+            );
+            expect(worlds.length).toBeGreaterThan(0);
+            for (const world of worlds) expect(world.integrator.name).toBe("RK4");
+            instance.dispose?.();
+        });
+    }
+
+    for (const demo of demos) {
+        it(`${demo.id} runs under every integrator without throwing`, () => {
+            for (const { value } of INTEGRATORS) {
+                const { instance } = start(
+                    demo,
+                    defaults(demo.params) as ParamValues<ParamSchema>,
+                    value,
+                );
+                expect(() => run(instance, 60, 2)).not.toThrow();
+                instance.dispose?.();
+            }
         });
     }
 });

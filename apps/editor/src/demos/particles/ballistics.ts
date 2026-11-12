@@ -112,9 +112,9 @@ export const ballisticsDemo = defineDemo({
     actions: [{ id: "fire", label: "Fire", key: "f" }],
     camera: { position: { x: -34, y: 30, z: -48 }, target: { x: 0, y: 4, z: 62 } },
     source: "apps/editor/src/demos/particles/ballistics.ts",
-    create({ root, palette, values }) {
+    create({ root, palette, values, useWorld }) {
         let current = values;
-        const world = new ParticleWorld();
+        const world = useWorld(new ParticleWorld());
         let nextShot = 0;
         let fireTimer = 0;
         let shotCount = 0;

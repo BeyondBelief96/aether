@@ -72,9 +72,9 @@ export const buoyancyDemo = defineDemo({
     ],
     camera: { position: { x: 0, y: 6, z: 16 }, target: { x: 0, y: 3, z: 0 } },
     source: "apps/editor/src/demos/fluids/buoyancy.ts",
-    create({ root, palette, values }) {
+    create({ root, palette, values, useWorld }) {
         let current = values;
-        const world = new ParticleWorld();
+        const world = useWorld(new ParticleWorld());
         world.gravity.set(0, -GRAVITY, 0);
         const left = -((MATERIALS.length - 1) * SPACING) / 2;
 

@@ -22,7 +22,6 @@ import { defineDemo } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { number, toggle } from "../../core/params";
 import { DragHandle } from "../helpers/drag-handle";
-import { integratorParam, makeIntegrator } from "../helpers/integrators";
 import { Polyline } from "../helpers/polyline";
 import { SpringCoil } from "../helpers/spring-coil";
 import { VectorArrow } from "../helpers/vector-arrow";
@@ -65,7 +64,6 @@ const params = {
         unit: " m",
     }),
     damping: number({ label: "Damping", min: 0.5, max: 1, step: 0.01, default: 0.9 }),
-    integrator: integratorParam(),
     forces: toggle({ label: "Force arrows", default: false }),
 };
 
@@ -146,11 +144,10 @@ export const springsDemo = defineDemo({
     ],
     camera: { position: { x: -4.6, y: 5.6, z: 14 }, target: { x: -4.6, y: 4.6, z: 0 } },
     source: "apps/editor/src/demos/soft-bodies/springs.ts",
-    create({ root, view, palette, values }) {
+    create({ root, view, palette, values, useWorld }) {
         let current = values;
         let dt = 1 / 60;
-        const world = new ParticleWorld();
-        world.integrator = makeIntegrator(current.integrator);
+        const world = useWorld(new ParticleWorld());
         const [anchoredColor, pairColor, bungeeColor] = palette.series;
 
         const block = () =>
@@ -232,8 +229,6 @@ export const springsDemo = defineDemo({
                 current = next;
                 if (changed.has("stiffness") || changed.has("restLength")) rebuildForces();
                 if (changed.has("damping")) applyDamping();
-                if (changed.has("integrator"))
-                    world.integrator = makeIntegrator(current.integrator);
             },
             step(stepDt) {
                 dt = stepDt;

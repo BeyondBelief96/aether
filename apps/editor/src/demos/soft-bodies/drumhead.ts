@@ -88,10 +88,10 @@ export const drumheadDemo = defineDemo({
     ],
     camera: { position: { x: 0, y: 13, z: 11 }, target: { x: 0, y: 1.2, z: 0.4 } },
     source: "apps/editor/src/demos/soft-bodies/drumhead.ts",
-    create({ root, view, palette, values, plot }) {
+    create({ root, view, palette, values, plot, useWorld }) {
         let current = values;
         let sampleTime = 0;
-        const world = new ParticleWorld();
+        const world = useWorld(new ParticleWorld());
         world.gravity.set(0, 0, 0);
 
         // Grid points inside the rim, row-major. A point missing a neighbour is on the rim.

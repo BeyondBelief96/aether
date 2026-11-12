@@ -425,7 +425,7 @@ class ParticleWorld {
 - [x] `src/particles/integrators/`: `ParticleIntegrator` and `ForceEvaluator`; `SemiImplicitEuler` (the default, moved out of `Particle.integrate`), `ExplicitEuler`, `VelocityVerlet`, `Rk4`
 - [x] `ParticleWorld.integrator`, switchable between steps
 - [x] `Particle.integrate` delegates to `SemiImplicitEuler`, so existing callers keep working
-- [x] An integrator selector in the *Orbits* and *Springs* demos (`apps/editor/src/demos/helpers/integrators.ts`)
+- [x] An Integrator select in the demo app's transport strip that applies to every demo's worlds, registered with `ctx.useWorld` (`apps/editor/src/core/integrators.ts`)
 - [x] Demo: *Integrators* (`apps/editor/src/demos/particles/integrators.ts`), the shoot-out back on the engine: the same spring or orbit in four lanes, one per integrator, with an energy chart, force evaluations and step times
 
 Where the build goes beyond the sketch: each integrator declares `evaluationsPerStep`. When it is more than 1, forces a caller adds with `addForce` before `ParticleWorld.step` are saved at the start of the step and restored on every evaluation, so they act as constant forces through every stage; single-evaluation integrators skip the copy, so the default path costs the same as before the seam. Damping is applied once per step, after the integrator's update, for every integrator.

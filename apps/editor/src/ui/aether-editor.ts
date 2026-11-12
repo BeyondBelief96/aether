@@ -10,6 +10,7 @@ import {
     type ParamValue,
 } from "../core/params";
 import { formatHash, isRouteHash, parseHash, type Route } from "../core/route";
+import { DEFAULT_INTEGRATOR, type IntegratorChoice } from "../core/integrators";
 import { DemoSession, type LoopStats, type SessionHost } from "../core/session";
 import { ENGINE_VERSION, REPOSITORY_URL } from "../core/site";
 import { demos, featuredDemo, findDemo } from "../demos/registry";
@@ -68,6 +69,8 @@ export class AetherEditor extends LitElement {
         hz: { state: true },
         timeScale: { state: true },
         interpolate: { state: true },
+        integrator: { state: true },
+        usesIntegrator: { state: true },
         stats: { state: true },
         readouts: { state: true },
         tab: { state: true },
@@ -81,6 +84,10 @@ export class AetherEditor extends LitElement {
     declare hz: number;
     declare timeScale: number;
     declare interpolate: boolean;
+    /** Integrator applied to every world the open demo registers. Kept across demos. */
+    declare integrator: IntegratorChoice;
+    /** Whether the open demo has a world the integrator setting applies to. */
+    declare usesIntegrator: boolean;
     declare stats: LoopStats;
     declare readouts: readonly ReadoutGroup[];
     declare tab: DataTab;
@@ -168,6 +175,8 @@ export class AetherEditor extends LitElement {
         this.hz = 60;
         this.timeScale = 1;
         this.interpolate = true;
+        this.integrator = DEFAULT_INTEGRATOR;
+        this.usesIntegrator = false;
         this.stats = { fps: 0, stepsPerFrame: 0, simTime: 0, droppedTime: false };
         this.readouts = [];
         this.tab = readTab();
@@ -252,6 +261,8 @@ export class AetherEditor extends LitElement {
         session.loop.paused = this.paused;
         session.loop.timeScale = this.timeScale;
         session.interpolate = this.interpolate;
+        session.integrator = this.integrator;
+        this.usesIntegrator = session.usesIntegrator;
         this.#session = session;
         this.values = session.values;
         this.hz = session.loop.hz;
@@ -451,6 +462,8 @@ export class AetherEditor extends LitElement {
                         .hz=${this.hz}
                         .timeScale=${this.timeScale}
                         .interpolate=${this.interpolate}
+                        .integrator=${this.integrator}
+                        ?integrator-disabled=${!this.usesIntegrator}
                         .stats=${this.stats}
                         @toggle-pause=${() => this.#togglePause()}
                         @step-once=${() => this.#session?.loop.stepOnce()}
@@ -463,6 +476,10 @@ export class AetherEditor extends LitElement {
                         @time-scale-change=${(e: CustomEvent<number>) => {
                             this.timeScale = e.detail;
                             if (this.#session) this.#session.loop.timeScale = e.detail;
+                        }}
+                        @integrator-change=${(e: CustomEvent<IntegratorChoice>) => {
+                            this.integrator = e.detail;
+                            if (this.#session) this.#session.integrator = e.detail;
                         }}
                     ></transport-bar>
                 </section>

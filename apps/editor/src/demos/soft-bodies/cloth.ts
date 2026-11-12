@@ -79,10 +79,11 @@ export const clothDemo = defineDemo({
     ],
     camera: { position: { x: 5.5, y: 5, z: 11 }, target: { x: 0, y: 3.6, z: 1 } },
     source: "apps/editor/src/demos/soft-bodies/cloth.ts",
-    create({ root, view, palette, values }) {
+    create({ root, view, palette, values, useWorld }) {
         let current = values;
         let dt = 1 / 60;
         const cloth = new ClothSim({ size: SIZE, spacing: SPACING, mass: MASS, top: TOP });
+        useWorld(cloth.world);
         const count = cloth.particles.length;
         const previous = new Float32Array(count * 3);
 

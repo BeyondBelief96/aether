@@ -108,13 +108,13 @@ export const elasticPendulumDemo = defineDemo({
     ],
     camera: { position: { x: 4, y: 7, z: 13 }, target: { x: 0, y: 5.2, z: 0 } },
     source: "apps/editor/src/demos/soft-bodies/elastic-pendulum.ts",
-    create({ root, view, palette, values, plot, clearCharts }) {
+    create({ root, view, palette, values, plot, clearCharts, useWorld }) {
         let current = values;
         let sampleTime = 0;
         let held = false;
         const holdAt = new Vec3();
 
-        const world = new ParticleWorld();
+        const world = useWorld(new ParticleWorld());
         world.gravity.set(0, -GRAVITY, 0);
         const bob = new Particle();
         bob.setMass(MASS);

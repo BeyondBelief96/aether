@@ -1,5 +1,5 @@
 import { Group } from "three";
-import { FixedStepLoop } from "aether-physics";
+import { FixedStepLoop, type ParticleWorld } from "aether-physics";
 import type {
     Callout,
     ChartSpec,
@@ -12,6 +12,7 @@ import { type ParamSchema, type ParamValue, type ParamValues, sameValue, sanitiz
 import { RingBuffer } from "./ring-buffer";
 import type { ScenePalette } from "../stage/palette";
 import { disposeObject } from "../demos/helpers/three";
+import { DEFAULT_INTEGRATOR, makeIntegrator, type IntegratorChoice } from "./integrators";
 
 const STATS_INTERVAL_MS = 250;
 
@@ -75,6 +76,9 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
     #root: Group | null = null;
     #stats: LoopStats = { fps: 0, stepsPerFrame: 0, simTime: 0, droppedTime: false };
     #window = { start: 0, frames: 0, steps: 0, dropped: false };
+    #integrator: IntegratorChoice = DEFAULT_INTEGRATOR;
+    /** Worlds the demo registered with `useWorld`, kept on the chosen integrator. */
+    #worlds = new Set<ParticleWorld>();
     #onValues = new Set<(values: ParamValues<S>) => void>();
     #onStats = new Set<(stats: LoopStats) => void>();
 
@@ -95,6 +99,21 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
 
     get stats(): LoopStats {
         return this.#stats;
+    }
+
+    /** Integrator every registered world steps with. Takes effect from the next step. */
+    get integrator(): IntegratorChoice {
+        return this.#integrator;
+    }
+
+    set integrator(choice: IntegratorChoice) {
+        this.#integrator = choice;
+        for (const world of this.#worlds) world.integrator = makeIntegrator(choice);
+    }
+
+    /** Whether the demo registered any world, so the integrator setting has an effect. */
+    get usesIntegrator(): boolean {
+        return this.#worlds.size > 0;
     }
 
     /** Recreates the demo from its current parameter values. */
@@ -210,6 +229,11 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
             clearCharts: () => {
                 for (const chart of this.charts.values()) chart.clear();
             },
+            useWorld: (world) => {
+                world.integrator = makeIntegrator(this.#integrator);
+                this.#worlds.add(world);
+                return world;
+            },
         });
         this.#host.prepare?.(root);
         this.#instance.sync(1);
@@ -218,6 +242,7 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
     #stop(): void {
         this.#instance?.dispose?.();
         this.#instance = null;
+        this.#worlds.clear();
         if (this.#root) {
             this.#host.detach(this.#root);
             disposeObject(this.#root);
