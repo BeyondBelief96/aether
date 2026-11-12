@@ -19,6 +19,7 @@ export function semiImplicitEulerStep(particle: Particle, dt: number): void {
  */
 export class SemiImplicitEuler implements ParticleIntegrator {
     readonly name = "Semi-implicit Euler";
+    readonly evaluationsPerStep = 1;
 
     step(particles: readonly Particle[], forces: ForceEvaluator, dt: number): void {
         forces.evaluate();

@@ -7,6 +7,7 @@ import type { ForceEvaluator, ParticleIntegrator } from "./particle-integrator.j
  */
 export class ExplicitEuler implements ParticleIntegrator {
     readonly name = "Explicit Euler";
+    readonly evaluationsPerStep = 1;
 
     step(particles: readonly Particle[], forces: ForceEvaluator, dt: number): void {
         forces.evaluate();

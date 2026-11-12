@@ -147,6 +147,7 @@ describe("force evaluations per step", () => {
         world.step(1 / 60);
 
         expect(calls).toBe(expected);
+        expect(integrator.evaluationsPerStep).toBe(expected);
     });
 });
 

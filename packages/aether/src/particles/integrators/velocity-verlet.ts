@@ -10,6 +10,7 @@ import { ensureLength } from "./scratch.js";
  */
 export class VelocityVerlet implements ParticleIntegrator {
     readonly name = "Velocity Verlet";
+    readonly evaluationsPerStep = 2;
     private readonly acceleration: Vec3[] = [];
     private readonly startVelocity: Vec3[] = [];
 

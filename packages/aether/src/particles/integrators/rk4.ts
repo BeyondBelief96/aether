@@ -14,6 +14,7 @@ const _accel = new Vec3();
  */
 export class Rk4 implements ParticleIntegrator {
     readonly name = "RK4";
+    readonly evaluationsPerStep = 4;
     private readonly startPosition: Vec3[] = [];
     private readonly startVelocity: Vec3[] = [];
     private readonly sumPosition: Vec3[] = [];
