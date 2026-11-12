@@ -10,3 +10,8 @@ export function choiceColumns(count: number, width: number, optionWidth: number)
     const rows = Math.ceil(count / fit);
     return Math.ceil(count / rows);
 }
+
+/** Columns the last of `count` options spans so it fills the rest of its row. */
+export function lastSpan(count: number, columns: number): number {
+    return columns - ((Math.max(count, 1) - 1) % columns);
+}

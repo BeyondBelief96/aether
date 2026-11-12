@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { choiceColumns } from "../choice-columns";
+import { choiceColumns, lastSpan } from "../choice-columns";
 
 describe("choiceColumns", () => {
     it("keeps every option in one row when they fit", () => {
@@ -29,5 +29,19 @@ describe("choiceColumns", () => {
     it("handles a single option and an unmeasured width", () => {
         expect(choiceColumns(1, 300, 50)).toBe(1);
         expect(choiceColumns(3, 300, 0)).toBe(3);
+    });
+});
+
+describe("lastSpan", () => {
+    it("stretches a short last row's final option across the empty cells", () => {
+        expect(lastSpan(3, 2)).toBe(2);
+        expect(lastSpan(5, 3)).toBe(2);
+        expect(lastSpan(7, 4)).toBe(2);
+    });
+
+    it("leaves a full last row alone", () => {
+        expect(lastSpan(4, 2)).toBe(1);
+        expect(lastSpan(3, 3)).toBe(1);
+        expect(lastSpan(3, 1)).toBe(1);
     });
 });

@@ -1,6 +1,6 @@
 import { css, html, LitElement, type PropertyDeclarations } from "lit";
 import { baseStyles } from "../shared";
-import { choiceColumns } from "./choice-columns";
+import { choiceColumns, lastSpan } from "./choice-columns";
 
 export interface ChoiceOption {
     readonly value: string;
@@ -31,6 +31,7 @@ export class AxisChoice extends LitElement {
     declare options: readonly ChoiceOption[];
 
     #columns = 0;
+    #lastSpan = 0;
     #optionWidth = 0;
     #resize = new ResizeObserver(() => this.#layout());
 
@@ -65,9 +66,9 @@ export class AxisChoice extends LitElement {
                 text-overflow: ellipsis;
                 transition: background-color 140ms var(--ease-out);
             }
-            /* A short last row: the final option takes the rest of it, so no cell is left empty. */
+            /* A short last row: the final option spans the rest of it, so no cell is left empty. */
             button:last-child {
-                grid-column-end: -1;
+                grid-column: span var(--last-span, 1);
             }
             button:hover:not([aria-checked="true"]) {
                 background: var(--paper-sunk);
@@ -129,10 +130,14 @@ export class AxisChoice extends LitElement {
         const width = this.clientWidth;
         if (width === 0) return;
         if (this.#optionWidth === 0) this.#optionWidth = this.#measure();
-        const columns = choiceColumns(this.options.length, width, this.#optionWidth);
-        if (columns === this.#columns) return;
+        const count = this.options.length;
+        const columns = choiceColumns(count, width, this.#optionWidth);
+        const span = lastSpan(count, columns);
+        if (columns === this.#columns && span === this.#lastSpan) return;
         this.#columns = columns;
+        this.#lastSpan = span;
         this.style.setProperty("--columns", String(columns));
+        this.style.setProperty("--last-span", String(span));
     }
 
     #pick(value: string): void {
