@@ -21,9 +21,9 @@ export const integratorParam = () =>
     choice<IntegratorChoice>({
         label: "Integrator",
         options: [
-            { value: "semi-implicit", label: "Semi-implicit Euler" },
-            { value: "explicit", label: "Explicit Euler" },
-            { value: "verlet", label: "Velocity Verlet" },
+            { value: "semi-implicit", label: "Semi-implicit" },
+            { value: "explicit", label: "Explicit" },
+            { value: "verlet", label: "Verlet" },
             { value: "rk4", label: "RK4" },
         ],
         default: "semi-implicit",

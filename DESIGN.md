@@ -416,7 +416,8 @@ The transport's Smooth toggle: an 18px square with a 1px ink outline and 2px rad
 - **State:** hover fills sunk paper; the active instance inverts to ink with paper text, its note and key at 72% paper.
 
 ### Segmented choice
-- **Style:** equal columns of 34px outlined options sharing 1px borders, 500 13px grotesk; caption above in control type.
+- **Style:** equal 34px options inside one 1px ink outline (2px radius), divided by 1px ink rules, 500 13px grotesk; caption above in control type.
+- **Wrapping:** options sit in one row when their measured labels fit; otherwise they wrap into the fewest rows that fit, spread evenly (four options become two rows of two, never three and one). A short last row's final option takes the rest of the row. Labels stay short, one or two words; a label that still cannot fit ends in an ellipsis with the full name as its tooltip.
 - **State:** checked option inverts to ink; hover fills sunk paper.
 
 ### Inputs / Fields

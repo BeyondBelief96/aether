@@ -1,13 +1,21 @@
 import { css, html, LitElement, type PropertyDeclarations } from "lit";
 import { baseStyles } from "../shared";
+import { choiceColumns } from "./choice-columns";
 
 export interface ChoiceOption {
     readonly value: string;
     readonly label: string;
 }
 
+/** Horizontal padding plus borders around an option's label, in pixels. */
+const OPTION_CHROME = 22;
+
+/** Canvas used to measure labels in the control's font. Created on first use. */
+let measureContext: CanvasRenderingContext2D | null = null;
+
 /**
- * One of a few options as a row of joined square buttons.
+ * One of a few options as joined square buttons. The options sit in one row when their labels
+ * fit and wrap into an even grid when they don't.
  *
  * Events: `value-input` (string).
  */
@@ -22,6 +30,10 @@ export class AxisChoice extends LitElement {
     declare value: string;
     declare options: readonly ChoiceOption[];
 
+    #columns = 0;
+    #optionWidth = 0;
+    #resize = new ResizeObserver(() => this.#layout());
+
     static override styles = [
         baseStyles,
         css`
@@ -33,27 +45,29 @@ export class AxisChoice extends LitElement {
                 margin-bottom: 10px;
                 font: 600 var(--text-small) / 1.3 var(--sans);
             }
+            /* The 1px gaps show the ink beneath, so options share their rules in any grid. */
             .row {
                 display: grid;
-                grid-auto-flow: column;
-                grid-auto-columns: minmax(0, 1fr);
+                grid-template-columns: repeat(var(--columns, 1), minmax(0, 1fr));
+                gap: 1px;
+                border: 1px solid var(--rule-strong);
+                border-radius: var(--radius);
+                background: var(--rule-strong);
             }
             button {
                 min-width: 0;
-                min-height: 34px;
+                min-height: 32px;
                 padding: 0 10px;
-                border: 1px solid var(--rule-strong);
-                margin-left: -1px;
+                background: var(--paper);
                 font: 500 var(--text-small) / 1 var(--sans);
                 white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
                 transition: background-color 140ms var(--ease-out);
             }
-            button:first-child {
-                margin-left: 0;
-                border-radius: var(--radius) 0 0 var(--radius);
-            }
+            /* A short last row: the final option takes the rest of it, so no cell is left empty. */
             button:last-child {
-                border-radius: 0 var(--radius) var(--radius) 0;
+                grid-column-end: -1;
             }
             button:hover:not([aria-checked="true"]) {
                 background: var(--paper-sunk);
@@ -76,6 +90,51 @@ export class AxisChoice extends LitElement {
         this.options = [];
     }
 
+    override connectedCallback(): void {
+        super.connectedCallback();
+        this.#resize.observe(this);
+        // Labels are measured in the web font, so measure again once it has loaded.
+        void document.fonts?.ready.then(() => {
+            this.#optionWidth = 0;
+            this.#layout();
+        });
+    }
+
+    override disconnectedCallback(): void {
+        super.disconnectedCallback();
+        this.#resize.disconnect();
+    }
+
+    protected override updated(changed: Map<string, unknown>): void {
+        if (changed.has("options")) this.#optionWidth = 0;
+        this.#layout();
+    }
+
+    /** Widest option, label measured in the buttons' computed font. */
+    #measure(): number {
+        const button = this.renderRoot.querySelector("button");
+        if (!button) return 0;
+        measureContext ??= document.createElement("canvas").getContext("2d");
+        if (!measureContext) return 0;
+        const style = getComputedStyle(button);
+        measureContext.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        let widest = 0;
+        for (const option of this.options) {
+            widest = Math.max(widest, measureContext.measureText(option.label).width);
+        }
+        return Math.ceil(widest) + OPTION_CHROME;
+    }
+
+    #layout(): void {
+        const width = this.clientWidth;
+        if (width === 0) return;
+        if (this.#optionWidth === 0) this.#optionWidth = this.#measure();
+        const columns = choiceColumns(this.options.length, width, this.#optionWidth);
+        if (columns === this.#columns) return;
+        this.#columns = columns;
+        this.style.setProperty("--columns", String(columns));
+    }
+
     #pick(value: string): void {
         if (value === this.value) return;
         this.dispatchEvent(
@@ -90,6 +149,7 @@ export class AxisChoice extends LitElement {
                 : e.key === "ArrowLeft" || e.key === "ArrowUp"
                   ? -1
                   : 0;
+        // Arrow keys move through the options in order, whether they sit in one row or several.
         if (step === 0) return;
         e.preventDefault();
         const index = this.options.findIndex((o) => o.value === this.value);
@@ -111,6 +171,7 @@ export class AxisChoice extends LitElement {
                             role="radio"
                             aria-checked=${String(o.value === this.value)}
                             tabindex=${o.value === this.value ? 0 : -1}
+                            title=${o.label}
                             @click=${() => this.#pick(o.value)}
                         >
                             ${o.label}
