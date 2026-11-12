@@ -17,6 +17,11 @@ export class Particle {
     gravityScale = 1;
     /** Sum of forces in newtons applied since the last `integrate`. */
     readonly forceAccum = new Vec3();
+    /**
+     * Acceleration in m/s² from the forces of the last step, recorded before the accumulator is
+     * cleared. Zero for immovable particles.
+     */
+    readonly lastAcceleration = new Vec3();
     /** Fraction of velocity kept per second, in [0, 1]. `1` disables damping. */
     damping = 0.99;
     /** Reciprocal of mass in 1/kg. `0` makes the particle immovable. */
@@ -58,7 +63,8 @@ export class Particle {
     }
 
     /**
-     * Advances the particle by one step with semi-implicit Euler and clears the force accumulator.
+     * Advances the particle by one step with semi-implicit Euler, records `lastAcceleration` and
+     * clears the force accumulator.
      * `ParticleWorld` uses its own `integrator` instead.
      *
      * Velocity is updated first and the new velocity moves the position. A particle with
@@ -70,6 +76,7 @@ export class Particle {
     integrate(dt: number): void {
         if (!(dt > 0)) throw new RangeError(`dt must be positive, got ${dt}`);
         semiImplicitEulerStep(this, dt);
+        this.lastAcceleration.copy(this.forceAccum).scale(this.inverseMass);
         this.clearAccumulator();
     }
 }

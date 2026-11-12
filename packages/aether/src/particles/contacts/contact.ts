@@ -60,9 +60,10 @@ export class ParticleContact {
 
     /**
      * Applies an impulse along `normal` so a closing contact separates at `restitution` times its
-     * closing speed. Separating contacts are left alone.
+     * closing speed, less the closing speed the particles' `lastAcceleration` built up over `dt`.
+     * Separating contacts are left alone.
      */
-    private resolveVelocity(_dt: number): void {
+    private resolveVelocity(dt: number): void {
         // Find the velocity  in the direction of the contact
         const separatingVelocity = this.separatingVelocity();
 
@@ -73,7 +74,18 @@ export class ParticleContact {
         }
 
         // Calculate the new separating velocity
-        const newSepVelocity = -separatingVelocity * this.restitution;
+        let newSepVelocity = -separatingVelocity * this.restitution;
+
+        // Closing velocity built up by the last step's acceleration alone is not bounced
+        let accCausedSepVelocity = this.particleA.lastAcceleration.dot(this.normal);
+        if (this.particleB)
+            accCausedSepVelocity -= this.particleB.lastAcceleration.dot(this.normal);
+        accCausedSepVelocity *= dt;
+        if (accCausedSepVelocity < 0) {
+            newSepVelocity += this.restitution * accCausedSepVelocity;
+            if (newSepVelocity < 0) newSepVelocity = 0;
+        }
+
         const deltaVelocity = newSepVelocity - separatingVelocity;
 
         // We apply the change in velocity to each object in proportion to

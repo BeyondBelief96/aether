@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Particle } from "../..";
+import { Particle, ParticleWorld } from "../..";
 import { ParticleContact } from "../contact";
 
 const DT = 1 / 60;
@@ -301,5 +301,76 @@ describe("ParticleContact.resolve, interpenetration", () => {
 
         expect(a.velocity).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
         expect(b.velocity).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
+    });
+});
+
+describe("ParticleContact.resolve, resting contact", () => {
+    const G = -9.81;
+
+    /** A particle that has just been integrated under gravity alone for one step. */
+    function falling(vy: number, mass = 1): Particle {
+        const p = moving(0, vy, 0, mass);
+        p.lastAcceleration.set(0, G, 0);
+        return p;
+    }
+
+    it("stops a particle whose closing velocity came only from the last step's acceleration", () => {
+        const ball = falling(G * DT);
+        new ParticleContact().set(ball, null, { x: 0, y: 1, z: 0 }, 0, 0.5).resolve(DT);
+        expect(ball.velocity).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
+    });
+
+    it("bounces only the closing velocity not caused by the last step's acceleration", () => {
+        const ball = falling(-5);
+        new ParticleContact().set(ball, null, { x: 0, y: 1, z: 0 }, 0, 0.5).resolve(DT);
+        expect(ball.velocity.y).toBeCloseTo(0.5 * (5 + G * DT));
+    });
+
+    it("never turns the bounce into a closing velocity", () => {
+        const ball = falling(G * DT * 0.5);
+        new ParticleContact().set(ball, null, { x: 0, y: 1, z: 0 }, 0, 0.5).resolve(DT);
+        expect(ball.velocity.y).toBeCloseTo(0);
+    });
+
+    it("ignores acceleration away from the contact", () => {
+        const ball = moving(0, -4, 0);
+        ball.lastAcceleration.set(0, 20, 0);
+        new ParticleContact().set(ball, null, { x: 0, y: 1, z: 0 }, 0, 0.5).resolve(DT);
+        expect(ball.velocity.y).toBeCloseTo(2);
+    });
+
+    it("ignores acceleration perpendicular to the normal", () => {
+        const ball = moving(0, -4, 0);
+        ball.lastAcceleration.set(30, 0, -30);
+        new ParticleContact().set(ball, null, { x: 0, y: 1, z: 0 }, 0, 0.5).resolve(DT);
+        expect(ball.velocity.y).toBeCloseTo(2);
+    });
+
+    it("uses the relative acceleration of the two particles", () => {
+        // Both fall together: no relative acceleration, so the full closing velocity bounces.
+        const a = falling(-3);
+        const b = falling(1);
+        const contact = new ParticleContact().set(a, b, { x: 0, y: 1, z: 0 }, 0, 0.5);
+        contact.resolve(DT);
+        expect(contact.separatingVelocity()).toBeCloseTo(2);
+    });
+
+    it("keeps a particle on the ground still for 1,000 steps with restitution 0.5", () => {
+        const world = new ParticleWorld();
+        const ball = new Particle();
+        world.particles.push(ball);
+        const contact = new ParticleContact();
+
+        let maxSpeed = 0;
+        for (let i = 0; i < 1000; i++) {
+            world.step(DT);
+            if (ball.position.y <= 0) {
+                contact.set(ball, null, { x: 0, y: 1, z: 0 }, -ball.position.y, 0.5).resolve(DT);
+            }
+            maxSpeed = Math.max(maxSpeed, ball.velocity.magnitude());
+        }
+
+        expect(maxSpeed).toBeLessThan(1e-9);
+        expect(ball.position.y).toBeCloseTo(0, 9);
     });
 });

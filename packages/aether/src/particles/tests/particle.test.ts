@@ -187,3 +187,22 @@ describe("a particle on a spring", () => {
         }
     });
 });
+
+describe("Particle.lastAcceleration", () => {
+    it("records the acceleration integrate applied, after clearing the accumulator", () => {
+        const p = new Particle();
+        p.setMass(2);
+        p.addForce({ x: 4, y: -6, z: 0 });
+        p.integrate(1 / 60);
+        expect(p.lastAcceleration).toBeCloseToVec3({ x: 2, y: -3, z: 0 });
+        expect(p.forceAccum).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
+    });
+
+    it("is zero for an immovable particle", () => {
+        const p = new Particle();
+        p.inverseMass = 0;
+        p.addForce({ x: 4, y: -6, z: 0 });
+        p.integrate(1 / 60);
+        expect(p.lastAcceleration).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
+    });
+});

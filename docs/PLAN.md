@@ -641,8 +641,8 @@ class ParticleAttraction implements ParticleForceGenerator {
 #### Step 5: A single contact
 
 - [x] `src/particles/contacts/contact.ts`: `ParticleContact`, velocity resolution first, then position, with tests
-- [ ] `Particle.lastAcceleration`: the acceleration `integrate` actually applied, before it clears the accumulator
-- [ ] The resting-contact correction inside `ParticleContact`, using `lastAcceleration` and `dt`
+- [x] `Particle.lastAcceleration`: the acceleration `integrate` actually applied, before it clears the accumulator
+- [x] The resting-contact correction inside `ParticleContact`, using `lastAcceleration` and `dt`
 
 **Covers:** separating velocity, restitution, position correction split by inverse mass, and the resting-contact correction. `Particle` needs the new field because `forceAccum` is already clear by the time contacts run.
 
@@ -659,6 +659,8 @@ class ParticleContact {
   resolve(dt: number): void                 // resolveVelocity, then resolveInterpenetration
 }
 ```
+
+Where the build goes beyond the sketch: `ParticleWorld.step` records `lastAcceleration` too, from the integrator's last force evaluation, just before it clears the accumulators. For semi-implicit and explicit Euler that is the acceleration the step applied; for velocity Verlet and RK4 it is the acceleration at (or near) the end of the step.
 
 **Done when:** two equal masses with `e = 1` swap velocities, a heavy and a light particle separate in proportion to inverse mass, `particleB === null` works, two immovable particles do nothing, and a particle resting on a contact with `e = 0.5` doesn't hop.
 
@@ -814,6 +816,7 @@ class ParticleContact {
 - **`ParticleAnchoredSpring` copies its anchor** and exposes it for dragging; the book holds a pointer to the caller's vector.
 - **`ParticleAttraction` is not in the book.** It came out of the *Orbits* demo.
 - **Contacts name their particles** `particleA` and `particleB` instead of `particle[2]`, are pooled and filled with `set()`, and call the normal `normal` rather than `contactNormal`. The normal still points from the second particle toward the first, as in the book.
+- **The resting-contact correction uses the total acceleration.** The book's `getAcceleration()` is the particle's constant acceleration field (usually gravity) and ignores forces from generators. Aether records `lastAcceleration` from every force in the last step, so springs and buoyancy pressing a particle into a contact are corrected too.
 - **The resolver is a seam.** The book's worst-first resolver is the first implementation; sequential impulses (Step 10) is not in the book, and when it arrives the resolution maths moves out of `ParticleContact` into the resolvers.
 - **Verlet and XPBD (Steps 8–9) are not in the book.** They come from Jakobsen and from Müller and Macklin.
 

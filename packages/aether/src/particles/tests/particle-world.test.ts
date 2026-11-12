@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Particle } from "../particle";
 import { ParticleWorld } from "../particle-world";
+import { ExplicitEuler, Rk4, SemiImplicitEuler, VelocityVerlet } from "../integrators";
 
 describe("ParticleWorld", () => {
     it("starts empty and steps without particles", () => {
@@ -169,4 +170,25 @@ describe("ParticleWorld", () => {
 
         expect(calls).toEqual(["outsider"]);
     });
+
+    it.each([new SemiImplicitEuler(), new ExplicitEuler(), new VelocityVerlet(), new Rk4()])(
+        "records lastAcceleration from gravity and applied forces with $name",
+        (integrator) => {
+            const world = new ParticleWorld();
+            world.integrator = integrator;
+            const p = new Particle();
+            p.setMass(2);
+            const wall = new Particle();
+            wall.inverseMass = 0;
+            world.particles.push(p, wall);
+
+            p.addForce({ x: 4, y: 0, z: 0 });
+            wall.addForce({ x: 4, y: 0, z: 0 });
+            world.step(1 / 60);
+
+            expect(p.lastAcceleration).toBeCloseToVec3({ x: 2, y: -9.81, z: 0 });
+            expect(wall.lastAcceleration).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
+            expect(p.forceAccum).toBeCloseToVec3({ x: 0, y: 0, z: 0 });
+        },
+    );
 });

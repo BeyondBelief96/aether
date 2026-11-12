@@ -42,7 +42,9 @@ export class ParticleWorld {
     }
 
     /**
-     * Advances every particle by one step with `integrator`, then clears the force accumulators.
+     * Advances every particle by one step with `integrator`, records each particle's
+     * `lastAcceleration` from the integrator's last force evaluation, then clears the force
+     * accumulators.
      *
      * Forces added to a particle before the step are held constant through it. Registered
      * generators and gravity are evaluated as often as the integrator needs.
@@ -67,7 +69,10 @@ export class ParticleWorld {
 
         this.integrator.step(particles, this.forces, dt);
 
-        for (const particle of particles) particle.clearAccumulator();
+        for (const particle of particles) {
+            particle.lastAcceleration.copy(particle.forceAccum).scale(particle.inverseMass);
+            particle.clearAccumulator();
+        }
     }
 
     private evaluateForces(): void {
