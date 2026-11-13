@@ -8,7 +8,7 @@ import {
 } from "lit";
 import { REPOSITORY_URL } from "../core/site";
 import { baseStyles, icons } from "./shared";
-import { splitImports } from "./split-imports";
+import { localImports, splitImports } from "./split-imports";
 
 const sources = import.meta.glob(["../demos/**/*.ts", "!../demos/**/tests/**"], {
     query: "?raw",
@@ -52,16 +52,38 @@ function highlight(source: string, engine = engineImports(source)): TemplateResu
     return out;
 }
 
-/** The demo's own source file, with every engine import marked. */
+interface SourceFile {
+    /** Path relative to the repository root. */
+    readonly path: string;
+    readonly text: string;
+}
+
+/** Folder of a repository path, with its trailing slash. */
+const folderOf = (path: string) => path.slice(0, path.lastIndexOf("/") + 1);
+const nameOf = (path: string) => path.slice(path.lastIndexOf("/") + 1);
+
+/** Loads the source of a repository path under `src/`, or `null` if it isn't bundled. */
+function load(path: string): Promise<string> | null {
+    return sources[`../${path.slice(path.indexOf("src/") + 4)}`]?.() ?? null;
+}
+
+/**
+ * The demo's source: its own file and the files it imports from its folder, such as the
+ * simulation it drives, one tab per file. Every engine import is marked.
+ */
 export class CodeView extends LitElement {
     static override properties: PropertyDeclarations = {
         path: { type: String },
-        source: { state: true },
+        files: { state: true },
+        selected: { state: true },
         error: { state: true },
     };
 
+    /** The demo's own file, relative to the repository root. */
     declare path: string;
-    declare source: string | null;
+    /** The files shown, imported files first. `null` while loading. */
+    declare files: readonly SourceFile[] | null;
+    declare selected: number;
     declare error: boolean;
 
     static override styles = [
@@ -72,35 +94,68 @@ export class CodeView extends LitElement {
             }
             .bar {
                 display: flex;
-                align-items: center;
+                align-items: flex-end;
                 justify-content: space-between;
-                gap: calc(var(--u) * 2);
+                gap: var(--u) calc(var(--u) * 3);
                 flex-wrap: wrap;
-                margin-bottom: calc(var(--u) * 2);
+                border-bottom: 1px solid var(--rule);
             }
-            .path {
-                font: 500 var(--text-small) / 1.3 var(--mono);
-                overflow-wrap: anywhere;
+            [role="tablist"] {
+                display: flex;
+                flex-wrap: wrap;
+                column-gap: calc(var(--u) * 3);
             }
-            .legend {
-                font-size: var(--text-small);
-                color: var(--ink-2);
+            [role="tab"] {
+                position: relative;
+                flex: none;
+                padding: 10px 0;
+                font: 500 13px / 1.3 var(--mono);
+                color: var(--muted);
+                transition: color 160ms var(--ease-out);
             }
-            .legend .e {
-                padding: 0 4px;
+            [role="tab"]:hover,
+            [role="tab"][aria-selected="true"] {
+                color: var(--ink);
+            }
+            [role="tab"][aria-selected="true"]::after {
+                content: "";
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                height: 2px;
+                background: var(--accent);
             }
             a {
                 display: inline-flex;
                 align-items: center;
                 gap: 6px;
+                padding: 10px 0;
                 color: var(--ink);
-                font: 600 var(--text-small) / 1 var(--sans);
+                font: 600 var(--text-small) / 1.3 var(--sans);
                 text-decoration: underline;
                 text-underline-offset: 3px;
                 text-decoration-thickness: 1px;
             }
             a:hover {
                 color: var(--accent-ink);
+            }
+            .meta {
+                display: flex;
+                justify-content: space-between;
+                gap: var(--u) calc(var(--u) * 3);
+                flex-wrap: wrap;
+                padding: var(--u) 0 calc(var(--u) * 2);
+                font-size: var(--text-small);
+                color: var(--ink-2);
+            }
+            .path {
+                font: 400 11px / 1.6 var(--mono);
+                color: var(--muted);
+                overflow-wrap: anywhere;
+            }
+            .legend .e {
+                padding: 0 4px;
             }
             pre {
                 margin: 0;
@@ -160,29 +215,52 @@ export class CodeView extends LitElement {
     constructor() {
         super();
         this.path = "";
-        this.source = null;
+        this.files = null;
+        this.selected = 0;
         this.error = false;
     }
 
     protected override willUpdate(): void {
         if (this.path === this.#loading) return;
         this.#loading = this.path;
-        this.source = null;
+        this.files = null;
+        this.selected = 0;
         this.error = false;
-        const key = `../${this.path.slice(this.path.indexOf("src/") + 4)}`;
-        const load = sources[key];
-        if (!load) {
-            this.error = true;
-            return;
+        void this.#load(this.path);
+    }
+
+    /** Loads the demo's file, then every file it imports from its folder. */
+    async #load(path: string): Promise<void> {
+        const current = () => path === this.path;
+        try {
+            const text = await load(path);
+            if (text == null) throw new Error(`${path} is not bundled`);
+            const folder = folderOf(path);
+            const imported = await Promise.all(
+                localImports(text).map(async (name) => {
+                    const importPath = `${folder}${name}.ts`;
+                    const importText = await load(importPath)?.catch(() => null);
+                    return importText == null ? null : { path: importPath, text: importText };
+                }),
+            );
+            if (!current()) return;
+            this.files = [...imported.filter((file) => file !== null), { path, text }];
+        } catch {
+            if (current()) this.error = true;
         }
-        const path = this.path;
-        load()
-            .then((text) => {
-                if (path === this.path) this.source = text;
-            })
-            .catch(() => {
-                if (path === this.path) this.error = true;
-            });
+    }
+
+    #onKey(e: KeyboardEvent): void {
+        const count = this.files?.length ?? 0;
+        const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+        if (step === 0 || count < 2) return;
+        e.preventDefault();
+        this.selected = (this.selected + step + count) % count;
+        this.updateComplete.then(() =>
+            this.renderRoot
+                .querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+                ?.focus(),
+        );
     }
 
     #renderSource(source: string) {
@@ -202,29 +280,59 @@ export class CodeView extends LitElement {
         `;
     }
 
+    #renderTabs(files: readonly SourceFile[], selected: number) {
+        return html`<div role="tablist" aria-label="Source files" @keydown=${this.#onKey}>
+            ${files.map(
+                (file, i) =>
+                    html`<button
+                        role="tab"
+                        id=${`file-${i}`}
+                        aria-selected=${String(i === selected)}
+                        aria-controls="source"
+                        tabindex=${i === selected ? 0 : -1}
+                        title=${file.path}
+                        @click=${() => (this.selected = i)}
+                    >
+                        ${nameOf(file.path)}
+                    </button>`,
+            )}
+        </div>`;
+    }
+
     protected override render() {
+        const files = this.files;
+        const selected = Math.min(this.selected, (files?.length ?? 1) - 1);
+        const path = files?.[selected]?.path ?? this.path;
+        const link = html`<a
+            href=${`${REPOSITORY_URL}/blob/main/${path}`}
+            target="_blank"
+            rel="noopener"
+            >View on GitHub ${icons.external}</a
+        >`;
+        if (this.error || !files) {
+            return html`
+                <div class="bar"><span class="path">${this.path}</span>${link}</div>
+                <p class="status">
+                    ${
+                        this.error
+                            ? "The source for this demo could not be loaded. It is on GitHub at the path above."
+                            : "Loading source…"
+                    }
+                </p>
+            `;
+        }
         return html`
-            <div class="bar">
-                <span class="path">${this.path}</span>
-                <span class="legend"
-                    ><span class="e">Highlighted</span> names come from
-                    <code>aether-physics</code>.</span
-                >
-                <a href=${`${REPOSITORY_URL}/blob/main/${this.path}`} target="_blank" rel="noopener"
-                    >View on GitHub ${icons.external}</a
-                >
+            <div class="bar">${this.#renderTabs(files, selected)} ${link}</div>
+            <div role="tabpanel" id="source" aria-labelledby=${`file-${selected}`}>
+                <div class="meta">
+                    <span class="path">${path}</span>
+                    <span class="legend"
+                        ><span class="e">Highlighted</span> names come from
+                        <code>aether-physics</code>.</span
+                    >
+                </div>
+                ${this.#renderSource(files[selected]!.text)}
             </div>
-            ${
-                this.error
-                    ? html`<p class="status">
-                          The source for this demo could not be loaded. It is on GitHub at the path
-                          above.
-                      </p>`
-                    : this.source === null
-                      ? html`<p class="status">Loading source…</p>`
-                      : this.#renderSource(this.source)
-            }
-            ${nothing}
         `;
     }
 }

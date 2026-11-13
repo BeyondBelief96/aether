@@ -141,13 +141,10 @@ export class ClothSim {
         for (const p of this.particles) p.damping = damping;
     }
 
-    /** Advances by `dt` in `substeps` equal steps. */
-    step(dt: number, substeps: number): void {
-        const h = dt / substeps;
-        for (let i = 0; i < substeps; i++) {
-            this.world.step(h);
-            this.wind.time += h;
-        }
+    /** Advances the world and the wind by `dt`. */
+    step(dt: number): void {
+        this.world.step(dt);
+        this.wind.time += dt;
     }
 
     /** Largest link length over its rest length, minus one. */

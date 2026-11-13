@@ -15,7 +15,7 @@ import { formatNumber } from "../../core/format";
 import { choice, number } from "../../core/params";
 import { DragHandle } from "../helpers/drag-handle";
 import { StepBlend } from "../helpers/step-blend";
-import { substepsFor } from "../helpers/substeps";
+import { Substeps } from "../helpers/substeps";
 import { ClothSim, type PinMode } from "./cloth-sim";
 
 /**
@@ -80,7 +80,7 @@ export const clothDemo = defineDemo({
     source: "apps/editor/src/demos/springs/cloth.ts",
     create({ root, view, palette, values, useWorld }) {
         let current = values;
-        let dt = 1 / 60;
+        const substeps = new Substeps(MAX_SUBSTEP);
         const cloth = new ClothSim({ size: SIZE, spacing: SPACING, mass: MASS, top: TOP });
         useWorld(cloth.world);
         const count = cloth.particles.length;
@@ -151,10 +151,9 @@ export const clothDemo = defineDemo({
                 if (changed.has("pins")) cloth.setPins(current.pins);
                 cloth.wind.speed = current.wind;
             },
-            step(stepDt) {
-                dt = stepDt;
+            step(dt) {
                 blend.remember(cloth.particles);
-                cloth.step(stepDt, substepsFor(stepDt, MAX_SUBSTEP));
+                substeps.run(dt, (h) => cloth.step(h));
             },
             sync(alpha) {
                 blend.blend(alpha);
@@ -182,15 +181,11 @@ export const clothDemo = defineDemo({
                 {
                     title: "Stepping",
                     rows: [
-                        {
-                            label: "Substeps per step",
-                            value: String(substepsFor(dt, MAX_SUBSTEP)),
-                        },
+                        substeps.readout(),
                         {
                             label: "Link ω·h",
                             value: formatNumber(
-                                (Math.sqrt(current.stiffness / MASS) * dt) /
-                                    substepsFor(dt, MAX_SUBSTEP),
+                                Math.sqrt(current.stiffness / MASS) * substeps.substep,
                                 3,
                             ),
                         },

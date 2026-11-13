@@ -3,11 +3,11 @@ import { Vec3 } from "aether-physics";
 import { defineDemo } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { choice, number, toggle } from "../../core/params";
-import { kineticEnergy, worstRodError } from "../helpers/measure";
+import { kineticEnergy, lengthErrorReadout, worstRodError } from "../helpers/measure";
 import { ResolverBudget, resolverParams } from "../helpers/resolver";
 import { StepBlend } from "../helpers/step-blend";
 import { Strut } from "../helpers/strut";
-import { substepsFor } from "../helpers/substeps";
+import { Substeps } from "../helpers/substeps";
 import { FrameSim, type FrameShape } from "./frame-sim";
 
 /**
@@ -22,7 +22,6 @@ const CORNER_MASS = 1; // kg
 const CORNER_RADIUS = 0.08; // m
 const ROD_RADIUS = 0.035; // m
 const MAX_SUBSTEP = 1 / 120; // s
-const ERROR_WARNING = 0.01; // m
 const PAD = 4; // m, width of the slab the frame lands on
 
 const _a = new Vec3();
@@ -85,7 +84,7 @@ export const frameDemo = defineDemo({
     source: "apps/editor/src/demos/contacts/frame.ts",
     create({ root, palette, values, useWorld }) {
         let current = values;
-        let dt = 1 / 60;
+        const substeps = new Substeps(MAX_SUBSTEP);
         const sim = new FrameSim({
             shape: values.shape,
             braced: values.braced,
@@ -149,11 +148,9 @@ export const frameDemo = defineDemo({
             action(id) {
                 if (id === "drop") drop();
             },
-            step(stepDt) {
-                dt = stepDt;
+            step(dt) {
                 blend.remember(sim.particles);
-                const substeps = substepsFor(stepDt, MAX_SUBSTEP);
-                for (let i = 0; i < substeps; i++) sim.step(stepDt / substeps);
+                substeps.run(dt, (h) => sim.step(h));
             },
             sync(alpha) {
                 blend.blend(alpha);
@@ -165,48 +162,38 @@ export const frameDemo = defineDemo({
                     );
                 });
             },
-            readouts: () => {
-                const error = worstRodError(sim.rods);
-                return [
-                    {
-                        title: "Frame",
-                        color: 0,
-                        rows: [
-                            { label: "Corners", value: String(sim.particles.length) },
-                            {
-                                label: "Rods",
-                                value: `${sim.rods.length} of ${sim.rodsNeeded} needed`,
-                                warn: sim.rods.length < sim.rodsNeeded,
-                            },
-                            {
-                                label: "Centre height",
-                                value: `${formatNumber(sim.centreHeight(), 2)} m`,
-                            },
-                            {
-                                label: "Kinetic energy",
-                                value: `${formatNumber(kineticEnergy(sim.particles), 2)} J`,
-                            },
-                        ],
-                    },
-                    {
-                        title: "Resolver",
-                        color: 1,
-                        rows: [
-                            { label: "Contacts", value: String(sim.world.contactCount) },
-                            budget.readout(),
-                            {
-                                label: "Worst rod error",
-                                value: `${formatNumber(error * 1000, 1)} mm`,
-                                warn: error > ERROR_WARNING,
-                            },
-                            {
-                                label: "Substeps per step",
-                                value: String(substepsFor(dt, MAX_SUBSTEP)),
-                            },
-                        ],
-                    },
-                ];
-            },
+            readouts: () => [
+                {
+                    title: "Frame",
+                    color: 0,
+                    rows: [
+                        { label: "Corners", value: String(sim.particles.length) },
+                        {
+                            label: "Rods",
+                            value: `${sim.rods.length} of ${sim.rodsNeeded} needed`,
+                            warn: sim.rods.length < sim.rodsNeeded,
+                        },
+                        {
+                            label: "Centre height",
+                            value: `${formatNumber(sim.centreHeight(), 2)} m`,
+                        },
+                        {
+                            label: "Kinetic energy",
+                            value: `${formatNumber(kineticEnergy(sim.particles), 2)} J`,
+                        },
+                    ],
+                },
+                {
+                    title: "Resolver",
+                    color: 1,
+                    rows: [
+                        { label: "Contacts", value: String(sim.world.contactCount) },
+                        budget.readout(),
+                        lengthErrorReadout("Worst rod error", worstRodError(sim.rods)),
+                        substeps.readout(),
+                    ],
+                },
+            ],
         };
     },
 });

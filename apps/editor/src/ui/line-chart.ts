@@ -132,7 +132,7 @@ export class LineChart extends LitElement {
         ctx.beginPath();
         ctx.rect(LEFT_GUTTER, 0, width - LEFT_GUTTER, height);
         ctx.clip();
-        const step = (width - LEFT_GUTTER) / Math.max(1, data.spec.capacity - 1);
+        const step = (width - LEFT_GUTTER) / Math.max(1, data.capacity - 1);
         ctx.lineWidth = 1.75;
         ctx.lineJoin = "round";
         data.buffers.forEach((buffer, s) => {
@@ -141,9 +141,7 @@ export class LineChart extends LitElement {
             ctx.strokeStyle = this.#color(`--series-${series.color + 1}`);
             ctx.beginPath();
             const start =
-                buffer.length < data.spec.capacity
-                    ? LEFT_GUTTER
-                    : width - (buffer.length - 1) * step;
+                buffer.length < data.capacity ? LEFT_GUTTER : width - (buffer.length - 1) * step;
             let down = false;
             for (let i = 0; i < buffer.length; i++) {
                 const v = buffer.at(i) ?? NaN;

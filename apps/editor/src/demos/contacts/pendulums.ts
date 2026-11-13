@@ -10,10 +10,11 @@ import {
 import { defineDemo, type SeriesIndex } from "../../core/demo";
 import { formatDegrees, formatNumber } from "../../core/format";
 import { number } from "../../core/params";
+import { Ticker } from "../../core/ticker";
 import { Polyline } from "../helpers/polyline";
 import { StepBlend } from "../helpers/step-blend";
 import { Strut } from "../helpers/strut";
-import { substepsFor } from "../helpers/substeps";
+import { Substeps } from "../helpers/substeps";
 import { PendulumsSim, type Pendulum } from "./pendulums-sim";
 
 /**
@@ -67,8 +68,8 @@ export const pendulumsDemo = defineDemo({
     source: "apps/editor/src/demos/contacts/pendulums.ts",
     create({ root, palette, values, useWorld }) {
         let current = values;
-        let dt = 1 / 60;
-        let sampleTime = 0;
+        const substeps = new Substeps(MAX_SUBSTEP);
+        const trailClock = new Ticker(TRAIL_SECONDS / TRAIL_POINTS);
         const sim = new PendulumsSim({
             pivotHeight: PIVOT_HEIGHT,
             length: LENGTH,
@@ -135,7 +136,7 @@ export const pendulumsDemo = defineDemo({
             sim.kick(current.speed);
             blend.reset(sim.world.particles);
             for (const { trail } of views) trail.setCount(0);
-            sampleTime = 0;
+            trailClock.reset();
         };
         kick();
 
@@ -148,15 +149,11 @@ export const pendulumsDemo = defineDemo({
             action(id) {
                 if (id === "kick") kick();
             },
-            step(stepDt) {
-                dt = stepDt;
+            step(dt) {
                 blend.remember(sim.world.particles);
-                const substeps = substepsFor(stepDt, MAX_SUBSTEP);
-                for (let i = 0; i < substeps; i++) sim.step(stepDt / substeps);
-                sampleTime += stepDt;
-                while (sampleTime >= TRAIL_SECONDS / TRAIL_POINTS) {
+                substeps.run(dt, (h) => sim.step(h));
+                for (let i = trailClock.advance(dt); i > 0; i--) {
                     for (const { trail, pendulum } of views) trail.append(pendulum.bob.position);
-                    sampleTime -= TRAIL_SECONDS / TRAIL_POINTS;
                 }
             },
             sync(alpha) {
@@ -199,10 +196,7 @@ export const pendulumsDemo = defineDemo({
                             label: "Cable over the top, √(5gL)",
                             value: `${formatNumber(sim.cableLoopSpeed(), 2)} m/s`,
                         },
-                        {
-                            label: "Substeps per step",
-                            value: String(substepsFor(dt, MAX_SUBSTEP)),
-                        },
+                        substeps.readout(),
                     ],
                 },
             ],

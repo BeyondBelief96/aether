@@ -18,6 +18,15 @@ describe("StepBlend", () => {
         expect(blend.positionOf(p).x).toBeCloseTo(0.5);
     });
 
+    it("reads the position before the last step", () => {
+        const p = at(1);
+        const blend = new StepBlend();
+        blend.remember([p]);
+        p.position.x = 5;
+        expect(blend.previousOf(p).x).toBe(1);
+        expect(blend.previousOf(at(7)).x).toBe(7);
+    });
+
     it("reads a particle it never remembered at its current position", () => {
         const blend = new StepBlend();
         blend.blend(0);

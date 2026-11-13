@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Particle, ParticleRod } from "aether-physics";
-import { kineticEnergy, worstRodError } from "../measure";
+import { formatNumber } from "../../../core/format";
+import { kineticEnergy, lengthErrorReadout, worstRodError } from "../measure";
 
 function at(x: number): Particle {
     const p = new Particle();
@@ -24,5 +25,16 @@ describe("kineticEnergy", () => {
         const fixed = at(1);
         fixed.inverseMass = 0;
         expect(kineticEnergy([moving, fixed])).toBeCloseTo(9);
+    });
+});
+
+describe("lengthErrorReadout", () => {
+    it("shows millimetres and flags errors past a centimetre", () => {
+        expect(lengthErrorReadout("Rod", 0.0042)).toEqual({
+            label: "Rod",
+            value: `${formatNumber(4.2, 1)} mm`,
+            warn: false,
+        });
+        expect(lengthErrorReadout("Rod", 0.02).warn).toBe(true);
     });
 });

@@ -50,11 +50,16 @@ export interface ChartSpec {
     }[];
     /** Value marked with a dashed line. */
     readonly reference?: number;
-    /** Samples kept per series. */
-    readonly capacity: number;
+    /** Seconds of history shown. */
+    readonly seconds: number;
     /** Sentence for screen readers. */
     readonly description: string;
 }
+
+/** Samples per second of simulation time that every chart records. */
+export const CHART_SAMPLE_RATE = 30;
+
+export type ChartSamples = Readonly<Record<string, readonly number[]>>;
 
 export interface Readout {
     readonly label: string;
@@ -95,8 +100,6 @@ export interface DemoContext<S extends ParamSchema> {
     readonly values: ParamValues<S>;
     /** Changes parameters from inside the demo, e.g. when something is dragged. */
     set(values: Partial<ParamValues<S>>): void;
-    /** Appends one sample per series to a chart. */
-    plot(chartId: string, values: readonly number[]): void;
     /** Empties every chart. */
     clearCharts(): void;
     /**
@@ -115,6 +118,11 @@ export interface DemoInstance<S extends ParamSchema> {
     /** Applies new parameter values. `changed` names the keys that differ from before. */
     update?(values: ParamValues<S>, changed: ReadonlySet<keyof S & string>): void;
     action?(id: string): void;
+    /**
+     * One value per series for each chart, keyed by chart id. Called at `CHART_SAMPLE_RATE`
+     * in simulation time. Returning `null` skips the sample.
+     */
+    sample?(): ChartSamples | null;
     /** Called a few times a second while readouts are shown. */
     readouts?(): readonly ReadoutGroup[];
     /** Called a few times a second for the labels drawn in the scene. */

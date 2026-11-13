@@ -1,34 +1,39 @@
 import { Group } from "three";
 import { FixedStepLoop, type ParticleWorld } from "aether-physics";
-import type {
-    Callout,
-    ChartSpec,
-    DemoDefinition,
-    DemoInstance,
-    DemoView,
-    ReadoutGroup,
+import {
+    CHART_SAMPLE_RATE,
+    type Callout,
+    type ChartSpec,
+    type DemoDefinition,
+    type DemoInstance,
+    type DemoView,
+    type ReadoutGroup,
 } from "./demo";
 import { type ParamSchema, type ParamValue, type ParamValues, sameValue, sanitize } from "./params";
 import { RingBuffer } from "./ring-buffer";
+import { Ticker } from "./ticker";
 import type { ScenePalette } from "../stage/palette";
 import { disposeObject } from "../demos/helpers/three";
 import { DEFAULT_INTEGRATOR, makeIntegrator, type IntegratorChoice } from "./integrators";
 
 const STATS_INTERVAL_MS = 250;
 
-/** The samples of one chart, one ring buffer per series. */
 /** Physics rates the transport offers, in Hz. Every demo must stay stable at each of them. */
 export const PHYSICS_RATES = [10, 15, 30, 60, 120, 240] as const;
 
+/** The samples of one chart, one ring buffer per series. */
 export class ChartData {
     readonly spec: ChartSpec;
     readonly buffers: readonly RingBuffer[];
+    /** Samples kept per series. */
+    readonly capacity: number;
     /** Increments on every change, so a view can tell when to redraw. */
     version = 0;
 
     constructor(spec: ChartSpec) {
         this.spec = spec;
-        this.buffers = spec.series.map(() => new RingBuffer(spec.capacity));
+        this.capacity = Math.round(spec.seconds * CHART_SAMPLE_RATE);
+        this.buffers = spec.series.map(() => new RingBuffer(this.capacity));
     }
 
     push(values: readonly number[]): void {
@@ -79,6 +84,7 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
     #integrator: IntegratorChoice = DEFAULT_INTEGRATOR;
     /** Worlds the demo registered with `useWorld`, kept on the chosen integrator. */
     #worlds = new Set<ParticleWorld>();
+    #sampleClock = new Ticker(1 / CHART_SAMPLE_RATE);
     #onValues = new Set<(values: ParamValues<S>) => void>();
     #onStats = new Set<(stats: LoopStats) => void>();
 
@@ -120,7 +126,7 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
     reset(): void {
         this.#stop();
         this.loop.reset();
-        for (const chart of this.charts.values()) chart.clear();
+        this.#clearCharts();
         this.#start();
     }
 
@@ -158,7 +164,7 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
         const instance = this.#instance;
         if (!instance) return;
         const dt = this.loop.dt;
-        for (let t = 0; t < seconds; t += dt) instance.step(dt);
+        for (let t = 0; t < seconds; t += dt) this.#step(instance, dt);
         instance.sync(1);
     }
 
@@ -177,7 +183,9 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
     /** Runs the steps due at `now` and moves the drawn objects. */
     frame(now: number): void {
         const instance = this.#instance;
-        const result = this.loop.advance(now, (dt) => instance?.step(dt));
+        const result = this.loop.advance(now, (dt) => {
+            if (instance) this.#step(instance, dt);
+        });
         instance?.sync(this.interpolate ? result.alpha : 1);
 
         const w = this.#window;
@@ -225,10 +233,7 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
             set: (values) => {
                 this.set(values);
             },
-            plot: (id, values) => this.charts.get(id)?.push(values),
-            clearCharts: () => {
-                for (const chart of this.charts.values()) chart.clear();
-            },
+            clearCharts: () => this.#clearCharts(),
             useWorld: (world) => {
                 world.integrator = makeIntegrator(this.#integrator);
                 this.#worlds.add(world);
@@ -237,6 +242,25 @@ export class DemoSession<S extends ParamSchema = ParamSchema> {
         });
         this.#host.prepare?.(root);
         this.#instance.sync(1);
+    }
+
+    /** Steps the demo, then records the chart samples that fell due. */
+    #step(instance: DemoInstance<S>, dt: number): void {
+        instance.step(dt);
+        if (!instance.sample || this.charts.size === 0) return;
+        const due = this.#sampleClock.advance(dt);
+        if (due === 0) return;
+        const samples = instance.sample();
+        if (!samples) return;
+        for (const [id, values] of Object.entries(samples)) {
+            const chart = this.charts.get(id);
+            if (chart) for (let i = 0; i < due; i++) chart.push(values);
+        }
+    }
+
+    #clearCharts(): void {
+        this.#sampleClock.reset();
+        for (const chart of this.charts.values()) chart.clear();
     }
 
     #stop(): void {

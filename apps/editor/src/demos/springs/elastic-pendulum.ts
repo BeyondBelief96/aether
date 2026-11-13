@@ -20,6 +20,7 @@ import { number } from "../../core/params";
 import { DragHandle } from "../helpers/drag-handle";
 import { Polyline } from "../helpers/polyline";
 import { SpringCoil } from "../helpers/spring-coil";
+import { StepBlend } from "../helpers/step-blend";
 
 /**
  * A bob on a `ParticleAnchoredSpring` under gravity: a pendulum that can also bounce. When the
@@ -34,9 +35,7 @@ const START_STRETCH = 0.7; // m past the resting length
 const SEED_SPEED = 0.12; // m/s across the swing plane, so the path leaves it
 const BOB_RADIUS = 0.3; // m
 const TRAIL_POINTS = 1800;
-const SAMPLES_PER_SECOND = 30;
 
-const _blended = new Vec3();
 const _offset = new Vec3();
 const _hit = new Vector3();
 const _normal = new Vector3();
@@ -101,16 +100,15 @@ export const elasticPendulumDemo = defineDemo({
                 { label: "0–6 J", min: 0, max: 6, digits: 1 },
                 { label: "0–30 J", min: 0, max: 30, digits: 0 },
             ],
-            capacity: SAMPLES_PER_SECOND * 20,
+            seconds: 20,
             description:
                 "Energy in the bounce along the spring and in the swing across it, over the last 20 seconds.",
         },
     ],
     camera: { position: { x: 4, y: 7, z: 13 }, target: { x: 0, y: 5.2, z: 0 } },
     source: "apps/editor/src/demos/springs/elastic-pendulum.ts",
-    create({ root, view, palette, values, plot, clearCharts, useWorld }) {
+    create({ root, view, palette, values, clearCharts, useWorld }) {
         let current = values;
-        let sampleTime = 0;
         let held = false;
         const holdAt = new Vec3();
 
@@ -119,7 +117,7 @@ export const elasticPendulumDemo = defineDemo({
         const bob = new Particle();
         bob.setMass(MASS);
         world.particles.push(bob);
-        const previous = new Vec3();
+        const blend = new StepBlend();
         let spring = new ParticleAnchoredSpring(ANCHOR, 0, 0);
 
         const anchorBlock = new Mesh(
@@ -137,36 +135,6 @@ export const elasticPendulumDemo = defineDemo({
             new LineBasicMaterial({ color: palette.series[0] }),
         );
         root.add(anchorBlock, bobMesh, coil, trail);
-
-        // Ring buffer of recent positions, copied into the trail in order when it changes.
-        const ring = new Float32Array(TRAIL_POINTS * 3);
-        let ringStart = 0;
-        let ringCount = 0;
-        let trailDirty = false;
-        const clearTrail = (): void => {
-            ringStart = 0;
-            ringCount = 0;
-            trail.setCount(0);
-        };
-        const record = (p: Vec3Like): void => {
-            const slot = ((ringStart + ringCount) % TRAIL_POINTS) * 3;
-            ring[slot] = p.x;
-            ring[slot + 1] = p.y;
-            ring[slot + 2] = p.z;
-            if (ringCount < TRAIL_POINTS) ringCount++;
-            else ringStart = (ringStart + 1) % TRAIL_POINTS;
-            trailDirty = true;
-        };
-        const drawTrail = (): void => {
-            if (!trailDirty) return;
-            for (let i = 0; i < ringCount; i++) {
-                const slot = ((ringStart + i) % TRAIL_POINTS) * 3;
-                _offset.set(ring[slot]!, ring[slot + 1]!, ring[slot + 2]!);
-                trail.setPoint(i, _offset);
-            }
-            trail.setCount(ringCount);
-            trailDirty = false;
-        };
 
         const restingLength = () => current.restLength + (MASS * GRAVITY) / current.stiffness;
         const springFrequency = () => Math.sqrt(current.stiffness / MASS);
@@ -189,10 +157,9 @@ export const elasticPendulumDemo = defineDemo({
             );
             bob.velocity.set(0, 0, SEED_SPEED);
             bob.clearAccumulator();
-            previous.copy(bob.position);
-            clearTrail();
+            blend.reset([bob]);
+            trail.setCount(0);
             clearCharts();
-            sampleTime = 0;
         };
 
         /** Energy in the bounce and in the swing, measured about the resting point. */
@@ -225,7 +192,7 @@ export const elasticPendulumDemo = defineDemo({
                 dragPlane.setFromNormalAndCoplanarPoint(_normal.normalize(), _anchor);
                 if (!ray.intersectPlane(dragPlane, _hit)) return;
                 holdAt.copy(_hit);
-                if (!held) clearTrail();
+                if (!held) trail.setCount(0);
                 held = true;
             },
             () => {
@@ -250,25 +217,20 @@ export const elasticPendulumDemo = defineDemo({
                 if (id === "release") release();
             },
             step(dt) {
-                previous.copy(bob.position);
+                blend.remember([bob]);
                 world.step(dt);
                 if (held) {
                     bob.position.copy(holdAt);
                     bob.velocity.set(0, 0, 0);
                     return;
                 }
-                record(bob.position);
-                sampleTime += dt;
-                while (sampleTime >= 1 / SAMPLES_PER_SECOND) {
-                    plot("energy", energies());
-                    sampleTime -= 1 / SAMPLES_PER_SECOND;
-                }
+                trail.append(bob.position);
             },
+            sample: () => (held ? null : { energy: energies() }),
             sync(alpha) {
-                _blended.copy(previous).lerp(bob.position, alpha);
-                bobMesh.position.copy(_blended);
-                coil.update(ANCHOR, _blended);
-                drawTrail();
+                blend.blend(alpha);
+                bobMesh.position.copy(blend.positionOf(bob));
+                coil.update(ANCHOR, bobMesh.position);
             },
             readouts() {
                 const [bounce, swing] = energies();

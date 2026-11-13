@@ -14,6 +14,7 @@ import { defineDemo, type SeriesIndex } from "../../core/demo";
 import { DEG_TO_RAD, formatNumber } from "../../core/format";
 import { number, toggle } from "../../core/params";
 import { Polyline } from "../helpers/polyline";
+import { StepBlend } from "../helpers/step-blend";
 import { VectorArrow } from "../helpers/vector-arrow";
 
 /**
@@ -38,6 +39,7 @@ const SHOT_RADIUS = 0.45; // m, enlarged so shots read from the camera
 const VELOCITY_ARROW_SCALE = 0.1; // m of arrow per m/s
 
 const _blended = new Vec3();
+const _previous = new Vec3();
 const _point = new Vec3();
 const _velocity = new Vec3();
 
@@ -115,6 +117,7 @@ export const ballisticsDemo = defineDemo({
     create({ root, palette, values, useWorld }) {
         let current = values;
         const world = useWorld(new ParticleWorld());
+        const blend = new StepBlend();
         let nextShot = 0;
         let fireTimer = 0;
         let shotCount = 0;
@@ -142,7 +145,6 @@ export const ballisticsDemo = defineDemo({
             const trailMaterial = new LineBasicMaterial();
             const shot = {
                 particle: new Particle(),
-                previous: new Vec3(),
                 mesh: new Mesh(new SphereGeometry(SHOT_RADIUS, 16, 12), material),
                 arrow: new VectorArrow(palette.muted),
                 trail: new Polyline(TRAIL_POINTS, trailMaterial),
@@ -201,7 +203,7 @@ export const ballisticsDemo = defineDemo({
             launchVelocity(p.velocity);
             p.clearAccumulator();
             world.particles.push(p);
-            shot.previous.copy(p.position);
+            blend.remember([p]);
             shot.active = true;
             shot.age = 0;
             shot.apex = p.position.y;
@@ -219,8 +221,9 @@ export const ballisticsDemo = defineDemo({
             const end = _point.copy(p.position);
             if (p.position.y < 0) {
                 // The step crossed the ground; measure from the crossing.
-                const t = shot.previous.y / (shot.previous.y - p.position.y);
-                end.copy(shot.previous).lerp(p.position, t);
+                const previous = blend.previousOf(p, _previous);
+                const t = previous.y / (previous.y - p.position.y);
+                end.copy(previous).lerp(p.position, t);
             }
             shot.trail.setPoint(shot.trailCount, end);
             shot.trail.setCount(shot.trailCount + 1);
@@ -250,8 +253,7 @@ export const ballisticsDemo = defineDemo({
                     fire();
                     fireTimer = AUTO_FIRE_INTERVAL;
                 }
-                for (const shot of shots)
-                    if (shot.active) shot.previous.copy(shot.particle.position);
+                blend.remember(world.particles);
                 world.step(dt);
                 for (const shot of shots) {
                     if (!shot.active) continue;
@@ -262,11 +264,12 @@ export const ballisticsDemo = defineDemo({
                 }
             },
             sync(alpha) {
+                blend.blend(alpha);
                 for (const shot of shots) {
                     shot.mesh.visible = shot.active;
                     shot.arrow.visible &&= shot.active;
                     if (!shot.active) continue;
-                    _blended.copy(shot.previous).lerp(shot.particle.position, alpha);
+                    blend.positionOf(shot.particle, _blended);
                     shot.mesh.position.copy(_blended);
                     shot.arrow.update(_blended, shot.particle.velocity, VELOCITY_ARROW_SCALE);
                     shot.trail.setPoint(shot.trailCount, _blended);

@@ -8,19 +8,17 @@ import {
     RingGeometry,
     TorusGeometry,
 } from "three";
-import { Particle, ParticleSpring, ParticleWorld } from "aether-physics";
 import { defineDemo } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { number } from "../../core/params";
-import { substepsFor } from "../helpers/substeps";
+import { Substeps } from "../helpers/substeps";
 import { TapHandle } from "../helpers/tap-handle";
+import { DrumheadSim } from "./drumhead-sim";
 
 /**
- * A round skin of particles on a square grid, each joined to its four neighbours by a
- * `ParticleSpring` on each end. The springs' rest length is shorter than the grid spacing, so
- * the skin is stretched over the rim, and that tension is what carries a strike across it as a
- * wave. Particles on the rim are immovable. The drawn skin is a smooth disc whose heights are
- * sampled from the particle grid.
+ * A drum skin of particles and `ParticleSpring`s, stretched over a rim (see `DrumheadSim`). The
+ * drawn skin is a smooth disc whose heights are sampled from the particle grid, coloured by how
+ * far each point is above or below rest. Tap the skin to strike it.
  */
 
 const RADIUS = 5; // m
@@ -32,10 +30,6 @@ const STIFFNESS = 20; // N/m
 const MAX_SUBSTEP = 1 / 60; // s; the stiffest wave the grid carries is stable below this
 const STRIKE_SPEED = 4; // m/s, at the centre of the mallet
 const COLOR_RANGE = 0.08; // m of displacement for full colour
-const SAMPLES_PER_SECOND = 30;
-const BESSEL_ZERO = 2.405; // first zero of J0, which sets the skin's lowest note
-const CELLS = Math.floor(RADIUS / SPACING); // grid points from the centre to the rim
-const SIDE = 2 * CELLS + 1;
 
 const _low = new Color();
 const _flat = new Color();
@@ -82,89 +76,44 @@ export const drumheadDemo = defineDemo({
                 { label: "±0.1 m", min: -0.1, max: 0.1, digits: 2 },
             ],
             reference: 0,
-            capacity: SAMPLES_PER_SECOND * 15,
+            seconds: 15,
             description: "How far the centre of the skin is above or below rest, over 15 seconds.",
         },
     ],
     camera: { position: { x: 0, y: 13, z: 11 }, target: { x: 0, y: 1.2, z: 0.4 } },
     source: "apps/editor/src/demos/springs/drumhead.ts",
-    create({ root, view, palette, values, plot, useWorld }) {
+    create({ root, view, palette, values, useWorld }) {
         let current = values;
-        let sampleTime = 0;
-        const world = useWorld(new ParticleWorld());
-        world.gravity.set(0, 0, 0);
-
-        // Grid points inside the rim, row-major. A point missing a neighbour is on the rim.
-        const inside = (i: number, j: number) =>
-            Math.abs(i) <= CELLS &&
-            Math.abs(j) <= CELLS &&
-            (i * i + j * j) * SPACING * SPACING <= RADIUS ** 2;
-        const slot = (i: number, j: number) => (i + CELLS) * SIDE + (j + CELLS);
-        const grid: (Particle | null)[] = new Array<Particle | null>(SIDE * SIDE).fill(null);
-        for (let i = -CELLS; i <= CELLS; i++) {
-            for (let j = -CELLS; j <= CELLS; j++) {
-                if (!inside(i, j)) continue;
-                const particle = new Particle();
-                particle.position.set(i * SPACING, HEIGHT, j * SPACING);
-                const rim =
-                    !inside(i + 1, j) ||
-                    !inside(i - 1, j) ||
-                    !inside(i, j + 1) ||
-                    !inside(i, j - 1);
-                if (rim) particle.setMass(Infinity);
-                else {
-                    particle.setMass(MASS);
-                    world.particles.push(particle);
-                }
-                grid[slot(i, j)] = particle;
-            }
-        }
-        const centre = grid[slot(0, 0)]!;
-        const links: [Particle, Particle][] = [];
-        for (let i = -CELLS; i <= CELLS; i++) {
-            for (let j = -CELLS; j <= CELLS; j++) {
-                const a = grid[slot(i, j)];
-                if (!a) continue;
-                for (const b of [
-                    inside(i + 1, j) && grid[slot(i + 1, j)],
-                    inside(i, j + 1) && grid[slot(i, j + 1)],
-                ]) {
-                    if (b && (a.hasFiniteMass() || b.hasFiniteMass())) links.push([a, b]);
-                }
-            }
-        }
-
-        const rebuildForces = (): void => {
-            world.forceRegistry.clear();
-            const rest = SPACING * (1 - current.tension);
-            for (const [a, b] of links) {
-                if (a.hasFiniteMass())
-                    world.forceRegistry.add(a, new ParticleSpring(b, STIFFNESS, rest));
-                if (b.hasFiniteMass())
-                    world.forceRegistry.add(b, new ParticleSpring(a, STIFFNESS, rest));
-            }
-        };
-        const applyDamping = (): void => {
-            for (const particle of world.particles) particle.damping = current.damping;
-        };
+        const substeps = new Substeps(MAX_SUBSTEP);
+        const sim = new DrumheadSim({
+            radius: RADIUS,
+            spacing: SPACING,
+            height: HEIGHT,
+            mass: MASS,
+            stiffness: STIFFNESS,
+            tension: values.tension,
+            damping: values.damping,
+        });
+        useWorld(sim.world);
+        const { grid, side, cells } = sim;
 
         // Heights above rest, per grid point, from the last two steps. Outside the rim stays 0.
-        const before = new Float32Array(SIDE * SIDE);
-        const after = new Float32Array(SIDE * SIDE);
-        const heights = new Float32Array(SIDE * SIDE);
+        const before = new Float32Array(side * side);
+        const after = new Float32Array(side * side);
+        const heights = new Float32Array(side * side);
         const capture = (into: Float32Array): void => {
             grid.forEach((p, n) => {
-                if (p) into[n] = p.position.y - HEIGHT;
+                if (p) into[n] = sim.displacement(p);
             });
         };
         const sample = (x: number, z: number): number => {
-            const gx = x / SPACING + CELLS;
-            const gz = z / SPACING + CELLS;
-            const i = Math.min(Math.max(Math.floor(gx), 0), SIDE - 2);
-            const j = Math.min(Math.max(Math.floor(gz), 0), SIDE - 2);
+            const gx = x / SPACING + cells;
+            const gz = z / SPACING + cells;
+            const i = Math.min(Math.max(Math.floor(gx), 0), side - 2);
+            const j = Math.min(Math.max(Math.floor(gz), 0), side - 2);
             const fx = gx - i;
             const fz = gz - j;
-            const at = (a: number, b: number) => heights[a * SIDE + b]!;
+            const at = (a: number, b: number) => heights[a * side + b]!;
             return (
                 (at(i, j) * (1 - fz) + at(i, j + 1) * fz) * (1 - fx) +
                 (at(i + 1, j) * (1 - fz) + at(i + 1, j + 1) * fz) * fx
@@ -204,33 +153,18 @@ export const drumheadDemo = defineDemo({
         shell.castShadow = true;
         root.add(skin, hoop, shell);
 
-        const strike = (x: number, z: number): void => {
-            const reach = current.mallet;
-            for (const particle of world.particles) {
-                const d = Math.hypot(particle.position.x - x, particle.position.z - z);
-                if (d >= reach) continue;
-                const falloff = Math.cos((Math.PI * d) / (2 * reach)) ** 2;
-                particle.velocity.y -= STRIKE_SPEED * falloff;
-            }
-        };
-
+        const strike = (x: number, z: number): void =>
+            sim.strike(x, z, current.mallet, STRIKE_SPEED);
         const tap = new TapHandle(view, skin, (hit) => strike(hit.point.x, hit.point.z));
 
-        /** Force each spring pulls with at rest, N. */
-        const tension = () => STIFFNESS * SPACING * current.tension;
-        // Wave speed: √(pull per unit length of skin / mass per unit area).
-        const waveSpeed = () => Math.sqrt(tension() / SPACING / (MASS / SPACING ** 2));
-
-        rebuildForces();
-        applyDamping();
         capture(after);
         strike(0, 0);
 
         return {
             update(next, changed) {
                 current = next;
-                if (changed.has("tension")) rebuildForces();
-                if (changed.has("damping")) applyDamping();
+                if (changed.has("tension")) sim.setTension(next.tension);
+                if (changed.has("damping")) sim.setDamping(next.damping);
             },
             action(id) {
                 if (id === "centre") strike(0, 0);
@@ -238,15 +172,10 @@ export const drumheadDemo = defineDemo({
             },
             step(dt) {
                 before.set(after);
-                const n = substepsFor(dt, MAX_SUBSTEP);
-                for (let i = 0; i < n; i++) world.step(dt / n);
+                substeps.run(dt, (h) => sim.step(h));
                 capture(after);
-                sampleTime += dt;
-                while (sampleTime >= 1 / SAMPLES_PER_SECOND) {
-                    plot("centre", [centre.position.y - HEIGHT]);
-                    sampleTime -= 1 / SAMPLES_PER_SECOND;
-                }
             },
+            sample: () => ({ centre: [sim.displacement(sim.centre)] }),
             sync(alpha) {
                 for (let n = 0; n < heights.length; n++) {
                     heights[n] = before[n]! + (after[n]! - before[n]!) * alpha;
@@ -262,34 +191,31 @@ export const drumheadDemo = defineDemo({
                 colors.needsUpdate = true;
                 geometry.computeVertexNormals();
             },
-            readouts() {
-                const speed = waveSpeed();
-                return [
-                    {
-                        title: "Skin",
-                        rows: [
-                            { label: "Particles", value: formatNumber(world.particles.length, 0) },
-                            { label: "Springs", value: formatNumber(links.length, 0) },
-                            { label: "Tension", value: `${formatNumber(tension(), 2)} N` },
-                        ],
-                    },
-                    {
-                        title: "Sound",
-                        color: 0,
-                        rows: [
-                            { label: "Wave speed", value: `${formatNumber(speed, 2)} m/s` },
-                            {
-                                label: "Lowest note",
-                                value: `${formatNumber((BESSEL_ZERO * speed) / (2 * Math.PI * RADIUS), 2)} Hz`,
-                            },
-                            {
-                                label: "Centre",
-                                value: `${formatNumber(centre.position.y - HEIGHT, 2)} m`,
-                            },
-                        ],
-                    },
-                ];
-            },
+            readouts: () => [
+                {
+                    title: "Skin",
+                    rows: [
+                        {
+                            label: "Particles",
+                            value: formatNumber(sim.world.particles.length, 0),
+                        },
+                        { label: "Springs", value: formatNumber(sim.links.length, 0) },
+                        { label: "Tension", value: `${formatNumber(sim.springTension(), 2)} N` },
+                    ],
+                },
+                {
+                    title: "Sound",
+                    color: 0,
+                    rows: [
+                        { label: "Wave speed", value: `${formatNumber(sim.waveSpeed(), 2)} m/s` },
+                        { label: "Lowest note", value: `${formatNumber(sim.lowestNote(), 2)} Hz` },
+                        {
+                            label: "Centre",
+                            value: `${formatNumber(sim.displacement(sim.centre), 2)} m`,
+                        },
+                    ],
+                },
+            ],
             dispose() {
                 tap.dispose();
             },

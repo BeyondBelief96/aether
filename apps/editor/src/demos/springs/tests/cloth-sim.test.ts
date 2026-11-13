@@ -9,7 +9,9 @@ function settle(stiffness: number, wind: number, seconds: number, hz = 60, subst
     cloth.setStiffness(stiffness);
     cloth.setDamping(0.6);
     cloth.wind.speed = wind;
-    for (let t = 0; t < seconds; t += 1 / hz) cloth.step(1 / hz, substeps);
+    for (let t = 0; t < seconds; t += 1 / hz) {
+        for (let i = 0; i < substeps; i++) cloth.step(1 / hz / substeps);
+    }
     return cloth;
 }
 

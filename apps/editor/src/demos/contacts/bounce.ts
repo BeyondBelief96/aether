@@ -16,7 +16,6 @@ import { BounceSim } from "./bounce-sim";
 const RADIUS = 0.3; // m
 const SPACING = 1.6; // m
 const MARK_WIDTH = 0.9; // m
-const SAMPLES_PER_SECOND = 30;
 
 const restitution = (index: number, value: number) =>
     number({
@@ -82,15 +81,14 @@ export const bounceDemo = defineDemo({
                 { label: "0–2 m", min: 0, max: 2, digits: 1 },
                 { label: "0–0.2 m", min: 0, max: 0.2, digits: 2 },
             ],
-            capacity: SAMPLES_PER_SECOND * 12,
+            seconds: 12,
             description: "Height of each ball above the ground over the last 12 seconds.",
         },
     ],
     camera: { position: { x: 0, y: 3, z: 8 }, target: { x: 0, y: 2.2, z: 0 } },
     source: "apps/editor/src/demos/contacts/bounce.ts",
-    create({ root, palette, values, plot, clearCharts, useWorld }) {
+    create({ root, palette, values, clearCharts, useWorld }) {
         let current = values;
-        let sampleTime = 0;
         const sim = new BounceSim({
             radius: RADIUS,
             spacing: SPACING,
@@ -99,7 +97,6 @@ export const bounceDemo = defineDemo({
             gravity: values.gravity,
         });
         useWorld(sim.world);
-        const heights = sim.balls.map(() => 0);
 
         const sphere = new SphereGeometry(RADIUS, 32, 16);
         const balls = sim.balls.map((ball, i) => {
@@ -124,7 +121,6 @@ export const bounceDemo = defineDemo({
         const drop = (): void => {
             sim.drop(current.height);
             blend.reset(particles);
-            sampleTime = 0;
             clearCharts();
         };
 
@@ -143,13 +139,8 @@ export const bounceDemo = defineDemo({
             step(dt) {
                 blend.remember(particles);
                 sim.step(dt);
-                sampleTime += dt;
-                while (sampleTime >= 1 / SAMPLES_PER_SECOND) {
-                    sim.balls.forEach((ball, i) => (heights[i] = sim.heightOf(ball)));
-                    plot("height", heights);
-                    sampleTime -= 1 / SAMPLES_PER_SECOND;
-                }
             },
+            sample: () => ({ height: sim.balls.map((ball) => sim.heightOf(ball)) }),
             sync(alpha) {
                 blend.blend(alpha);
                 for (const entry of balls) {

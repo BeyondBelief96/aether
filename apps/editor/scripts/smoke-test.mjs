@@ -145,6 +145,21 @@ try {
             .locator("code-view pre:not(.imports)", { hasText: "new ParticleAnchoredSpring" })
             .waitFor();
     });
+
+    await check("the code tab shows a demo's simulation file first", async () => {
+        await open("#/cloth");
+        await page.locator("data-tabs [role=tab]", { hasText: "Code" }).click();
+        const tabs = page.locator("code-view [role=tab]");
+        await tabs.first().waitFor();
+        const names = await tabs.allTextContents();
+        if (names.map((n) => n.trim()).join() !== "cloth-sim.ts,cloth.ts")
+            throw new Error(`file tabs are ${names.join(", ")}`);
+        await page
+            .locator("code-view pre:not(.imports)", { hasText: "new ParticleSpring" })
+            .waitFor();
+        await tabs.nth(1).click();
+        await page.locator("code-view pre:not(.imports)", { hasText: "new ClothSim" }).waitFor();
+    });
 } finally {
     await browser.close();
     await server.close();

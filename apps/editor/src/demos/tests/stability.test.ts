@@ -29,7 +29,6 @@ function start(
         palette: LIGHT,
         values,
         set() {},
-        plot() {},
         clearCharts() {},
         useWorld(world) {
             world.integrator = makeIntegrator(integrator);

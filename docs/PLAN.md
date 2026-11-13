@@ -73,9 +73,10 @@ packages/aether-lab/src/        Aether Lab's simulation core (planned); depends 
 packages/aether-gpu/   WebGPU kernels for the Lab's grid solvers and N-body (S6)
 packages/aether-viz/   the Three.js layer shared by the demo app and the Lab: stage, helpers, createLab (V1–V5)
 apps/editor/src/
-  core/         demo contract, parameter schema, routes, session
+  core/         demo contract, parameter schema, routes, session (steps the demo and samples its charts)
   stage/        Three.js renderer and theme palette
-  demos/        one file per demo, by category; the only engine+Three.js code
+  demos/        one file per demo, by category, with a Three.js-free `<name>-sim.ts` beside it when the
+                physics is non-trivial; the Code tab shows the sim first. The only engine+Three.js code
   ui/           Lit components that render each demo's description
 docs/           this plan, resources, demo guide
 ```
@@ -2742,8 +2743,8 @@ Track V builds `packages/aether-viz`, the Three.js layer. V1 is shared: it moves
 
 - [ ] `packages/aether-viz`: new workspace package; `three` as a peer dependency
 - [ ] Move the stage (renderer, camera, controls, theme palette) from `apps/editor/src/stage`
-- [ ] Move drawing helpers (`Polyline` and the rest) from `apps/editor/src/demos/helpers`
-- [ ] Move the parameter schema (`core/params.ts`), ring buffer, and the chart, readout and callout specs from `core/demo.ts`
+- [ ] Move drawing and stepping helpers (`Polyline`, `StepBlend`, `Substeps` and the rest) from `apps/editor/src/demos/helpers`
+- [ ] Move the parameter schema (`core/params.ts`), ring buffer, `Ticker`, and the chart, readout and callout specs from `core/demo.ts`
 - [ ] `apps/editor` imports them from `aether-viz`
 
 **Working when:** every demo runs unchanged, and the unit and smoke tests pass.

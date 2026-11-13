@@ -2,7 +2,7 @@
 
 How to add a demo to the demo app in `apps/editor`: the demo contract, parameters and presets, readouts, charts and callouts, using the engine from Three.js, and the drawing helpers.
 
-A demo is one file. It describes its parameters as data and returns a running instance; the app draws every control, the transport, the readouts, the charts and the code view from that description. A demo never builds UI.
+A demo is one file, plus a Three.js-free simulation module beside it when the physics is more than a few lines. The demo describes its parameters as data and returns a running instance; the app draws every control, the transport, the readouts, the charts and the code view from that description. A demo never builds UI.
 
 **Where this is heading.** V1 in [PLAN.md](./PLAN.md#track-v-visualization-library) moves the stage, drawing helpers and parameter schema into `packages/aether-viz`, shared with Aether Lab. The engine's demos then import them from there; the demo contract below doesn't change. Lab examples are a separate thing, built on `createLab` (V2), and get their own guide.
 
@@ -77,8 +77,8 @@ When a demo uses several features, put it under the one that makes it interestin
 3. Declare the parameters that matter, with units and ranges that stay stable. Add up to four presets that show the demo's range, and a `hint` that names one thing to try.
 4. Build the scene under `ctx.root`; simulate in `step`; draw in `sync`.
 5. Add readouts for the numbers that prove the physics is right, and callouts for the few that belong next to a body.
-6. If the simulation is non-trivial, move it into a Three.js-free module beside the demo and test it (see `springs/cloth-sim.ts`).
-7. Add the demo's id to `DEMOS` in `apps/editor/scripts/smoke-test.mjs`. `demos/tests/stability.test.ts` picks up every registered demo on its own and fails if any preset goes non-finite at any physics rate; if yours does, substep with `substepsFor`.
+6. If the simulation is non-trivial, move it into a Three.js-free `<name>-sim.ts` beside the demo and test it (see `springs/cloth-sim.ts`). The Code tab shows every file the demo imports from its own folder, those files first, so the engine calls a visitor came to read sit in the first tab.
+7. Add the demo's id to `DEMOS` in `apps/editor/scripts/smoke-test.mjs`. `demos/tests/stability.test.ts` picks up every registered demo on its own and fails if any preset goes non-finite at any physics rate; if yours does, substep with `Substeps`.
 8. Tick it off in `docs/PLAN.md`.
 9. Check it by hand:
    - Every preset, then Reset (R): it restarts cleanly with the current values.
@@ -174,7 +174,7 @@ To change a parameter from inside the demo, for example when the user drags some
 ## 5. Readouts, charts and callouts
 
 - **Readouts:** `readouts()` returns groups of label and formatted value. It is called about four times a second while the Readouts tab is open. Format with `formatNumber` (fixed decimals, real minus sign) and include units. Mark a row `warn: true` when it shows something going wrong, like `ω·dt > 1`.
-- **Charts:** declare a `ChartSpec` in `charts` (series, switchable vertical ranges, a reference line, capacity) and call `ctx.plot(id, values)` from `step`. Samples are kept while the tab is closed. Plot at a fixed rate in simulated time, not once per step, so the chart's width means the same at every physics rate.
+- **Charts:** declare a `ChartSpec` in `charts` (series, switchable vertical ranges, a reference line, and `seconds` of history) and return the current values from `sample()`, keyed by chart id: `sample: () => ({ energy: [kinetic, potential] })`. The session calls it at `CHART_SAMPLE_RATE` (30 Hz) in simulated time, so a chart's width means the same at every physics rate; return `null` to skip a sample, for example while the user holds a body. Call `ctx.clearCharts()` when the scene restarts. Samples are kept while the tab is closed.
 - **Callouts:** `callouts()` returns short labels pinned to points in the scene. `at` is read every frame, so pass a live position such as `mesh.position`. Keep them to a few words and use them for the one number a viewer should watch.
 
 Colours in all three refer to series by index (`color: 0` to `3`), so a readout, a chart line and a body share one colour.
@@ -221,7 +221,15 @@ Save the previous state at the top of `step` and blend in `sync`. For particles,
 
 ### Substepping
 
-A demo may advance the world several times inside one `step` to keep stiff systems stable (the cloth runs four substeps). Report the substep count in a readout so the viewer knows.
+A demo may advance the world several times inside one `step` to keep stiff systems stable. `Substeps` splits each step into the fewest equal substeps no longer than a maximum, so lowering the physics rate keeps the demo stable, and its `readout()` reports the count so the viewer knows:
+
+```ts
+const substeps = new Substeps(1 / 240);
+// in step(dt):
+substeps.run(dt, (h) => sim.step(h));
+```
+
+A simulation module's `step(dt)` advances by exactly `dt`; the demo owns substepping.
 
 ## 7. Drawing helpers
 
@@ -230,14 +238,14 @@ In `apps/editor/src/demos/helpers/`:
 | Helper | Use |
 |---|---|
 | `VectorArrow` | An arrow whose length is a vector's magnitude, drawn over meshes |
-| `Polyline` | A line rewritten in place without allocating. `append` adds a point and drops the oldest when full, for trails |
+| `Polyline` | A line rewritten in place without allocating. `append` adds a point and drops the oldest when full, for trails. Pace a trail by simulated time with `Ticker` from `core/ticker.ts` |
 | `Strut` | A mesh stretched between two points, for rods, cables, logs and beams. Give it a geometry one unit long along y, centred, and call `place(a, b)` |
 | `SpringCoil` | A helix between two points with a fixed number of turns |
 | `DragHandle` | Lets the user drag an object. Your callback receives the pointer's world-space ray; an optional second callback runs on release. Turns orbiting off during the drag. Call `dispose()` in `dispose` |
-| `substepsFor` | How many substeps keep each one under a maximum length. Stiff demos substep by it so every physics rate the transport offers stays stable |
+| `Substeps` | Runs each step as the fewest equal substeps under a maximum length, and reports the count as a readout. See [Substepping](#substepping) |
 | `resolverParams`, `ResolverBudget` | The contact resolver's iteration budget as an *Auto iterations* toggle and an *Iterations* slider. `ResolverBudget` installs a resolver for those values, swaps in a new one when either changes, and gives a "used of limit" readout from the resolver it holds |
-| `StepBlend` | Particle positions blended between the last two steps. `remember` before a step, `blend(alpha)` in `sync`, read with `positionOf`; `reset` snaps, `forget` drops a removed particle |
-| `worstRodError`, `kineticEnergy` | The largest rod length error, and the kinetic energy of the movable particles, for readouts |
+| `StepBlend` | Particle positions blended between the last two steps. `remember` before a step, `blend(alpha)` in `sync`, read with `positionOf`; `previousOf` gives the position before the step, `reset` snaps, `forget` drops a removed particle |
+| `worstRodError`, `lengthErrorReadout`, `kineticEnergy` | The largest rod length error, a readout row that shows a length error in millimetres and flags it past 1 cm, and the kinetic energy of the movable particles |
 | `TapHandle` | Calls back with the hit when the user presses on an object, without also turning the camera. For strikes and placing things. Call `dispose()` in `dispose` |
 | `disposeObject` | Frees the GPU resources under an object. The session already calls it on `root` |
 
@@ -293,7 +301,7 @@ An 18 × 18 grid of particles with structural and shear links, each link a `Part
 
 ### Drumhead
 
-About 1,200 particles on a square grid inside a 5 m circle, each joined to its four neighbours by a `ParticleSpring` on both ends. Grid points missing a neighbour form the rim and are immovable. The springs' rest length is `spacing · (1 − tension)`, so the skin starts stretched and every spring pulls with `k · spacing · tension`; that pull, not the stiffness, sets the wave speed `√(T / spacing · spacing² / m)`. Gravity is off, and the world is substepped to 1/60 s so low physics rates stay stable. A strike adds downward velocity with a cos² falloff across the mallet. The drawn skin is a separate ring mesh whose heights are sampled bilinearly from the grid, so its edge meets the round hoop instead of following the grid's staircase.
+About 1,200 particles on a square grid inside a 5 m circle, each joined to its four neighbours by a `ParticleSpring` on both ends. Grid points missing a neighbour form the rim and are immovable. The springs' rest length is `spacing · (1 − tension)`, so the skin starts stretched and every spring pulls with `k · spacing · tension`; that pull, not the stiffness, sets the wave speed `√(T / spacing · spacing² / m)`. Gravity is off, and the world is substepped to 1/60 s so low physics rates stay stable. A strike adds downward velocity with a cos² falloff across the mallet. The skin's physics lives in `drumhead-sim.ts`, tested on its own. The drawn skin is a separate ring mesh whose heights are sampled bilinearly from the grid, so its edge meets the round hoop instead of following the grid's staircase.
 
 ### Elastic pendulum
 
@@ -315,7 +323,7 @@ Shapes made of particles and `ParticleRod`s only, dropped with a spin about a ti
 
 ### Raft
 
-Five logs as a two-layer truss: 35 log nodes and 35 deck nodes, joined along, across and diagonally within each layer and between them, so the raft resists bending without any rigid body. Only log nodes float. A crate is one particle on four springs to the corners of the deck cell under it, registered on both ends, so removing a crate removes the springs on the deck nodes too. The truss and crate springs are stiff for the lightest deck nodes, so the world is substepped to 1/600 s; that holds 20 crates of 1,500 kg on balsa at every physics rate.
+Five logs as a two-layer truss: 35 log nodes and 35 deck nodes, joined along, across and diagonally within each layer and between them, so the raft resists bending without any rigid body. Only log nodes float. A crate is one particle on four springs to the corners of the deck cell under it, registered on both ends, so removing a crate removes the springs on the deck nodes too. The truss and crate springs are stiff for the lightest deck nodes, so the world is substepped to 1/600 s; that holds 20 crates of 1,500 kg on balsa at every physics rate. The truss, crates and the clamp that stands in for the lake bed live in `raft-sim.ts`, tested on its own.
 
 ### Bounce
 

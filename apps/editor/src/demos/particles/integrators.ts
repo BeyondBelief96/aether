@@ -1,19 +1,20 @@
 import {
     BoxGeometry,
-    BufferAttribute,
     Group,
     LineBasicMaterial,
     Mesh,
     MeshStandardMaterial,
     SphereGeometry,
 } from "three";
-import { Vec3 } from "aether-physics";
+import { Vec3, type Particle } from "aether-physics";
 import { defineDemo, type SeriesIndex } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { choice, number } from "../../core/params";
 import { makeIntegrator, type IntegratorChoice } from "../../core/integrators";
+import { Ticker } from "../../core/ticker";
 import { Polyline } from "../helpers/polyline";
 import { SpringCoil } from "../helpers/spring-coil";
+import { StepBlend } from "../helpers/step-blend";
 import { disposeObject } from "../helpers/three";
 import { IntegratorLane, type ShootoutOptions } from "./integrators-sim";
 
@@ -35,9 +36,7 @@ const HEIGHT = 4; // m above the ground, enough for the tallest orbit
 const BODY_RADIUS = 0.35; // m
 const STAR_RADIUS = 0.5; // m
 const TRAIL_POINTS = 360;
-const SAMPLES_PER_SECOND = 30;
-
-const _drawn = new Vec3();
+const TRAIL_RATE = 30; // points per second
 
 const isOrbit = (v: Readonly<Record<string, unknown>>) => v.scene === "orbit";
 const isSpring = (v: Readonly<Record<string, unknown>>) => v.scene === "spring";
@@ -103,26 +102,22 @@ export const integratorsDemo = defineDemo({
                 { label: "0–3×", min: 0, max: 3, digits: 1 },
             ],
             reference: 1,
-            capacity: SAMPLES_PER_SECOND * 20,
+            seconds: 20,
             description:
                 "Each integrator's energy divided by its starting energy, over the last 20 seconds. A lane stops when its ratio leaves 0 to 3.",
         },
     ],
     camera: { position: { x: 0, y: 7, z: 31 }, target: { x: 0, y: 4.5, z: 0 } },
     source: "apps/editor/src/demos/particles/integrators.ts",
-    create({ root, palette, values, plot, clearCharts }) {
+    create({ root, palette, values, clearCharts }) {
         let current = values;
-        let sampleTime = 0;
+        const blend = new StepBlend();
+        const trailClock = new Ticker(1 / TRAIL_RATE);
 
         let lanes: IntegratorLane[] = [];
+        let bodies: Particle[] = [];
         let scene = new Group();
-        let draw: {
-            body: Mesh;
-            previous: Vec3;
-            coil?: SpringCoil;
-            trail?: Polyline;
-            trailCount: number;
-        }[] = [];
+        let draw: { body: Mesh; coil?: SpringCoil; trail?: Polyline }[] = [];
 
         const origin = (i: number) => new Vec3((i - (LANES.length - 1) / 2) * SPACING, HEIGHT, 0);
 
@@ -159,7 +154,7 @@ export const integratorsDemo = defineDemo({
                     scene.add(post);
                     const coil = new SpringCoil(new LineBasicMaterial({ color: palette.ink }));
                     scene.add(coil);
-                    return { body, previous: lane.body.position.clone(), coil, trailCount: 0 };
+                    return { body, coil };
                 }
 
                 const star = new Mesh(
@@ -177,27 +172,12 @@ export const integratorsDemo = defineDemo({
                     new LineBasicMaterial({ color, transparent: true, opacity: 0.7 }),
                 );
                 scene.add(trail);
-                return { body, previous: lane.body.position.clone(), trail, trailCount: 0 };
+                return { body, trail };
             });
-            sampleTime = 0;
+            bodies = lanes.map((lane) => lane.body);
+            blend.reset(bodies);
+            trailClock.reset();
             clearCharts();
-        };
-
-        /** Appends the lane's current position to its trail, dropping the oldest when full. */
-        const extendTrail = (i: number): void => {
-            const item = draw[i]!;
-            const trail = item.trail;
-            if (!trail) return;
-            const position = lanes[i]!.body.position;
-            if (item.trailCount < TRAIL_POINTS) {
-                trail.setPoint(item.trailCount, position);
-                item.trailCount++;
-                trail.setCount(item.trailCount);
-                return;
-            }
-            const attr = trail.geometry.getAttribute("position") as BufferAttribute;
-            attr.array.copyWithin(0, 3);
-            trail.setPoint(TRAIL_POINTS - 1, position);
         };
 
         build();
@@ -214,27 +194,19 @@ export const integratorsDemo = defineDemo({
                 }
             },
             step(dt) {
-                lanes.forEach((lane, i) => {
-                    draw[i]!.previous.copy(lane.body.position);
-                    lane.step(dt);
-                });
-                sampleTime += dt;
-                while (sampleTime >= 1 / SAMPLES_PER_SECOND) {
-                    plot(
-                        "energy",
-                        lanes.map((lane) => lane.relativeEnergy()),
-                    );
-                    lanes.forEach((_, i) => extendTrail(i));
-                    sampleTime -= 1 / SAMPLES_PER_SECOND;
+                blend.remember(bodies);
+                for (const lane of lanes) lane.step(dt);
+                for (let i = trailClock.advance(dt); i > 0; i--) {
+                    lanes.forEach((lane, k) => draw[k]!.trail?.append(lane.body.position));
                 }
             },
+            sample: () => ({ energy: lanes.map((lane) => lane.relativeEnergy()) }),
             sync(alpha) {
+                blend.blend(alpha);
                 lanes.forEach((lane, i) => {
-                    const item = draw[i]!;
-                    item.body.position.copy(
-                        _drawn.copy(item.previous).lerp(lane.body.position, alpha),
-                    );
-                    item.coil?.update(lane.pivot, item.body.position);
+                    const { body, coil } = draw[i]!;
+                    body.position.copy(blend.positionOf(lane.body));
+                    coil?.update(lane.pivot, body.position);
                 });
             },
             readouts: () =>

@@ -14,6 +14,7 @@ import { defineDemo } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { number } from "../../core/params";
 import { Polyline } from "../helpers/polyline";
+import { StepBlend } from "../helpers/step-blend";
 
 /**
  * A disk of dust around two stars. Each star is the source of one `ParticleAttraction`, shared
@@ -33,7 +34,6 @@ const TRAIL_POINTS = 240;
 const MAX_DUST = 2000;
 const ESCAPE_RADIUS = 60; // m, dust past this is counted as escaped
 const STAR_RADIUS = 0.6; // m
-const SAMPLES_PER_SECOND = 30;
 
 /** Small seeded generator, so a reset rebuilds the same disk. */
 function random(seed: number): () => number {
@@ -76,15 +76,14 @@ export const orbitsDemo = defineDemo({
                 { label: "±5%", min: SEPARATION * 0.95, max: SEPARATION * 1.05, digits: 2 },
             ],
             reference: SEPARATION,
-            capacity: SAMPLES_PER_SECOND * 20,
+            seconds: 20,
             description: "Distance between the two stars over the last 20 seconds.",
         },
     ],
     camera: { position: { x: -5, y: 13, z: 21 }, target: { x: -5, y: HEIGHT - 1, z: 0 } },
     source: "apps/editor/src/demos/particles/orbits.ts",
-    create({ root, palette, values, plot, clearCharts, useWorld }) {
+    create({ root, palette, values, clearCharts, useWorld }) {
         let current = values;
-        let sampleTime = 0;
         const world = useWorld(new ParticleWorld());
         world.gravity.set(0, 0, 0);
         const rand = random(11);
@@ -122,7 +121,6 @@ export const orbitsDemo = defineDemo({
 
         const positions = new BufferAttribute(new Float32Array(MAX_DUST * 3), 3);
         const colors = new BufferAttribute(new Float32Array(MAX_DUST * 3), 3);
-        const previous = new Float32Array(MAX_DUST * 3);
         const geometry = new BufferGeometry()
             .setAttribute("position", positions)
             .setAttribute("color", colors);
@@ -132,6 +130,7 @@ export const orbitsDemo = defineDemo({
         const slow = new Color(palette.muted);
         const fast = new Color(palette.series[1]);
         const _color = new Color();
+        const blend = new StepBlend();
 
         /** Registers one attraction per star: on the other star and on every grain. */
         const attach = (): void => {
@@ -182,18 +181,9 @@ export const orbitsDemo = defineDemo({
                 dust.push(p);
             }
             attach();
-            remember();
+            blend.reset(world.particles);
             for (const trail of trails) trail.setCount(0);
-            sampleTime = 0;
             clearCharts();
-        };
-
-        const remember = (): void => {
-            dust.forEach((p, i) => {
-                previous[i * 3] = p.position.x;
-                previous[i * 3 + 1] = p.position.y;
-                previous[i * 3 + 2] = p.position.z;
-            });
         };
 
         build();
@@ -212,27 +202,21 @@ export const orbitsDemo = defineDemo({
                 if (changed.has("drag")) for (const p of dust) p.damping = 1 - current.drag;
             },
             step(dt) {
-                remember();
+                blend.remember(world.particles);
                 for (let i = 0; i < SUBSTEPS; i++) world.step(dt / SUBSTEPS);
-                sampleTime += dt;
-                while (sampleTime >= 1 / SAMPLES_PER_SECOND) {
-                    plot("separation", [stars[0].position.distanceTo(stars[1].position)]);
-                    sampleTime -= 1 / SAMPLES_PER_SECOND;
-                }
                 stars.forEach((star, i) => trails[i]!.append(star.position));
             },
+            sample: () => ({
+                separation: [stars[0].position.distanceTo(stars[1].position)],
+            }),
             sync(alpha) {
-                stars.forEach((star, i) => starMeshes[i]!.position.copy(star.position));
+                blend.blend(alpha);
+                stars.forEach((star, i) => starMeshes[i]!.position.copy(blend.positionOf(star)));
                 const n = dust.length;
                 for (let i = 0; i < n; i++) {
                     const p = dust[i]!;
-                    const k = i * 3;
-                    positions.setXYZ(
-                        i,
-                        previous[k]! + (p.position.x - previous[k]!) * alpha,
-                        previous[k + 1]! + (p.position.y - previous[k + 1]!) * alpha,
-                        previous[k + 2]! + (p.position.z - previous[k + 2]!) * alpha,
-                    );
+                    const { x, y, z } = blend.positionOf(p);
+                    positions.setXYZ(i, x, y, z);
                     const t = Math.min(1, p.velocity.magnitude() / (Math.sqrt(starPull()) * 0.9));
                     _color.copy(slow).lerp(fast, t * t);
                     colors.setXYZ(i, _color.r, _color.g, _color.b);

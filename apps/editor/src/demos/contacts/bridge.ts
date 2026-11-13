@@ -15,10 +15,10 @@ import { defineDemo } from "../../core/demo";
 import { formatNumber } from "../../core/format";
 import { number, toggle } from "../../core/params";
 import type { ScenePalette } from "../../stage/palette";
-import { worstRodError } from "../helpers/measure";
+import { lengthErrorReadout, worstRodError } from "../helpers/measure";
 import { ResolverBudget, resolverParams } from "../helpers/resolver";
 import { StepBlend } from "../helpers/step-blend";
-import { substepsFor } from "../helpers/substeps";
+import { Substeps } from "../helpers/substeps";
 import { BridgeSim } from "./bridge-sim";
 
 /**
@@ -38,7 +38,6 @@ const HANGER_DROP = 0.6; // m
 const NODE_MASS = 5; // kg
 const DAMPING = 0.5;
 const MAX_SUBSTEP = 1 / 60; // s; keeps a heavy load stable at low physics rates
-const ERROR_WARNING = 0.01; // m
 const ABUTMENT = 1.2; // m
 const POST = 0.16; // m
 const LOAD_SIZE = { x: 0.8, y: 0.5, z: 1.1 }; // m, at 60 kg
@@ -222,7 +221,7 @@ export const bridgeDemo = defineDemo({
     camera: { position: { x: 4, y: 6.5, z: 11 }, target: { x: 0, y: 3, z: 0 } },
     source: "apps/editor/src/demos/contacts/bridge.ts",
     create({ root, palette, values, useWorld }) {
-        let dt = 1 / 60;
+        const substeps = new Substeps(MAX_SUBSTEP);
         const sim = new BridgeSim({
             sections: SECTIONS,
             span: SPAN,
@@ -274,11 +273,9 @@ export const bridgeDemo = defineDemo({
                 }
                 budget.update(next, changed);
             },
-            step(stepDt) {
-                dt = stepDt;
+            step(dt) {
                 blend.remember(sim.particles);
-                const substeps = substepsFor(stepDt, MAX_SUBSTEP);
-                for (let i = 0; i < substeps; i++) sim.step(stepDt / substeps);
+                substeps.run(dt, (h) => sim.step(h));
             },
             sync(alpha) {
                 blend.blend(alpha);
@@ -287,50 +284,35 @@ export const bridgeDemo = defineDemo({
                 links.place();
                 placeLoad();
             },
-            readouts: () => {
-                const rodError = worstRodError(sim.rods);
-                const stretch = Math.max(sim.cableStretch(), 0);
-                return [
-                    {
-                        title: "Bridge",
-                        color: 0,
-                        rows: [
-                            {
-                                label: "Taut cables",
-                                value: `${sim.tautCount()} of ${sim.cableCount()}`,
-                            },
-                            { label: "Rods", value: String(sim.rods.length) },
-                            { label: "Lowest point", value: `${formatNumber(sim.sag(), 2)} m` },
-                            {
-                                label: "Under the load",
-                                value: `${formatNumber(sim.dropUnderLoad(), 2)} m`,
-                            },
-                        ],
-                    },
-                    {
-                        title: "Resolver",
-                        color: 1,
-                        rows: [
-                            { label: "Contacts", value: String(sim.world.contactCount) },
-                            budget.readout(false),
-                            {
-                                label: "Worst rod error",
-                                value: `${formatNumber(rodError * 1000, 1)} mm`,
-                                warn: rodError > ERROR_WARNING,
-                            },
-                            {
-                                label: "Worst cable stretch",
-                                value: `${formatNumber(stretch * 1000, 1)} mm`,
-                                warn: stretch > ERROR_WARNING,
-                            },
-                            {
-                                label: "Substeps per step",
-                                value: String(substepsFor(dt, MAX_SUBSTEP)),
-                            },
-                        ],
-                    },
-                ];
-            },
+            readouts: () => [
+                {
+                    title: "Bridge",
+                    color: 0,
+                    rows: [
+                        {
+                            label: "Taut cables",
+                            value: `${sim.tautCount()} of ${sim.cableCount()}`,
+                        },
+                        { label: "Rods", value: String(sim.rods.length) },
+                        { label: "Lowest point", value: `${formatNumber(sim.sag(), 2)} m` },
+                        {
+                            label: "Under the load",
+                            value: `${formatNumber(sim.dropUnderLoad(), 2)} m`,
+                        },
+                    ],
+                },
+                {
+                    title: "Resolver",
+                    color: 1,
+                    rows: [
+                        { label: "Contacts", value: String(sim.world.contactCount) },
+                        budget.readout(false),
+                        lengthErrorReadout("Worst rod error", worstRodError(sim.rods)),
+                        lengthErrorReadout("Worst cable stretch", Math.max(sim.cableStretch(), 0)),
+                        substeps.readout(),
+                    ],
+                },
+            ],
             callouts: () =>
                 sim.loadMass > 0
                     ? [

@@ -35,6 +35,11 @@ export class StepBlend {
         this.alpha = alpha;
     }
 
+    /** `particle`'s position before the last step, or its current one if never remembered. */
+    previousOf(particle: Particle, out: Vec3 = _blended): Vec3 {
+        return out.copy(this.previous.get(particle) ?? particle.position);
+    }
+
     /**
      * `particle`'s blended position, written to `out`, which defaults to a scratch vector shared
      * by every call. A particle never remembered is at its current position.

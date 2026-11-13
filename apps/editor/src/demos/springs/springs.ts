@@ -24,6 +24,7 @@ import { number, toggle } from "../../core/params";
 import { DragHandle } from "../helpers/drag-handle";
 import { Polyline } from "../helpers/polyline";
 import { SpringCoil } from "../helpers/spring-coil";
+import { StepBlend } from "../helpers/step-blend";
 import { VectorArrow } from "../helpers/vector-arrow";
 
 /**
@@ -47,7 +48,6 @@ const MAX_ARROW_FORCE = 100; // N
 const ANCHOR_START: Readonly<Vec3Like> = Object.freeze({ x: ANCHORED_X, y: TOP, z: 0 });
 const BUNGEE_TOP: Readonly<Vec3Like> = Object.freeze({ x: BUNGEE_X, y: TOP, z: 0 });
 
-const _blended = new Vec3();
 const _force = new Vec3();
 const _momentum = new Vec3();
 const _hit = new Vector3();
@@ -79,11 +79,12 @@ function forceOn(particle: Particle, generator: ParticleForceGenerator): Vec3 {
 
 class Body {
     readonly particle = new Particle();
-    readonly previous = new Vec3();
     readonly mesh: Mesh;
     readonly arrow: VectorArrow;
+    readonly #blend: StepBlend;
 
-    constructor(color: number, arrowColor: number, root: Group) {
+    constructor(color: number, arrowColor: number, root: Group, blend: StepBlend) {
+        this.#blend = blend;
         this.particle.setMass(MASS);
         this.mesh = new Mesh(
             new SphereGeometry(BOB_RADIUS, 24, 16),
@@ -97,12 +98,12 @@ class Body {
         this.particle.position.copy(position);
         this.particle.velocity.copy(velocity);
         this.particle.clearAccumulator();
-        this.previous.copy(position);
+        this.#blend.remember([this.particle]);
     }
 
-    blend(alpha: number): Vector3 {
-        _blended.copy(this.previous).lerp(this.particle.position, alpha);
-        return this.mesh.position.copy(_blended);
+    /** Moves the mesh to the blended position and returns it. */
+    draw(): Vector3 {
+        return this.mesh.position.copy(this.#blend.positionOf(this.particle));
     }
 
     drawForce(generator: ParticleForceGenerator, show: boolean): void {
@@ -148,6 +149,7 @@ export const springsDemo = defineDemo({
         let current = values;
         let dt = 1 / 60;
         const world = useWorld(new ParticleWorld());
+        const blend = new StepBlend();
         const [anchoredColor, pairColor, bungeeColor] = palette.series;
 
         const block = () =>
@@ -157,11 +159,11 @@ export const springsDemo = defineDemo({
             );
         const anchorBlock = block();
         anchorBlock.position.copy(ANCHOR_START);
-        const anchoredBob = new Body(anchoredColor, palette.ink, root);
+        const anchoredBob = new Body(anchoredColor, palette.ink, root, blend);
         const anchoredCoil = new SpringCoil(new LineBasicMaterial({ color: anchoredColor }));
 
-        const pairA = new Body(pairColor, palette.ink, root);
-        const pairB = new Body(pairColor, palette.ink, root);
+        const pairA = new Body(pairColor, palette.ink, root, blend);
+        const pairB = new Body(pairColor, palette.ink, root, blend);
         const pairCoil = new SpringCoil(new LineBasicMaterial({ color: pairColor }));
         pairA.particle.gravityScale = 0;
         pairB.particle.gravityScale = 0;
@@ -169,7 +171,7 @@ export const springsDemo = defineDemo({
         const bungeeTop = new Particle();
         bungeeTop.setMass(Infinity);
         bungeeTop.position.copy(BUNGEE_TOP);
-        const jumper = new Body(bungeeColor, palette.ink, root);
+        const jumper = new Body(bungeeColor, palette.ink, root, blend);
         const ropeMaterial = new LineBasicMaterial({ color: palette.muted });
         const rope = new Polyline(2, ropeMaterial);
         rope.setCount(2);
@@ -232,17 +234,18 @@ export const springsDemo = defineDemo({
             },
             step(stepDt) {
                 dt = stepDt;
-                for (const body of bodies) body.previous.copy(body.particle.position);
+                blend.remember(world.particles);
                 world.step(stepDt);
             },
             sync(alpha) {
+                blend.blend(alpha);
                 anchorBlock.position.copy(anchored.anchor);
-                anchoredCoil.update(anchored.anchor, anchoredBob.blend(alpha));
+                anchoredCoil.update(anchored.anchor, anchoredBob.draw());
                 anchoredBob.drawForce(anchored, current.forces);
-                pairCoil.update(pairA.blend(alpha), pairB.blend(alpha));
+                pairCoil.update(pairA.draw(), pairB.draw());
                 pairA.drawForce(springOnA, current.forces);
                 pairB.drawForce(springOnB, current.forces);
-                const end = jumper.blend(alpha);
+                const end = jumper.draw();
                 rope.setPoint(0, bungeeTop.position);
                 rope.setPoint(1, end);
                 ropeMaterial.color.setHex(
