@@ -79,7 +79,7 @@ When a demo uses several features, put it under the one that makes it interestin
 5. Add readouts for the numbers that prove the physics is right, and callouts for the few that belong next to a body.
 6. If the simulation is non-trivial, move it into a Three.js-free `<name>-sim.ts` beside the demo and test it (see `springs/cloth-sim.ts`). The Code tab shows every file the demo imports from its own folder, those files first, so the engine calls a visitor came to read sit in the first tab.
 7. Add the demo's id to `DEMOS` in `apps/editor/scripts/smoke-test.mjs`. `demos/tests/stability.test.ts` picks up every registered demo on its own and fails if any preset goes non-finite at any physics rate; if yours does, substep with `Substeps`.
-8. Tick it off in `docs/PLAN.md`.
+8. Mark the step done in `docs/PLAN.md` and record what was built in `docs/BUILD-LOG.md`.
 9. Check it by hand:
    - Every preset, then Reset (R): it restarts cleanly with the current values.
    - Pause (Space) and step (`.`).

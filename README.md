@@ -4,7 +4,8 @@ A 3D rigid-body physics engine written from scratch in TypeScript, with a browse
 
 This is a learning project. The engine is built in phases, following Ian Millington's *Game Physics Engine Development*, Erin Catto's solver talks, and the resources collected at [brm.io/game-physics-for-beginners](https://brm.io/game-physics-for-beginners/).
 
-- **[docs/PLAN.md](docs/PLAN.md):** the build plan, with goals, checklists, tests and demos for each phase
+- **[docs/PLAN.md](docs/PLAN.md):** the build plan: the concepts, design decisions and reading for each phase
+- **[docs/BUILD-LOG.md](docs/BUILD-LOG.md):** what each step built, and where it departed from the plan
 - **[docs/RESOURCES.md](docs/RESOURCES.md):** books, articles, talks and reference engines for each phase
 - **[docs/DEMOS.md](docs/DEMOS.md):** how to build a demo: the demo contract, parameters, readouts and charts, and using the engine from Three.js
 
